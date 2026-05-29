@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { VarkingsLogo } from '@/components/ui/varkings-logo';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ username: '', fullName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -28,8 +27,8 @@ export default function RegisterPage() {
       setError('El nombre de usuario solo puede contener letras, números y _');
       return;
     }
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
@@ -57,8 +56,34 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push('/dashboard');
-    router.refresh();
+    setEmailSent(true);
+    setLoading(false);
+  }
+
+  if (emailSent) {
+    return (
+      <div className="animate-fade-in">
+        <div className="flex flex-col items-center mb-8">
+          <VarkingsLogo size={80} />
+          <h1 className="text-3xl font-bold text-white mt-4">VARkings</h1>
+        </div>
+        <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
+          <div className="text-4xl mb-4">📧</div>
+          <h2 className="text-xl font-semibold text-white mb-2">Revisa tu email</h2>
+          <p className="text-gray-400 text-sm">
+            Enviamos un enlace de confirmación a{' '}
+            <span className="text-white font-medium">{form.email}</span>.
+            Haz clic en él para activar tu cuenta.
+          </p>
+        </div>
+        <p className="text-center text-gray-400 mt-6 text-sm">
+          ¿Ya confirmaste?{' '}
+          <Link href="/login" className="text-crown hover:text-crown-light transition-colors font-medium">
+            Iniciar sesión
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (
