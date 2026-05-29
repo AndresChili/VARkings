@@ -1,0 +1,36 @@
+{
+  "name": "varkings",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@supabase/ssr": "^0.5.1",
+    "@supabase/supabase-js": "^2.45.1",
+    "autoprefixer": "^10.5.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.447.0",
+    "next": "^15.3.3",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwind-merge": "^2.5.3",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/web-push": "^3.6.3",
+    "eslint": "^8",
+    "eslint-config-next": "^15.3.3",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

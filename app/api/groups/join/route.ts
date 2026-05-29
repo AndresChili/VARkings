@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { invite_code } = await req.json();
+  if (!invite_code?.trim()) {
+    return NextResponse.json({ error: 'Código de invitación requerido' }, { status: 400 });
+  }
+
+  const { data: group } = await supabase
+    .from('groups')
+    .select('id, name')
+    .eq('invite_code', invite_code.trim().toUpperCase())
+    .single();
+
+  if (!group) {
+    return NextResponse.json({ error: 'Código de invitación inválido' }, { status: 404 });
+  }
+
+  // Check already member
+  const { data: existing } = await supabase
+    .from('group_members')
+    .select('id')
+    .eq('group_id', group.id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ group, already_member: true });
+  }
+
+  const { error } = await supabase
+    .from('group_members')
+    .insert({ group_id: group.id, user_id: user.id });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ group, already_member: false }, { status: 201 });
+}
