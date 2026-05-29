@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --field: #2D6A4F;
+  --field-dark: #1B4332;
+  --field-light: #52B788;
+  --crown: #D4AF37;
+  --crown-dark: #B8960C;
+  --crown-light: #F4D03F;
+  --surface: #0F1923;
+  --surface-card: #1A2634;
+  --surface-hover: #243447;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface);
+  color: #f1f5f9;
+  font-family: var(--font-geist-sans, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* PWA standalone mode safe areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--field);
+  border-radius: 2px;
+}
+
+/* Score input arrows hide */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Green field gradient for headers */
+.field-gradient {
+  background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 50%, #40916C 100%);
+}
+
+/* Crown shimmer animation */
+.crown-shimmer {
+  background: linear-gradient(90deg, #B8960C, #F4D03F, #D4AF37, #F4D03F, #B8960C);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Match prediction input */
+.score-input {
+  @apply w-16 h-16 text-3xl font-bold text-center bg-surface-hover border-2 border-field
+    rounded-xl text-white focus:outline-none focus:border-crown transition-colors;
+}
+
+/* Leaderboard rank colors */
+.rank-1 { color: #F4D03F; }
+.rank-2 { color: #C0C0C0; }
+.rank-3 { color: #CD7F32; }
+
+/* Bottom nav */
+.bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-surface-card border-t border-white/10
+    flex items-center justify-around z-50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-200 hover:border-field/50 hover:shadow-lg hover:shadow-field/10;
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  Helper to generate PWA icons from the VARkings SVG logo.
+  Open in browser, right-click each canvas, save as PNG.
+  Or use a tool like sharp/canvas to generate programmatically.
+
+  Sizes needed: 72, 96, 128, 144, 152, 192, 384, 512
+-->
+<html>
+<head><title>VARkings Icon Generator</title></head>
+<body style="background:#0F1923;display:flex;flex-wrap:wrap;gap:16px;padding:16px;">
+<script>
+const SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="50" fill="#1B4332"/>
+  <circle cx="50" cy="58" r="24" fill="#f8f8f8" stroke="#e0e0e0" stroke-width="0.5"/>
+  <polygon points="50,42 56,47 54,54 46,54 44,47" fill="#1a1a1a"/>
+  <polygon points="35,52 40,47 44,47 46,54 41,58" fill="#1a1a1a"/>
+  <polygon points="65,52 60,47 56,47 54,54 59,58" fill="#1a1a1a"/>
+  <polygon points="42,70 41,58 46,54 54,54 59,58 58,70" fill="#1a1a1a"/>
+  <rect x="22" y="30" width="56" height="14" rx="3" fill="#D4AF37"/>
+  <polygon points="50,4 44,20 56,20" fill="#D4AF37"/>
+  <polygon points="32,10 27,24 37,24" fill="#D4AF37"/>
+  <polygon points="68,10 63,24 73,24" fill="#D4AF37"/>
+  <circle cx="50" cy="10" r="4" fill="#2D6A4F"/>
+  <circle cx="32" cy="14" r="3" fill="#52B788"/>
+  <circle cx="68" cy="14" r="3" fill="#52B788"/>
+  <circle cx="35" cy="37" r="2.5" fill="#B8960C"/>
+  <circle cx="50" cy="37" r="2.5" fill="#B8960C"/>
+  <circle cx="65" cy="37" r="2.5" fill="#B8960C"/>
+</svg>`;
+
+const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+sizes.forEach(size => {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  const blob = new Blob([SVG], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, size, size);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.download = `icon-${size}x${size}.png`;
+    a.href = canvas.toDataURL('image/png');
+    const div = document.createElement('div');
+    div.style.cssText = 'text-align:center;color:white;font-family:sans-serif;font-size:11px;';
+    div.appendChild(canvas);
+    div.appendChild(document.createElement('br'));
+    div.appendChild(document.createTextNode(`${size}x${size}`));
+    div.appendChild(document.createElement('br'));
+    const btn = document.createElement('button');
+    btn.textContent = 'Download';
+    btn.onclick = () => a.click();
+    btn.style.cssText = 'margin-top:4px;cursor:pointer;';
+    div.appendChild(btn);
+    document.body.appendChild(div);
+  };
+  img.src = url;
+});
+</script>
+</body>
+</html>
