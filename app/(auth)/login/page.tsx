@@ -22,11 +22,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      if (error.message.toLowerCase().includes('email not confirmed')) {
-        setError('Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
-      } else {
-        setError('Email o contraseña incorrectos');
-      }
+      setError('Email o contraseña incorrectos');
       setLoading(false);
       return;
     }
