@@ -75,10 +75,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
       ) : (
         Object.entries(groups).map(([groupLabel, groupMatches]) => (
           <div key={groupLabel}>
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">
-              {groupLabel}
-            </h2>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {groupMatches.map((match) => {
                 const prediction = predictionMap[match.id];
                 const hasPrediction = !!prediction;
@@ -91,7 +88,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                       'bg-surface-card border rounded-2xl p-4 card-hover',
                       live ? 'border-green-500/40' : 'border-white/10'
                     )}>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           {live && (
                             <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
@@ -105,7 +102,9 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
+                      </div>
+                      <div className="text-center mb-3">
+                        <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
