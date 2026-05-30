@@ -74,7 +74,10 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
         </div>
       ) : (
         Object.entries(groups).map(([groupLabel, groupMatches]) => (
-          <div key={groupLabel}>
+          <div key={groupLabel} className="space-y-1">
+            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">
+              {groupLabel}
+            </h2>
             <div className="space-y-3">
               {groupMatches.map((match) => {
                 const prediction = predictionMap[match.id];
@@ -88,21 +91,14 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                       'bg-surface-card border rounded-2xl p-4 card-hover',
                       live ? 'border-green-500/40' : 'border-white/10'
                     )}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          {live && (
-                            <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
-                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                              EN VIVO
-                            </span>
-                          )}
-                          {!live && (
-                            <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded">
-                              {match.stage}
-                            </span>
-                          )}
+                      {live && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
+                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                            EN VIVO
+                          </span>
                         </div>
-                      </div>
+                      )}
                       <div className="text-center mb-3">
                         <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
                       </div>
