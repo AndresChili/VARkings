@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { DashboardClient } from '@/components/dashboard/dashboard-client';
-import type { Match } from '@/types';
 
 type GroupRow = {
   group_id: string;
@@ -12,24 +11,12 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [profileRes, matchesRes, predictionRes, matchPointsRes, teamsRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase
-      .from('matches')
-      .select('*')
-      .gte('match_date', new Date().toISOString())
-      .order('match_date', { ascending: true })
-      .limit(10),
+  const [predictionRes, teamsRes] = await Promise.all([
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase
-      .from('match_predictions')
-      .select('points_total')
-      .eq('user_id', user.id)
-      .eq('is_calculated', true),
     supabase.from('teams').select('*').order('name'),
   ]);
 
@@ -49,23 +36,10 @@ export default async function DashboardPage() {
     groups: (groupsData ?? []).find((g) => g.id === m.group_id) ?? null,
   }));
 
-  const matchPoints = (matchPointsRes.data ?? []).reduce(
-    (sum, p) => sum + (p.points_total ?? 0),
-    0
-  );
-
-  const tp = predictionRes.data;
-  const tournamentPoints = tp
-    ? (tp.champion_points ?? 0) + (tp.runner_up_points ?? 0) + (tp.third_place_points ?? 0) + (tp.group_predictions_points ?? 0)
-    : 0;
-
   return (
     <DashboardClient
-      profile={profileRes.data}
       groups={groups}
-      upcomingMatches={(matchesRes.data ?? []) as Match[]}
       tournamentPrediction={predictionRes.data}
-      totalPoints={matchPoints + tournamentPoints}
       teams={teamsRes.data ?? []}
     />
   );

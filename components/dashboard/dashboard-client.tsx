@@ -3,26 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Calendar, ChevronRight, Plus, LogIn, Crown, X } from 'lucide-react';
-import type { Profile, Match, Team } from '@/types';
-import { formatMatchDate, isTournamentLocked } from '@/lib/utils';
+import { Users, ChevronRight, Plus, LogIn, Crown, X } from 'lucide-react';
+import type { Team } from '@/types';
+import { isTournamentLocked } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface DashboardClientProps {
-  profile: Profile | null;
   groups: Array<{ group_id: string; groups: { id: string; name: string; description: string | null } | null }>;
-  upcomingMatches: Match[];
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
-  totalPoints: number;
   teams: Team[];
 }
 
 export function DashboardClient({
-  profile,
   groups,
-  upcomingMatches,
   tournamentPrediction,
-  totalPoints,
   teams,
 }: DashboardClientProps) {
   const router = useRouter();
@@ -122,29 +116,6 @@ export function DashboardClient({
   return (
     <>
       <div className="max-w-lg mx-auto px-4 py-4 space-y-5 animate-fade-in">
-        {/* Welcome */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            ¡Hola, {profile?.username ?? 'vikingo'}!
-          </h1>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-surface-card border border-white/10 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-black text-crown">{totalPoints}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Puntos</div>
-          </div>
-          <div className="bg-surface-card border border-white/10 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-black text-field-light">{groups.length}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Grupos</div>
-          </div>
-          <div className="bg-surface-card border border-white/10 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-black text-blue-400">{upcomingMatches.length}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Próximos</div>
-          </div>
-        </div>
-
         {/* My groups */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -275,44 +246,6 @@ export function DashboardClient({
           )}
         </div>
 
-        {/* Upcoming matches */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Calendar size={18} className="text-field-light" />
-              Próximos partidos
-            </h2>
-            <Link href="/matches" className="text-sm text-crown hover:text-crown-light transition-colors">
-              Ver todos
-            </Link>
-          </div>
-
-          {upcomingMatches.length === 0 ? (
-            <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
-              <p className="text-gray-400 text-sm">No hay partidos próximos</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {upcomingMatches.map((match) => (
-                <Link key={match.id} href={`/matches/${match.id}`}>
-                  <div className="bg-surface-card border border-white/10 rounded-2xl p-4 card-hover">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-500 bg-surface rounded px-2 py-0.5">
-                        {match.stage}{match.group_name ? ` · Grupo ${match.group_name}` : ''}
-                      </span>
-                      <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="font-medium text-white text-sm">{match.home_team_name}</span>
-                      <span className="text-xs text-gray-500 px-2">vs</span>
-                      <span className="font-medium text-white text-sm text-right">{match.away_team_name}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Podio modal */}
