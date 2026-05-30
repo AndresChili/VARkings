@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Circle, Zap } from 'lucide-react';
+import { CheckCircle, Circle } from 'lucide-react';
 import type { Match } from '@/types';
 import { cn, formatMatchDate, getMatchStatusLabel, isMatchLive, isMatchFinished } from '@/lib/utils';
+
 
 interface MatchesClientProps {
   matches: Match[];
@@ -17,16 +18,15 @@ interface MatchesClientProps {
   } | undefined>;
 }
 
-type FilterType = 'upcoming' | 'live' | 'finished';
+type FilterType = 'upcoming' | 'all' | 'finished';
 
 export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
   const [filter, setFilter] = useState<FilterType>('upcoming');
 
   const upcoming = matches.filter((m) => m.status === 'NS');
-  const live = matches.filter((m) => isMatchLive(m.status));
   const finished = matches.filter((m) => isMatchFinished(m.status));
 
-  const filtered = filter === 'upcoming' ? upcoming : filter === 'live' ? live : finished;
+  const filtered = filter === 'upcoming' ? upcoming : filter === 'all' ? matches : finished;
 
   const groups = filtered.reduce((acc: Record<string, Match[]>, match) => {
     const key = match.group_name ? `Grupo ${match.group_name}` : match.stage;
@@ -43,7 +43,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
       <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
         {([
           ['upcoming', 'Próximos', upcoming.length],
-          ['live', 'En vivo', live.length],
+          ['all', 'Todos', matches.length],
           ['finished', 'Finalizados', finished.length],
         ] as [FilterType, string, number][]).map(([key, label, count]) => (
           <button
@@ -54,7 +54,6 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
               filter === key ? 'bg-field text-white' : 'text-gray-400'
             )}
           >
-            {key === 'live' && count > 0 && <Zap size={12} className="text-green-400" />}
             {label}
             {count > 0 && (
               <span className={cn(
