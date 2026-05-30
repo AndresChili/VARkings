@@ -28,8 +28,7 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
   const isCreator = group.created_by === userId;
 
   async function copyInviteLink() {
-    const url = `${process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin}/join/${group.invite_code}`;
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(group.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
