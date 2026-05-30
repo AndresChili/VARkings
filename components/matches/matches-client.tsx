@@ -86,14 +86,14 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                 const done = isMatchFinished(match.status);
 
                 return (
-                  <Link key={match.id} href={`/matches/${match.id}`}>
+                  <Link key={match.id} href={`/matches/${match.id}`} className="block">
                     <div className={cn(
                       'bg-surface-card border rounded-2xl overflow-hidden card-hover',
                       live ? 'border-green-500/40' : 'border-white/10'
                     )}>
                       {/* Header: fecha + EN VIVO */}
                       <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <span className="text-xs font-medium text-gray-400">{formatMatchDate(match.match_date)}</span>
+                        <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
                         {live && (
                           <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
@@ -132,31 +132,38 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                       </div>
 
                       {/* Predicción */}
-                      <div className="px-4 py-2.5 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
-                        {hasPrediction ? (
-                          <>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                              <CheckCircle size={12} className="text-field-light shrink-0" />
-                              Tu predicción: <span className="font-bold text-white/70">{prediction!.predicted_home_score} – {prediction!.predicted_away_score}</span>
+                      {hasPrediction ? (
+                        <div className="px-4 py-3 border-t border-white/10 bg-field/10 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle size={15} className="text-green-400 shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Tu predicción</p>
+                              <p className="text-sm font-black text-white">{prediction!.predicted_home_score} – {prediction!.predicted_away_score}</p>
                             </div>
-                            {prediction!.is_calculated && (
-                              <span className={cn(
-                                'text-xs font-bold px-2 py-0.5 rounded-lg',
-                                prediction!.points_total > 0 ? 'bg-crown/20 text-crown' : 'bg-white/5 text-gray-500'
-                              )}>
-                                +{prediction!.points_total} pts
-                              </span>
-                            )}
-                          </>
-                        ) : match.status === 'NS' ? (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                            <Circle size={12} className="shrink-0" />
-                            Sin predicción
                           </div>
-                        ) : (
-                          <div className="text-xs text-gray-600">No hubo predicción</div>
-                        )}
-                      </div>
+                          {prediction!.is_calculated && (
+                            <span className={cn(
+                              'text-sm font-black px-3 py-1 rounded-xl',
+                              prediction!.points_total > 0 ? 'bg-crown/20 text-crown' : 'bg-white/5 text-gray-500'
+                            )}>
+                              +{prediction!.points_total} pts
+                            </span>
+                          )}
+                        </div>
+                      ) : match.status === 'NS' ? (
+                        <div className="px-4 py-3 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2">
+                          <Circle size={15} className="text-amber-500 shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-amber-500/70 uppercase tracking-wider font-bold">Sin predicción</p>
+                            <p className="text-xs text-amber-400 font-semibold">Toca para predecir antes del partido</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 border-t border-white/5 bg-white/[0.02] flex items-center gap-2">
+                          <Circle size={15} className="text-gray-600 shrink-0" />
+                          <p className="text-xs text-gray-600">No predijiste este partido</p>
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );
