@@ -73,6 +73,10 @@ export function DashboardClient({
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error); return; }
+    if (data.already_member) {
+      setError('Ya eres miembro de este grupo');
+      return;
+    }
     setShowJoin(false);
     setJoinCode('');
     setNewGroupId(data.group.id);
