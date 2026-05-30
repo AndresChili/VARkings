@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getWorldCupFixtures, getTeams, parseStageFromRound, parseGroupFromRound } from '@/lib/api-football';
+import { getWCMatches, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -13,51 +13,37 @@ export async function POST(req: NextRequest) {
 
   try {
     const supabase = createAdminClient();
+    const fixtures = await getWCMatches();
 
-    // Sync teams first
-    const teamsData = await getTeams();
-    if (teamsData.length > 0) {
-      const teamUpserts = teamsData.map((t) => ({
-        api_id: t.team.id,
-        name: t.team.name,
-        logo_url: t.team.logo,
+    // Remove previously seeded matches (no api_id) before inserting real ones
+    await supabase.from('matches').delete().is('api_id', null);
+
+    const upserts = fixtures
+      .filter((f) => f.homeTeam?.name && f.awayTeam?.name)
+      .map((f) => ({
+        api_id: f.id,
+        home_team_name: f.homeTeam.name,
+        away_team_name: f.awayTeam.name,
+        home_team_logo: f.homeTeam.crest ?? null,
+        away_team_logo: f.awayTeam.crest ?? null,
+        home_team_api_id: f.homeTeam.id,
+        away_team_api_id: f.awayTeam.id,
+        match_date: f.utcDate,
+        stage: mapFDStage(f.stage),
+        group_name: mapFDGroup(f.group),
+        home_score: f.score.fullTime.home,
+        away_score: f.score.fullTime.away,
+        status: mapFDStatus(f.status, f.score.duration),
+        venue: null,
       }));
-      const { error: teamsError } = await supabase
-        .from('teams')
-        .upsert(teamUpserts, { onConflict: 'api_id' });
-      if (teamsError) throw teamsError;
-    }
 
-    // Sync matches
-    const fixtures = await getWorldCupFixtures();
-    const upserts = fixtures.map((f) => ({
-      api_id: f.fixture.id,
-      home_team_name: f.teams.home.name,
-      away_team_name: f.teams.away.name,
-      home_team_logo: f.teams.home.logo,
-      away_team_logo: f.teams.away.logo,
-      home_team_api_id: f.teams.home.id,
-      away_team_api_id: f.teams.away.id,
-      match_date: f.fixture.date,
-      stage: parseStageFromRound(f.league.round),
-      group_name: parseGroupFromRound(f.league.round),
-      home_score: f.score.fulltime.home,
-      away_score: f.score.fulltime.away,
-      status: f.fixture.status.short,
-      venue: f.fixture.venue?.name ?? null,
-    }));
-
-    const { error, count } = await supabase
+    const { error } = await supabase
       .from('matches')
       .upsert(upserts, { onConflict: 'api_id' });
 
     if (error) throw error;
 
-    return NextResponse.json({
-      success: true,
-      teams: teamsData.length,
-      matches: count ?? upserts.length,
-    });
+    return NextResponse.json({ success: true, matches: upserts.length });
   } catch (error) {
     console.error('Match sync error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });

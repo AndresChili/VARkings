@@ -23,7 +23,7 @@ type FilterType = 'upcoming' | 'all' | 'finished';
 export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
   const [filter, setFilter] = useState<FilterType>('upcoming');
 
-  const upcoming = matches.filter((m) => m.status === 'NS');
+  const upcoming = matches.filter((m) => m.status === 'NS').slice(0, 4);
   const finished = matches.filter((m) => isMatchFinished(m.status));
 
   const filtered = filter === 'upcoming' ? upcoming : filter === 'all' ? matches : finished;
