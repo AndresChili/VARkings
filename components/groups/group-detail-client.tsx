@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, Trash2, ChevronRight, Crown, Trophy, Target } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry } from '@/types';
 import { cn, formatMatchDate, getRankEmoji } from '@/lib/utils';
 
@@ -19,8 +19,12 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
   const isCreator = group.created_by === userId;
 
   async function copyInviteLink() {
@@ -40,6 +44,13 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
     setDeleting(false);
   }
 
+  async function handleRemoveMember(targetUserId: string) {
+    setRemovingUserId(targetUserId);
+    await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
+    setRemovingUserId(null);
+    router.refresh();
+  }
+
   const myEntry = leaderboard.find((e) => e.user_id === userId);
   const myRank = leaderboard.findIndex((e) => e.user_id === userId) + 1;
 
@@ -55,36 +66,67 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
             )}
           </div>
           {isCreator && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 text-gray-500 hover:text-red-400 transition-colors"
-            >
-              <Trash2 size={18} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu((v) => !v)}
+                className="p-2 text-gray-500 hover:text-white transition-colors"
+              >
+                <MoreVertical size={18} />
+              </button>
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-surface-card border border-white/10 rounded-xl shadow-xl w-52 py-1 overflow-hidden">
+                    <button
+                      onClick={() => { setShowInvite((v) => !v); setShowMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                    >
+                      Código de invitación
+                    </button>
+                    <button
+                      onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                    >
+                      Eliminar miembro del grupo
+                    </button>
+                    <div className="border-t border-white/10 mt-1 pt-1">
+                      <button
+                        onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
+                      >
+                        Eliminar grupo
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Invite */}
-        <div className="mt-4 pt-4 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
-              <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
+        {/* Invite — visible only when toggled from menu */}
+        {showInvite && (
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
+                <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
+              </div>
+              <button
+                onClick={copyInviteLink}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                  copied
+                    ? 'bg-field/20 text-field-light'
+                    : 'bg-crown/20 text-crown hover:bg-crown/30'
+                )}
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? '¡Copiado!' : 'Compartir link'}
+              </button>
             </div>
-            <button
-              onClick={copyInviteLink}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-                copied
-                  ? 'bg-field/20 text-field-light'
-                  : 'bg-crown/20 text-crown hover:bg-crown/30'
-              )}
-            >
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-              {copied ? '¡Copiado!' : 'Compartir link'}
-            </button>
           </div>
-        </div>
+        )}
 
         {/* My stats summary */}
         {myEntry && (
@@ -125,6 +167,38 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
               {deleting ? 'Eliminando...' : 'Eliminar'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Remove member */}
+      {showRemoveModal && (
+        <div className="bg-surface-card border border-white/10 rounded-2xl p-5 animate-slide-up">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-white">Eliminar miembro</h3>
+            <button onClick={() => setShowRemoveModal(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+          {leaderboard.filter((e) => e.user_id !== userId).length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-2">No hay otros miembros</p>
+          ) : (
+            <div className="space-y-2">
+              {leaderboard
+                .filter((e) => e.user_id !== userId)
+                .map((entry) => (
+                  <div key={entry.user_id} className="flex items-center justify-between bg-surface rounded-xl px-4 py-3">
+                    <span className="text-sm text-white">{entry.username}</span>
+                    <button
+                      onClick={() => handleRemoveMember(entry.user_id)}
+                      disabled={removingUserId === entry.user_id}
+                      className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                    >
+                      {removingUserId === entry.user_id ? 'Eliminando...' : 'Eliminar'}
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
 
