@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getLiveFixtures, getRecentlyFinishedFixtures } from '@/lib/api-football';
+import { getLiveWCMatches, getRecentlyFinishedWCMatches, mapFDStatus } from '@/lib/football-data';
 import { calculateMatchPoints } from '@/lib/scoring';
 
 export async function GET(req: NextRequest) {
@@ -14,28 +14,31 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = createAdminClient();
-    const finished = await getRecentlyFinishedFixtures();
     let updated = 0;
 
+    // Update finished matches and calculate points
+    const finished = await getRecentlyFinishedWCMatches();
+
     for (const fixture of finished) {
-      const homeScore = fixture.score.fulltime.home;
-      const awayScore = fixture.score.fulltime.away;
+      const homeScore = fixture.score.fullTime.home;
+      const awayScore = fixture.score.fullTime.away;
       if (homeScore === null || awayScore === null) continue;
 
       const { data: match } = await supabase
         .from('matches')
         .select('id, status')
-        .eq('api_id', fixture.fixture.id)
+        .eq('api_id', fixture.id)
         .maybeSingle();
 
-      if (!match || match.status === 'FT') continue;
+      if (!match || match.status === 'FT' || match.status === 'AET' || match.status === 'PEN') continue;
+
+      const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
 
       await supabase
         .from('matches')
-        .update({ home_score: homeScore, away_score: awayScore, status: 'FT' })
+        .update({ home_score: homeScore, away_score: awayScore, status: newStatus })
         .eq('id', match.id);
 
-      // Calculate points for each prediction
       const { data: predictions } = await supabase
         .from('match_predictions')
         .select('id, user_id, predicted_home_score, predicted_away_score')
@@ -67,7 +70,7 @@ export async function GET(req: NextRequest) {
             match_id: match.id,
             points: result.points_total,
             reason: 'match_prediction',
-            description: `Partido: ${fixture.teams.home.name} ${homeScore}-${awayScore} ${fixture.teams.away.name}`,
+            description: `${fixture.homeTeam.name} ${homeScore}-${awayScore} ${fixture.awayTeam.name}`,
           });
         }
       }
@@ -75,13 +78,13 @@ export async function GET(req: NextRequest) {
       updated++;
     }
 
-    // Update live statuses
-    const live = await getLiveFixtures();
+    // Update live match statuses
+    const live = await getLiveWCMatches();
     for (const fixture of live) {
       await supabase
         .from('matches')
-        .update({ status: fixture.fixture.status.short })
-        .eq('api_id', fixture.fixture.id);
+        .update({ status: mapFDStatus(fixture.status) })
+        .eq('api_id', fixture.id);
     }
 
     return NextResponse.json({ success: true, updated, live: live.length });
