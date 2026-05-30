@@ -12,14 +12,14 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [profileRes, matchesRes, predictionRes, matchPointsRes] = await Promise.all([
+  const [profileRes, matchesRes, predictionRes, matchPointsRes, teamsRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('matches')
       .select('*')
       .gte('match_date', new Date().toISOString())
       .order('match_date', { ascending: true })
-      .limit(5),
+      .limit(10),
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
@@ -30,14 +30,14 @@ export default async function DashboardPage() {
       .select('points_total')
       .eq('user_id', user.id)
       .eq('is_calculated', true),
+    supabase.from('teams').select('*').order('name'),
   ]);
 
   // Separate query for groups to avoid nested select relation error
   const { data: memberRows } = await supabase
     .from('group_members')
     .select('group_id')
-    .eq('user_id', user.id)
-    .limit(5);
+    .eq('user_id', user.id);
 
   const groupIds = memberRows?.map((m) => m.group_id) ?? [];
   const { data: groupsData } = groupIds.length > 0
@@ -66,6 +66,7 @@ export default async function DashboardPage() {
       upcomingMatches={(matchesRes.data ?? []) as Match[]}
       tournamentPrediction={predictionRes.data}
       totalPoints={matchPoints + tournamentPoints}
+      teams={teamsRes.data ?? []}
     />
   );
 }
