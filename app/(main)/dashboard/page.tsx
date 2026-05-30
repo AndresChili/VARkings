@@ -3,7 +3,8 @@ import { DashboardClient } from '@/components/dashboard/dashboard-client';
 
 type GroupRow = {
   group_id: string;
-  groups: { id: string; name: string; description: string | null } | null;
+  member_count: number;
+  groups: { id: string; name: string } | null;
 };
 
 export default async function DashboardPage() {
@@ -27,12 +28,23 @@ export default async function DashboardPage() {
     .eq('user_id', user.id);
 
   const groupIds = memberRows?.map((m) => m.group_id) ?? [];
-  const { data: groupsData } = groupIds.length > 0
-    ? await supabase.from('groups').select('id, name, description').in('id', groupIds)
-    : { data: [] };
+  const [{ data: groupsData }, { data: allMembersData }] = await Promise.all([
+    groupIds.length > 0
+      ? supabase.from('groups').select('id, name').in('id', groupIds)
+      : Promise.resolve({ data: [] }),
+    groupIds.length > 0
+      ? supabase.from('group_members').select('group_id').in('group_id', groupIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const memberCounts = (allMembersData ?? []).reduce<Record<string, number>>((acc, m) => {
+    acc[m.group_id] = (acc[m.group_id] ?? 0) + 1;
+    return acc;
+  }, {});
 
   const groups: GroupRow[] = (memberRows ?? []).map((m) => ({
     group_id: m.group_id,
+    member_count: memberCounts[m.group_id] ?? 0,
     groups: (groupsData ?? []).find((g) => g.id === m.group_id) ?? null,
   }));
 
