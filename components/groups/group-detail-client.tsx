@@ -121,7 +121,7 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
                 )}
               >
                 {copied ? <Check size={15} /> : <Copy size={15} />}
-                {copied ? '¡Copiado!' : 'Compartir link'}
+                {copied ? '¡Copiado!' : 'Copiar código'}
               </button>
             </div>
           </div>
