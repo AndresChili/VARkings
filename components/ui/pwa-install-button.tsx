@@ -23,15 +23,18 @@ export function PwaInstallButton() {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !('MSStream' in window);
     setIsIos(ios);
 
+    // iOS: always show (no beforeinstallprompt on Safari)
     if (ios) {
       setVisible(true);
       return;
     }
 
+    // Android/Chrome: show immediately as fallback, upgrade to native prompt if available
+    setVisible(true);
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setVisible(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -43,11 +46,15 @@ export function PwaInstallButton() {
       setShowIosHint((v) => !v);
       return;
     }
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') setVisible(false);
-    setDeferredPrompt(null);
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setVisible(false);
+      setDeferredPrompt(null);
+    } else {
+      // No native prompt available — show manual instructions
+      setShowIosHint((v) => !v);
+    }
   }
 
   if (!visible) return null;
@@ -68,19 +75,31 @@ export function PwaInstallButton() {
 
       {showIosHint && (
         <div className="absolute right-0 top-10 w-64 bg-surface-card border border-white/20 rounded-xl p-3 shadow-xl z-50 text-xs text-white/80 leading-relaxed">
-          <p className="font-semibold text-white mb-1">Instalar en iPhone / iPad</p>
-          <p>
-            Pulsa{' '}
-            <span className="inline-flex items-center gap-0.5 font-medium text-white">
-              Compartir
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-            </span>{' '}
-            y luego <span className="font-medium text-white">«Añadir a pantalla de inicio»</span>.
+          <p className="font-semibold text-white mb-1">
+            {isIos ? 'Instalar en iPhone / iPad' : 'Instalar en Android'}
           </p>
+          {isIos ? (
+            <p>
+              Pulsa{' '}
+              <span className="inline-flex items-center gap-0.5 font-medium text-white">
+                Compartir
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+              </span>{' '}
+              y luego <span className="font-medium text-white">«Añadir a pantalla de inicio»</span>.
+            </p>
+          ) : (
+            <p>
+              Pulsa el menú{' '}
+              <span className="font-medium text-white">⋮</span>{' '}
+              del navegador y elige{' '}
+              <span className="font-medium text-white">«Añadir a pantalla de inicio»</span> o{' '}
+              <span className="font-medium text-white">«Instalar app»</span>.
+            </p>
+          )}
           <button
             onClick={() => setShowIosHint(false)}
             className="mt-2 text-white/40 hover:text-white/70 text-[10px]"
