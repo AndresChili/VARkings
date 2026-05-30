@@ -12,9 +12,10 @@ interface GroupDetailClientProps {
   leaderboard: LeaderboardEntry[];
   upcomingMatches: Match[];
   userId: string;
+  memberCount: number;
 }
 
-export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId }: GroupDetailClientProps) {
+export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId, memberCount }: GroupDetailClientProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
@@ -97,8 +98,8 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId 
               <div className="text-xs text-gray-500">Posición</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-black text-field-light">{myEntry.total_predictions}</div>
-              <div className="text-xs text-gray-500">Predicciones</div>
+              <div className="text-xl font-black text-field-light">{memberCount}</div>
+              <div className="text-xs text-gray-500">Miembros</div>
             </div>
           </div>
         )}

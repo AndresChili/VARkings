@@ -22,7 +22,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   if (!groupRes.data) notFound();
   if (!memberRes.data) redirect('/groups');
 
-  const [leaderboardRes, matchesRes] = await Promise.all([
+  const [leaderboardRes, matchesRes, membersCountRes] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
@@ -34,6 +34,10 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       .gte('match_date', new Date().toISOString())
       .order('match_date', { ascending: true })
       .limit(10),
+    supabase
+      .from('group_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('group_id', id),
   ]);
 
   return (
@@ -42,6 +46,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       leaderboard={leaderboardRes.data ?? []}
       upcomingMatches={(matchesRes.data ?? []) as Match[]}
       userId={user.id}
+      memberCount={membersCountRes.count ?? 0}
     />
   );
 }
