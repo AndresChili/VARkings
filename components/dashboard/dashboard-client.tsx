@@ -9,7 +9,7 @@ import { isTournamentLocked } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface DashboardClientProps {
-  groups: Array<{ group_id: string; groups: { id: string; name: string; description: string | null } | null }>;
+  groups: Array<{ group_id: string; member_count: number; groups: { id: string; name: string } | null }>;
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
 }
@@ -233,9 +233,9 @@ export function DashboardClient({
                     <div className="bg-surface-card border border-white/10 rounded-2xl p-4 flex items-center justify-between card-hover">
                       <div>
                         <p className="font-semibold text-white">{m.groups.name}</p>
-                        {m.groups.description && (
-                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{m.groups.description}</p>
-                        )}
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {m.member_count} {m.member_count === 1 ? 'miembro' : 'miembros'}
+                        </p>
                       </div>
                       <ChevronRight size={16} className="text-gray-500" />
                     </div>
