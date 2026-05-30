@@ -88,58 +88,60 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                 return (
                   <Link key={match.id} href={`/matches/${match.id}`}>
                     <div className={cn(
-                      'bg-surface-card border rounded-2xl p-4 card-hover',
+                      'bg-surface-card border rounded-2xl overflow-hidden card-hover',
                       live ? 'border-green-500/40' : 'border-white/10'
                     )}>
-                      {live && (
-                        <div className="flex items-center gap-2 mb-1">
+                      {/* Header: fecha + EN VIVO */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <span className="text-xs font-medium text-gray-400">{formatMatchDate(match.match_date)}</span>
+                        {live && (
                           <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                             EN VIVO
                           </span>
-                        </div>
-                      )}
-                      <div className="text-center mb-3">
-                        <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
+                        )}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {match.home_team_logo && (
-                            <img src={match.home_team_logo} alt="" className="w-6 h-6 object-contain shrink-0" />
-                          )}
-                          <span className="font-medium text-white text-sm truncate">{match.home_team_name}</span>
+                      {/* Equipos + marcador */}
+                      <div className="flex items-center justify-between px-4 pb-4 gap-2">
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          {match.home_team_logo
+                            ? <img src={match.home_team_logo} alt="" className="w-10 h-10 object-contain" />
+                            : <div className="w-10 h-10 rounded-full bg-white/5" />
+                          }
+                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.home_team_name}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 mx-3 shrink-0">
+                        <div className="flex flex-col items-center shrink-0 px-2">
                           {done || live ? (
-                            <span className="text-lg font-black text-white">
-                              {match.home_score ?? 0} - {match.away_score ?? 0}
+                            <span className="text-2xl font-black text-white tabular-nums tracking-tight">
+                              {match.home_score ?? 0} – {match.away_score ?? 0}
                             </span>
                           ) : (
-                            <span className="text-sm text-gray-600 font-medium">vs</span>
+                            <span className="text-xs font-bold text-gray-600 bg-white/5 px-3 py-1 rounded-lg">VS</span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                          <span className="font-medium text-white text-sm truncate text-right">{match.away_team_name}</span>
-                          {match.away_team_logo && (
-                            <img src={match.away_team_logo} alt="" className="w-6 h-6 object-contain shrink-0" />
-                          )}
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          {match.away_team_logo
+                            ? <img src={match.away_team_logo} alt="" className="w-10 h-10 object-contain" />
+                            : <div className="w-10 h-10 rounded-full bg-white/5" />
+                          }
+                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.away_team_name}</span>
                         </div>
                       </div>
 
-                      {/* Prediction info */}
-                      <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                      {/* Predicción */}
+                      <div className="px-4 py-2.5 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
                         {hasPrediction ? (
                           <>
                             <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                              <CheckCircle size={12} className="text-field-light" />
-                              Tu predicción: {prediction!.predicted_home_score} - {prediction!.predicted_away_score}
+                              <CheckCircle size={12} className="text-field-light shrink-0" />
+                              Tu predicción: <span className="font-bold text-white/70">{prediction!.predicted_home_score} – {prediction!.predicted_away_score}</span>
                             </div>
                             {prediction!.is_calculated && (
                               <span className={cn(
-                                'text-xs font-bold px-2 py-0.5 rounded',
+                                'text-xs font-bold px-2 py-0.5 rounded-lg',
                                 prediction!.points_total > 0 ? 'bg-crown/20 text-crown' : 'bg-white/5 text-gray-500'
                               )}>
                                 +{prediction!.points_total} pts
@@ -148,7 +150,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                           </>
                         ) : match.status === 'NS' ? (
                           <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                            <Circle size={12} />
+                            <Circle size={12} className="shrink-0" />
                             Sin predicción
                           </div>
                         ) : (
