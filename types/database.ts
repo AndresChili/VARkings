@@ -157,6 +157,35 @@ export interface Database {
         };
         Relationships: [];
       };
+      group_tournament_predictions: {
+        Row: {
+          id: string;
+          user_id: string;
+          group_id: string;
+          champion: string | null;
+          runner_up: string | null;
+          third_place: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          group_id: string;
+          champion?: string | null;
+          runner_up?: string | null;
+          third_place?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          champion?: string | null;
+          runner_up?: string | null;
+          third_place?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       tournament_predictions: {
         Row: {
           id: string;

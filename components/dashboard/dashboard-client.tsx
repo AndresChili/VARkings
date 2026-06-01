@@ -59,6 +59,9 @@ export function DashboardClient({
   }
 
   function openPodio() {
+    setChampion('');
+    setRunnerUp('');
+    setThirdPlace('');
     setPodioStep(0);
     setPodioSearch('');
     setPodioError('');
@@ -86,7 +89,7 @@ export function DashboardClient({
       return;
     }
     setSavingPodio(true);
-    const res = await fetch('/api/predictions/tournament', {
+    const res = await fetch(`/api/groups/${newGroupId}/podio`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ champion, runner_up: runnerUp, third_place: thirdPlace }),
