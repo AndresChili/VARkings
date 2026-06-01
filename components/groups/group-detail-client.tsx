@@ -7,15 +7,22 @@ import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X } fro
 import type { Group, Match, LeaderboardEntry } from '@/types';
 import { cn, formatMatchDate, getRankEmoji } from '@/lib/utils';
 
+interface ChampionPick {
+  champion: string | null;
+  runner_up: string | null;
+  third_place: string | null;
+}
+
 interface GroupDetailClientProps {
   group: Group;
   leaderboard: LeaderboardEntry[];
   upcomingMatches: Match[];
   userId: string;
   memberCount: number;
+  championPicks: Record<string, ChampionPick>;
 }
 
-export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId, memberCount }: GroupDetailClientProps) {
+export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId, memberCount, championPicks }: GroupDetailClientProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
@@ -266,6 +273,19 @@ export function GroupDetailClient({ group, leaderboard, upcomingMatches, userId,
                       </span>
                       {isMe && <span className="text-[10px] text-crown">(tú)</span>}
                     </div>
+                    {(() => {
+                      const picks = championPicks[entry.user_id];
+                      if (!picks?.champion) return (
+                        <p className="text-[10px] text-gray-600 mt-0.5">Sin predicción de podio</p>
+                      );
+                      return (
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-crown font-medium">🥇 {picks.champion}</span>
+                          {picks.runner_up && <span className="text-[10px] text-gray-400">🥈 {picks.runner_up}</span>}
+                          {picks.third_place && <span className="text-[10px] text-gray-500">🥉 {picks.third_place}</span>}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Crown size={10} />
