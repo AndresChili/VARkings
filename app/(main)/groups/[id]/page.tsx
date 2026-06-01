@@ -1,8 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
-import { STATIC_WC2026_TEAMS } from '@/lib/teams';
-import type { Match, Team } from '@/types';
+import type { Match } from '@/types';
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,7 +22,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   if (!groupRes.data) notFound();
   if (!memberRes.data) redirect('/groups');
 
-  const [leaderboardRes, matchesRes, membersCountRes, teamsRes] = await Promise.all([
+  const [leaderboardRes, matchesRes, membersCountRes] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
@@ -39,7 +38,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       .from('group_members')
       .select('user_id', { count: 'exact', head: true })
       .eq('group_id', id),
-    supabase.from('teams').select('*').order('name'),
   ]);
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
@@ -56,12 +54,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     championPicks[p.user_id] = { champion: p.champion, runner_up: p.runner_up, third_place: p.third_place };
   }
 
-  const myPodio = championPicks[user.id] ?? null;
-
-  const teams: Team[] = (teamsRes.data && teamsRes.data.length > 0
-    ? teamsRes.data
-    : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data)) ?? [];
-
   return (
     <GroupDetailClient
       group={groupRes.data}
@@ -70,8 +62,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       userId={user.id}
       memberCount={membersCountRes.count ?? 0}
       championPicks={championPicks}
-      myPodio={myPodio}
-      teams={teams}
+      myPodio={championPicks[user.id] ?? null}
     />
   );
 }
