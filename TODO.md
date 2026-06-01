@@ -8,3 +8,4 @@
 - [ ] Añadir margen entre partidos dentro de grupos
 - [ ] Añadir un apartado dentro de grupos de miembros
 - [ ] Añadir después del modal de ganador, un modal para elegir qué equipos crees que pasan de grupos
+- [ ] Revisar sistema de puntos
