@@ -40,6 +40,19 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       .eq('group_id', id),
   ]);
 
+  const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
+  const { data: tourPredsData } = memberIds.length > 0
+    ? await supabase
+        .from('tournament_predictions')
+        .select('user_id, champion, runner_up, third_place')
+        .in('user_id', memberIds)
+    : { data: [] };
+
+  const championPicks: Record<string, { champion: string | null; runner_up: string | null; third_place: string | null }> = {};
+  for (const p of tourPredsData ?? []) {
+    championPicks[p.user_id] = { champion: p.champion, runner_up: p.runner_up, third_place: p.third_place };
+  }
+
   return (
     <GroupDetailClient
       group={groupRes.data}
@@ -47,6 +60,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       upcomingMatches={(matchesRes.data ?? []) as Match[]}
       userId={user.id}
       memberCount={membersCountRes.count ?? 0}
+      championPicks={championPicks}
     />
   );
 }
