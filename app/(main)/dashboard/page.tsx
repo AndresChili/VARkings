@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { DashboardClient } from '@/components/dashboard/dashboard-client';
+import { STATIC_WC2026_TEAMS } from '@/lib/teams';
 
 type GroupRow = {
   group_id: string;
@@ -48,11 +49,15 @@ export default async function DashboardPage() {
     groups: (groupsData ?? []).find((g) => g.id === m.group_id) ?? null,
   }));
 
+  const teams = teamsRes.data && teamsRes.data.length > 0
+    ? teamsRes.data
+    : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data);
+
   return (
     <DashboardClient
       groups={groups}
       tournamentPrediction={predictionRes.data}
-      teams={teamsRes.data ?? []}
+      teams={teams ?? []}
     />
   );
 }
