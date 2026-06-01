@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check } from 'lucide-react';
 import type { Team } from '@/types';
-import { isTournamentLocked } from '@/lib/utils';
+import { isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface DashboardClientProps {
@@ -43,6 +43,13 @@ export function DashboardClient({
   const [savingPodio, setSavingPodio] = useState(false);
   const [podioError, setPodioError] = useState('');
 
+  const [showGroups, setShowGroups] = useState(false);
+  const [groupStep, setGroupStep] = useState(0);
+  const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
+  const [groupSearch, setGroupSearch] = useState('');
+  const [savingGroups, setSavingGroups] = useState(false);
+  const [groupsError, setGroupsError] = useState('');
+
   const locked = isTournamentLocked();
   const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
@@ -68,10 +75,39 @@ export function DashboardClient({
     setShowPodio(true);
   }
 
-  function closePodio() {
-    setShowPodio(false);
+  function redirectToGroup() {
     router.push(`/groups/${newGroupId}`);
     router.refresh();
+  }
+
+  function toggleGroupTeam(teamName: string) {
+    const group = WC_GROUPS[groupStep];
+    setGroupPicks((prev) => {
+      const picks = prev[group] || [];
+      if (picks.includes(teamName)) {
+        return { ...prev, [group]: picks.filter((t) => t !== teamName) };
+      }
+      if (picks.length >= 2) return prev;
+      return { ...prev, [group]: [...picks, teamName] };
+    });
+  }
+
+  async function handleSaveGroups() {
+    setSavingGroups(true);
+    setGroupsError('');
+    const res = await fetch('/api/predictions/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_predictions: groupPicks }),
+    });
+    setSavingGroups(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setGroupsError(data.error);
+      return;
+    }
+    setShowGroups(false);
+    redirectToGroup();
   }
 
   function handleTeamSelect(name: string) {
@@ -100,7 +136,12 @@ export function DashboardClient({
       setPodioError(data.error);
       return;
     }
-    closePodio();
+    setShowPodio(false);
+    setGroupStep(0);
+    setGroupPicks({});
+    setGroupSearch('');
+    setGroupsError('');
+    setShowGroups(true);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -163,6 +204,16 @@ export function DashboardClient({
       t.name !== thirdPlace
   );
   const allDone = champion && runnerUp && thirdPlace;
+
+  const currentGroupLetter = WC_GROUPS[groupStep];
+  const teamsInCurrentGroup = teams.filter((t) => t.group_name === currentGroupLetter);
+  const hasGroupData = teams.some((t) => t.group_name !== null);
+  const groupDisplayTeams = hasGroupData
+    ? teamsInCurrentGroup
+    : teamOptions.filter((t) => t.name.toLowerCase().includes(groupSearch.toLowerCase()));
+  const currentGroupPicks = groupPicks[currentGroupLetter] || [];
+  const isLastGroup = groupStep === WC_GROUPS.length - 1;
+  const canProceedGroup = hasGroupData ? currentGroupPicks.length === 2 : currentGroupPicks.length === 2;
 
   return (
     <>
@@ -296,6 +347,138 @@ export function DashboardClient({
           )}
         </div>
       </div>
+
+      {/* Grupos modal */}
+      {showGroups && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
+
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-white/5">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-white">Grupos del Mundial</h2>
+                <span className="text-sm text-gray-500">{groupStep + 1} / {WC_GROUPS.length}</span>
+              </div>
+
+              {/* Points explanation */}
+              <div className="bg-white/5 rounded-xl p-3 mb-3">
+                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">Puntos en juego</p>
+                <p className="text-sm text-gray-300">
+                  <span className="text-field font-bold">+2 pts</span> por cada equipo que aciertes pasando de grupos
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Elige los 2 equipos que crees que pasan de cada grupo</p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="flex gap-0.5">
+                {WC_GROUPS.map((g, i) => (
+                  <div
+                    key={g}
+                    className={cn(
+                      'h-1 flex-1 rounded-full transition-all',
+                      i < groupStep ? 'bg-field' : i === groupStep ? 'bg-field/60' : 'bg-white/10'
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Group content */}
+            <div className="px-6 py-4">
+              <div className="flex items-center gap-2 mb-3">
+                {groupStep > 0 && (
+                  <button
+                    onClick={() => { setGroupStep((s) => s - 1); setGroupSearch(''); }}
+                    className="text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                )}
+                <p className="text-sm font-bold text-white">Grupo {currentGroupLetter}</p>
+                <span className={cn(
+                  'text-xs font-bold ml-auto',
+                  currentGroupPicks.length === 2 ? 'text-green-400' : 'text-gray-500'
+                )}>
+                  {currentGroupPicks.length}/2 equipos
+                </span>
+              </div>
+
+              {/* Search (fallback when no group data) */}
+              {!hasGroupData && (
+                <div className="relative mb-2">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Busca un equipo..."
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    className="w-full bg-surface border border-white/10 rounded-xl pl-9 pr-4 py-2.5
+                      text-white placeholder-gray-600 focus:outline-none focus:border-field transition-colors text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Team list */}
+              <div className="max-h-52 overflow-y-auto space-y-1 pr-0.5">
+                {groupDisplayTeams.length === 0 ? (
+                  <p className="text-gray-600 text-sm text-center py-6">Sin equipos asignados a este grupo</p>
+                ) : (
+                  groupDisplayTeams.map((t) => {
+                    const selected = currentGroupPicks.includes(t.name);
+                    const maxed = currentGroupPicks.length >= 2 && !selected;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => !maxed && toggleGroupTeam(t.name)}
+                        disabled={maxed}
+                        className={cn(
+                          'w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between',
+                          selected
+                            ? 'bg-green-500/15 border border-green-500/40 text-white font-medium'
+                            : maxed
+                            ? 'text-gray-600 cursor-not-allowed'
+                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        )}
+                      >
+                        <span>{t.name}</span>
+                        {selected && <Check size={14} className="text-green-400" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6">
+              {groupsError && (
+                <p className="text-red-400 text-sm mb-3">{groupsError}</p>
+              )}
+
+              {isLastGroup ? (
+                <button
+                  onClick={handleSaveGroups}
+                  disabled={savingGroups || !canProceedGroup}
+                  className="w-full py-3.5 rounded-xl bg-field text-white font-bold text-sm
+                    disabled:opacity-50 hover:bg-field-muted transition-colors"
+                >
+                  {savingGroups ? 'Guardando...' : 'Guardar predicciones'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setGroupStep((s) => s + 1); setGroupSearch(''); }}
+                  disabled={!canProceedGroup}
+                  className="w-full py-3.5 rounded-xl bg-field text-white font-bold text-sm
+                    disabled:opacity-50 hover:bg-field-muted transition-colors flex items-center justify-center gap-2"
+                >
+                  Siguiente
+                  <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Podio modal */}
       {showPodio && (
