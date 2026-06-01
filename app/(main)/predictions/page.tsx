@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { TournamentPredictionsClient } from '@/components/predictions/tournament-predictions-client';
+import { STATIC_WC2026_TEAMS } from '@/lib/teams';
 
 export default async function PredictionsPage() {
   const supabase = await createClient();
@@ -15,9 +16,13 @@ export default async function PredictionsPage() {
       .maybeSingle(),
   ]);
 
+  const teams = teamsRes.data && teamsRes.data.length > 0
+    ? teamsRes.data
+    : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data);
+
   return (
     <TournamentPredictionsClient
-      teams={teamsRes.data ?? []}
+      teams={teams ?? []}
       existingPrediction={predictionRes.data}
     />
   );

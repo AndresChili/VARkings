@@ -254,7 +254,7 @@ export function DashboardClient({
 
       {/* Podio modal */}
       {showPodio && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md p-6 animate-slide-up">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
