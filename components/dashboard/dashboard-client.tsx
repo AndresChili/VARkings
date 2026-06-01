@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, ChevronRight, Plus, LogIn, Crown, X, Search, ChevronLeft, Check } from 'lucide-react';
+import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check } from 'lucide-react';
 import type { Team } from '@/types';
 import { isTournamentLocked } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -309,9 +309,6 @@ export function DashboardClient({
                   <Crown className="text-crown" size={20} />
                   Tu podio del Mundial
                 </h2>
-                <button onClick={closePodio} className="text-gray-500 hover:text-gray-300 transition-colors p-1">
-                  <X size={18} />
-                </button>
               </div>
 
               {/* Points guide */}
@@ -452,7 +449,7 @@ export function DashboardClient({
                 </div>
               )}
 
-              {allDone ? (
+              {allDone && (
                 <button
                   onClick={handleSavePodio}
                   disabled={savingPodio}
@@ -460,13 +457,6 @@ export function DashboardClient({
                     disabled:opacity-50 hover:bg-crown-muted transition-colors"
                 >
                   {savingPodio ? 'Guardando...' : 'Guardar predicciones'}
-                </button>
-              ) : (
-                <button
-                  onClick={closePodio}
-                  className="w-full py-2.5 text-gray-500 text-sm hover:text-gray-300 transition-colors"
-                >
-                  Saltar por ahora
                 </button>
               )}
             </div>
