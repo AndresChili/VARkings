@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry } from '@/types';
 import { cn, formatMatchDate, getRankEmoji } from '@/lib/utils';
 
@@ -11,6 +11,12 @@ interface ChampionPick {
   champion: string | null;
   runner_up: string | null;
   third_place: string | null;
+}
+
+interface PendingRequest {
+  user_id: string;
+  username: string;
+  created_at: string;
 }
 
 interface GroupDetailClientProps {
@@ -21,6 +27,7 @@ interface GroupDetailClientProps {
   memberCount: number;
   championPicks: Record<string, ChampionPick>;
   myPodio: ChampionPick | null;
+  pendingRequests: PendingRequest[];
 }
 
 export function GroupDetailClient({
@@ -31,21 +38,25 @@ export function GroupDetailClient({
   memberCount,
   championPicks,
   myPodio,
+  pendingRequests: initialRequests,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
   const [showMenu, setShowMenu] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null);
 
   const isCreator = group.created_by === userId;
 
-  async function copyInviteLink() {
+  async function copyInviteCode() {
     await navigator.clipboard.writeText(group.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -61,11 +72,35 @@ export function GroupDetailClient({
     setDeleting(false);
   }
 
+  async function leaveGroup() {
+    setLeaving(true);
+    const res = await fetch(`/api/groups/${group.id}/leave`, { method: 'DELETE' });
+    if (res.ok) {
+      router.push('/groups');
+      router.refresh();
+    }
+    setLeaving(false);
+  }
+
   async function handleRemoveMember(targetUserId: string) {
     setRemovingUserId(targetUserId);
     await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
     setRemovingUserId(null);
     router.refresh();
+  }
+
+  async function handleRequest(targetUserId: string, action: 'accept' | 'reject') {
+    setProcessingUserId(targetUserId);
+    const res = await fetch(`/api/groups/${group.id}/requests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: targetUserId, action }),
+    });
+    if (res.ok) {
+      setPendingRequests((prev) => prev.filter((r) => r.user_id !== targetUserId));
+      if (action === 'accept') router.refresh();
+    }
+    setProcessingUserId(null);
   }
 
   const myEntry = leaderboard.find((e) => e.user_id === userId);
@@ -82,65 +117,66 @@ export function GroupDetailClient({
               <p className="text-gray-400 text-sm mt-1">{group.description}</p>
             )}
           </div>
-          {isCreator && (
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu((v) => !v)}
-                className="p-2 text-gray-500 hover:text-white transition-colors"
-              >
-                <MoreVertical size={18} />
-              </button>
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-surface-card border border-white/10 rounded-xl shadow-xl w-52 py-1 overflow-hidden">
-                    <button
-                      onClick={() => { setShowInvite((v) => !v); setShowMenu(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
-                    >
-                      Código de invitación
-                    </button>
-                    <button
-                      onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
-                    >
-                      Eliminar miembro del grupo
-                    </button>
-                    <div className="border-t border-white/10 mt-1 pt-1">
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="p-2 text-gray-500 hover:text-white transition-colors"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 bg-surface-card border border-white/10 rounded-xl shadow-xl w-52 py-1 overflow-hidden">
+                  {isCreator ? (
+                    <>
                       <button
-                        onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
+                        onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
                       >
-                        Eliminar grupo
+                        Eliminar miembro
                       </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                      <div className="border-t border-white/10 mt-1 pt-1">
+                        <button
+                          onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
+                        >
+                          Eliminar grupo
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => { setShowLeaveConfirm(true); setShowMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <LogOut size={14} />
+                      Salir del grupo
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        {showInvite && (
-          <div className="mt-4 pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
-                <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
-              </div>
-              <button
-                onClick={copyInviteLink}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-                  copied ? 'bg-field/20 text-field-light' : 'bg-crown/20 text-crown hover:bg-crown/30'
-                )}
-              >
-                {copied ? <Check size={15} /> : <Copy size={15} />}
-                {copied ? '¡Copiado!' : 'Copiar código'}
-              </button>
-            </div>
+        {/* Invite code — visible to all */}
+        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
+            <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
           </div>
-        )}
+          <button
+            onClick={copyInviteCode}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+              copied ? 'bg-field/20 text-field-light' : 'bg-crown/20 text-crown hover:bg-crown/30'
+            )}
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? '¡Copiado!' : 'Copiar'}
+          </button>
+        </div>
 
         {myEntry && (
           <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-3 gap-3">
@@ -159,6 +195,42 @@ export function GroupDetailClient({
           </div>
         )}
       </div>
+
+      {/* Pending requests (creator only) */}
+      {isCreator && pendingRequests.length > 0 && (
+        <div className="bg-surface-card border border-crown/20 rounded-2xl p-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+            <Bell size={14} className="text-crown" />
+            Solicitudes de unión
+            <span className="bg-crown/20 text-crown text-xs px-1.5 py-0.5 rounded-full font-bold ml-1">
+              {pendingRequests.length}
+            </span>
+          </h3>
+          <div className="space-y-2">
+            {pendingRequests.map((req) => (
+              <div key={req.user_id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
+                <span className="text-sm text-white font-medium">{req.username}</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRequest(req.user_id, 'reject')}
+                    disabled={processingUserId === req.user_id}
+                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                  >
+                    <UserX size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleRequest(req.user_id, 'accept')}
+                    disabled={processingUserId === req.user_id}
+                    className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                  >
+                    <UserCheck size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* My podio — read only */}
       <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
@@ -191,6 +263,29 @@ export function GroupDetailClient({
           <p className="text-sm text-gray-500 text-center py-2">No elegiste podio al unirte</p>
         )}
       </div>
+
+      {/* Leave confirm */}
+      {showLeaveConfirm && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 animate-slide-up">
+          <p className="text-white font-semibold mb-1">¿Salir del grupo?</p>
+          <p className="text-gray-400 text-sm mb-4">Perderás tu acceso y posición en la clasificación.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowLeaveConfirm(false)}
+              className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={leaveGroup}
+              disabled={leaving}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50"
+            >
+              {leaving ? 'Saliendo...' : 'Salir'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 animate-slide-up">
