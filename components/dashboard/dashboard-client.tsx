@@ -46,7 +46,6 @@ export function DashboardClient({
   const [showGroups, setShowGroups] = useState(false);
   const [groupStep, setGroupStep] = useState(0);
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
-  const [groupSearch, setGroupSearch] = useState('');
   const [savingGroups, setSavingGroups] = useState(false);
   const [groupsError, setGroupsError] = useState('');
 
@@ -139,7 +138,6 @@ export function DashboardClient({
     setShowPodio(false);
     setGroupStep(0);
     setGroupPicks({});
-    setGroupSearch('');
     setGroupsError('');
     setShowGroups(true);
   }
@@ -207,13 +205,9 @@ export function DashboardClient({
 
   const currentGroupLetter = WC_GROUPS[groupStep];
   const teamsInCurrentGroup = teams.filter((t) => t.group_name === currentGroupLetter);
-  const hasGroupData = teams.some((t) => t.group_name !== null);
-  const groupDisplayTeams = hasGroupData
-    ? teamsInCurrentGroup
-    : teamOptions.filter((t) => t.name.toLowerCase().includes(groupSearch.toLowerCase()));
   const currentGroupPicks = groupPicks[currentGroupLetter] || [];
   const isLastGroup = groupStep === WC_GROUPS.length - 1;
-  const canProceedGroup = hasGroupData ? currentGroupPicks.length === 2 : currentGroupPicks.length === 2;
+  const canProceedGroup = currentGroupPicks.length === 2;
 
   return (
     <>
@@ -385,10 +379,10 @@ export function DashboardClient({
 
             {/* Group content */}
             <div className="px-6 py-4">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 {groupStep > 0 && (
                   <button
-                    onClick={() => { setGroupStep((s) => s - 1); setGroupSearch(''); }}
+                    onClick={() => setGroupStep((s) => s - 1)}
                     className="text-gray-500 hover:text-gray-300 transition-colors"
                   >
                     <ChevronLeft size={16} />
@@ -399,31 +393,15 @@ export function DashboardClient({
                   'text-xs font-bold ml-auto',
                   currentGroupPicks.length === 2 ? 'text-green-400' : 'text-gray-500'
                 )}>
-                  {currentGroupPicks.length}/2 equipos
+                  {currentGroupPicks.length}/2 seleccionados
                 </span>
               </div>
 
-              {/* Search (fallback when no group data) */}
-              {!hasGroupData && (
-                <div className="relative mb-2">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Busca un equipo..."
-                    value={groupSearch}
-                    onChange={(e) => setGroupSearch(e.target.value)}
-                    className="w-full bg-surface border border-white/10 rounded-xl pl-9 pr-4 py-2.5
-                      text-white placeholder-gray-600 focus:outline-none focus:border-field transition-colors text-sm"
-                  />
-                </div>
-              )}
-
-              {/* Team list */}
-              <div className="max-h-52 overflow-y-auto space-y-1 pr-0.5">
-                {groupDisplayTeams.length === 0 ? (
-                  <p className="text-gray-600 text-sm text-center py-6">Sin equipos asignados a este grupo</p>
-                ) : (
-                  groupDisplayTeams.map((t) => {
+              {teamsInCurrentGroup.length === 0 ? (
+                <p className="text-gray-600 text-sm text-center py-8">Sin equipos asignados a este grupo</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {teamsInCurrentGroup.map((t) => {
                     const selected = currentGroupPicks.includes(t.name);
                     const maxed = currentGroupPicks.length >= 2 && !selected;
                     return (
@@ -432,21 +410,21 @@ export function DashboardClient({
                         onClick={() => !maxed && toggleGroupTeam(t.name)}
                         disabled={maxed}
                         className={cn(
-                          'w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between',
+                          'px-3 py-3.5 rounded-xl text-sm transition-all flex items-center justify-between gap-2',
                           selected
-                            ? 'bg-green-500/15 border border-green-500/40 text-white font-medium'
+                            ? 'bg-green-500/20 border border-green-500/50 text-white font-semibold'
                             : maxed
-                            ? 'text-gray-600 cursor-not-allowed'
-                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                            ? 'bg-white/3 border border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/20'
                         )}
                       >
-                        <span>{t.name}</span>
-                        {selected && <Check size={14} className="text-green-400" />}
+                        <span className="truncate text-left leading-tight">{t.name}</span>
+                        {selected && <Check size={13} className="text-green-400 shrink-0" />}
                       </button>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -466,7 +444,7 @@ export function DashboardClient({
                 </button>
               ) : (
                 <button
-                  onClick={() => { setGroupStep((s) => s + 1); setGroupSearch(''); }}
+                  onClick={() => setGroupStep((s) => s + 1)}
                   disabled={!canProceedGroup}
                   className="w-full py-3.5 rounded-xl bg-field text-white font-bold text-sm
                     disabled:opacity-50 hover:bg-field-muted transition-colors flex items-center justify-center gap-2"
