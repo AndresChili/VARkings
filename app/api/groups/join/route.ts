@@ -55,10 +55,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ group, pending: true, already_requested: true });
   }
 
-  // Create join request (upsert in case of rejected)
+  // Delete previous rejected request then insert fresh
+  if (existingRequest) {
+    await supabase.from('join_requests').delete().eq('id', existingRequest.id);
+  }
+
   const { error } = await supabase
     .from('join_requests')
-    .upsert({ group_id: group.id, user_id: user.id, status: 'pending' }, { onConflict: 'group_id,user_id' });
+    .insert({ group_id: group.id, user_id: user.id, status: 'pending' });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
