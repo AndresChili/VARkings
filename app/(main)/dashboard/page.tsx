@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { DashboardClient } from '@/components/dashboard/dashboard-client';
-import { STATIC_WC2026_TEAMS } from '@/lib/teams';
+import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
 
 type GroupRow = {
   group_id: string;
@@ -57,12 +57,12 @@ export default async function DashboardPage() {
   // Build team list with group info derived from matches (source of truth for groups)
   const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
   (matchesRes.data ?? []).forEach((m) => {
-    if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: m.home_team_name, logo: m.home_team_logo, group: m.group_name });
-    if (m.away_team_name && m.group_name) teamMap.set(m.away_team_name, { name: m.away_team_name, logo: m.away_team_logo, group: m.group_name });
+    if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name, logo: m.home_team_logo, group: m.group_name });
+    if (m.away_team_name && m.group_name) teamMap.set(m.away_team_name, { name: TEAM_NAME_ES[m.away_team_name] ?? m.away_team_name, logo: m.away_team_logo, group: m.group_name });
   });
 
   const teamsFromMatches = Array.from(teamMap.values())
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
     .map((t) => ({
       id: t.name,
       name: t.name,
