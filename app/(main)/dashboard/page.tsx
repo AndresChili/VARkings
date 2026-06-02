@@ -13,13 +13,18 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [predictionRes, teamsRes] = await Promise.all([
+  const [predictionRes, teamsRes, matchesRes] = await Promise.all([
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase.from('teams').select('*').order('name'),
+    supabase
+      .from('matches')
+      .select('home_team_name, away_team_name, home_team_logo, away_team_logo, group_name')
+      .not('group_name', 'is', null)
+      .eq('stage', 'Group Stage'),
   ]);
 
   // Separate query for groups to avoid nested select relation error
@@ -49,7 +54,28 @@ export default async function DashboardPage() {
     groups: (groupsData ?? []).find((g) => g.id === m.group_id) ?? null,
   }));
 
-  const teams = teamsRes.data && teamsRes.data.length > 0
+  // Build team list with group info derived from matches (source of truth for groups)
+  const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
+  (matchesRes.data ?? []).forEach((m) => {
+    if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: m.home_team_name, logo: m.home_team_logo, group: m.group_name });
+    if (m.away_team_name && m.group_name) teamMap.set(m.away_team_name, { name: m.away_team_name, logo: m.away_team_logo, group: m.group_name });
+  });
+
+  const teamsFromMatches = Array.from(teamMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((t) => ({
+      id: t.name,
+      name: t.name,
+      short_name: null as string | null,
+      logo_url: t.logo,
+      group_name: t.group,
+      api_id: null as number | null,
+      created_at: '',
+    }));
+
+  const teams = teamsFromMatches.length > 0
+    ? teamsFromMatches
+    : teamsRes.data && teamsRes.data.length > 0
     ? teamsRes.data
     : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data);
 
