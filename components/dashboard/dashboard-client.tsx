@@ -32,6 +32,7 @@ export function DashboardClient({
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [joinPending, setJoinPending] = useState(false);
 
   const [showPodio, setShowPodio] = useState(false);
   const [podioStep, setPodioStep] = useState(0);
@@ -181,6 +182,12 @@ export function DashboardClient({
       setError('Ya eres miembro de este grupo');
       return;
     }
+    if (data.pending) {
+      setShowJoin(false);
+      setJoinCode('');
+      setJoinPending(true);
+      return;
+    }
     setShowJoin(false);
     setJoinCode('');
     setNewGroupId(data.group.id);
@@ -312,6 +319,19 @@ export function DashboardClient({
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {joinPending && (
+            <div className="bg-field/10 border border-field/30 rounded-2xl p-4 mb-1 flex items-start gap-3">
+              <span className="text-lg">⏳</span>
+              <div>
+                <p className="text-sm font-semibold text-white">Solicitud enviada</p>
+                <p className="text-xs text-gray-400 mt-0.5">El admin del grupo debe aceptarte para unirte.</p>
+              </div>
+              <button onClick={() => setJoinPending(false)} className="ml-auto text-gray-500 hover:text-gray-300 transition-colors">
+                <span className="text-sm">✕</span>
+              </button>
             </div>
           )}
 

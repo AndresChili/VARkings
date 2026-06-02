@@ -32,6 +32,7 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [joinPending, setJoinPending] = useState(false);
   const [copiedId, setCopiedId] = useState('');
 
   async function handleCreate(e: React.FormEvent) {
@@ -64,8 +65,13 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error); return; }
+    if (data.already_member) { setError('Ya eres miembro de este grupo'); return; }
     setShowJoin(false);
     setJoinCode('');
+    if (data.pending) {
+      setJoinPending(true);
+      return;
+    }
     router.push(`/groups/${data.group.id}`);
     router.refresh();
   }
@@ -181,6 +187,19 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {joinPending && (
+        <div className="bg-field/10 border border-field/30 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-lg">⏳</span>
+          <div>
+            <p className="text-sm font-semibold text-white">Solicitud enviada</p>
+            <p className="text-xs text-gray-400 mt-0.5">El admin del grupo debe aceptarte para unirte.</p>
+          </div>
+          <button onClick={() => setJoinPending(false)} className="ml-auto text-gray-500 hover:text-gray-300 transition-colors">
+            <span className="text-sm">✕</span>
+          </button>
         </div>
       )}
 

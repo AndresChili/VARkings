@@ -22,7 +22,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   if (!groupRes.data) notFound();
   if (!memberRes.data) redirect('/groups');
 
-  const [leaderboardRes, matchesRes, membersCountRes] = await Promise.all([
+  const isCreator = groupRes.data.created_by === user.id;
+
+  const [leaderboardRes, matchesRes, membersCountRes, requestsRes] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
@@ -38,6 +40,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       .from('group_members')
       .select('user_id', { count: 'exact', head: true })
       .eq('group_id', id),
+    isCreator
+      ? supabase.from('join_requests').select('id, user_id, created_at').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: true })
+      : Promise.resolve({ data: [] as Array<{ id: string; user_id: string; created_at: string }> }),
   ]);
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
@@ -54,6 +59,18 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     championPicks[p.user_id] = { champion: p.champion, runner_up: p.runner_up, third_place: p.third_place };
   }
 
+  // Fetch usernames for pending requests
+  const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
+  const { data: pendingProfiles } = pendingUserIds.length > 0
+    ? await supabase.from('profiles').select('id, username').in('id', pendingUserIds)
+    : { data: [] };
+  const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p) => [p.id, p.username]));
+  const pendingRequests = (requestsRes.data ?? []).map((r) => ({
+    user_id: r.user_id,
+    username: profileMap[r.user_id] ?? 'Usuario',
+    created_at: r.created_at,
+  }));
+
   return (
     <GroupDetailClient
       group={groupRes.data}
@@ -63,6 +80,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       memberCount={membersCountRes.count ?? 0}
       championPicks={championPicks}
       myPodio={championPicks[user.id] ?? null}
+      pendingRequests={pendingRequests}
     />
   );
 }
