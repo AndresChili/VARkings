@@ -43,6 +43,7 @@ export function GroupDetailClient({
   const router = useRouter();
 
   const [copied, setCopied] = useState(false);
+  const [showInviteCode, setShowInviteCode] = useState(false);
   const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -128,14 +129,23 @@ export function GroupDetailClient({
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-full mt-1 z-20 bg-surface-card border border-white/10 rounded-xl shadow-xl w-52 py-1 overflow-hidden">
+                  <button
+                    onClick={() => { setShowInviteCode((v) => !v); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                  >
+                    <Copy size={14} />
+                    Código de invitación
+                  </button>
                   {isCreator ? (
                     <>
-                      <button
-                        onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
-                      >
-                        Eliminar miembro
-                      </button>
+                      <div className="border-t border-white/10 mt-1 pt-1">
+                        <button
+                          onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                        >
+                          Eliminar miembro
+                        </button>
+                      </div>
                       <div className="border-t border-white/10 mt-1 pt-1">
                         <button
                           onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
@@ -146,13 +156,15 @@ export function GroupDetailClient({
                       </div>
                     </>
                   ) : (
-                    <button
-                      onClick={() => { setShowLeaveConfirm(true); setShowMenu(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
-                    >
-                      <LogOut size={14} />
-                      Salir del grupo
-                    </button>
+                    <div className="border-t border-white/10 mt-1 pt-1">
+                      <button
+                        onClick={() => { setShowLeaveConfirm(true); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
+                      >
+                        <LogOut size={14} />
+                        Salir del grupo
+                      </button>
+                    </div>
                   )}
                 </div>
               </>
@@ -160,23 +172,25 @@ export function GroupDetailClient({
           </div>
         </div>
 
-        {/* Invite code — visible to all */}
-        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
-            <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
+        {/* Invite code — only when toggled from menu */}
+        {showInviteCode && (
+          <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
+              <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
+            </div>
+            <button
+              onClick={copyInviteCode}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                copied ? 'bg-field/20 text-field-light' : 'bg-crown/20 text-crown hover:bg-crown/30'
+              )}
+            >
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+              {copied ? '¡Copiado!' : 'Copiar'}
+            </button>
           </div>
-          <button
-            onClick={copyInviteCode}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-              copied ? 'bg-field/20 text-field-light' : 'bg-crown/20 text-crown hover:bg-crown/30'
-            )}
-          >
-            {copied ? <Check size={15} /> : <Copy size={15} />}
-            {copied ? '¡Copiado!' : 'Copiar'}
-          </button>
-        </div>
+        )}
 
         {myEntry && (
           <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-3 gap-3">
