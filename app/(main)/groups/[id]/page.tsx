@@ -45,7 +45,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       ? supabase.from('join_requests').select('id, user_id, created_at').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: true })
       : Promise.resolve({ data: [] as Array<{ id: string; user_id: string; created_at: string }> }),
     supabase.from('teams').select('*').order('name'),
-    supabase.from('tournament_predictions').select('user_id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('tournament_predictions').select('user_id, group_predictions').eq('user_id', user.id).maybeSingle(),
   ]);
 
   const teams: Team[] = (teamsRes.data && teamsRes.data.length > 0
@@ -89,7 +89,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       myPodio={championPicks[user.id] ?? null}
       pendingRequests={pendingRequests}
       teams={teams}
-      hasGlobalPrediction={!!globalPredRes.data}
+      hasGlobalPrediction={!!(globalPredRes.data?.group_predictions && Object.keys(globalPredRes.data.group_predictions as object).length > 0)}
     />
   );
 }
