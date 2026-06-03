@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, LogIn, Users, ChevronRight, Copy, Check } from 'lucide-react';
+import { Plus, LogIn, Users, ChevronRight, Copy, Check, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GroupMembership {
@@ -34,6 +34,8 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
   const [error, setError] = useState('');
   const [joinPending, setJoinPending] = useState(false);
   const [copiedId, setCopiedId] = useState('');
+  const [openMenuId, setOpenMenuId] = useState('');
+  const [showCodeId, setShowCodeId] = useState('');
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -210,6 +212,11 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
         </div>
       )}
 
+      {/* Overlay to close menu when clicking outside */}
+      {openMenuId && (
+        <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId('')} />
+      )}
+
       {/* Groups list */}
       {memberships.length === 0 ? (
         <div className="bg-surface-card border border-white/10 rounded-2xl p-10 text-center">
@@ -231,14 +238,14 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
             return (
               <div
                 key={g.id}
-                className="group relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden
+                className="group relative bg-surface-card border border-white/10 rounded-2xl
                   transition-all duration-200 hover:border-field/40 hover:shadow-lg hover:shadow-field/5 card-hover"
               >
                 {/* Top accent line */}
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-field via-field-light/60 to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-field via-field-light/60 to-transparent" />
 
-                <Link href={`/groups/${g.id}`} className="block p-4 pt-5">
-                  <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 p-4 pt-5">
+                  <Link href={`/groups/${g.id}`} className="flex items-start gap-3 flex-1 min-w-0">
                     {/* Avatar */}
                     <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-field/30 to-field-dark/60
                       border border-field/25 flex items-center justify-center shadow-inner">
@@ -265,35 +272,53 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
                         <span className="text-xs text-gray-500">{count} {count === 1 ? 'miembro' : 'miembros'}</span>
                       </div>
                     </div>
+                  </Link>
 
-                    <ChevronRight
-                      size={16}
-                      className="text-gray-500 mt-1 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-field-light"
-                    />
-                  </div>
-                </Link>
-
-                {/* Invite code */}
-                <div className="mx-4 mb-4">
-                  <div className="bg-surface/70 border border-white/5 rounded-xl px-3 py-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Código</span>
-                      <span className="text-sm font-mono font-bold text-crown tracking-[0.2em]">{g.invite_code}</span>
-                    </div>
+                  {/* Three-dot menu */}
+                  <div className="relative shrink-0 mt-0.5">
                     <button
-                      onClick={() => copyCode(g.invite_code, g.id)}
-                      className={cn(
-                        'flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-all duration-200',
-                        copiedId === g.id
-                          ? 'bg-field/20 text-field-light border border-field/30'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
-                      )}
+                      onClick={() => setOpenMenuId(openMenuId === g.id ? '' : g.id)}
+                      className="text-gray-500 hover:text-gray-300 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
                     >
-                      {copiedId === g.id ? <Check size={11} /> : <Copy size={11} />}
-                      {copiedId === g.id ? 'Copiado' : 'Copiar'}
+                      <MoreVertical size={16} />
                     </button>
+                    {openMenuId === g.id && (
+                      <div className="absolute right-0 top-9 bg-surface-card border border-white/10 rounded-xl shadow-xl shadow-black/50 z-20 min-w-[190px] overflow-hidden">
+                        <button
+                          onClick={() => { setShowCodeId(showCodeId === g.id ? '' : g.id); setOpenMenuId(''); }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                        >
+                          <Copy size={14} />
+                          Código de invitación
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Invite code (only when toggled) */}
+                {showCodeId === g.id && (
+                  <div className="mx-4 mb-4">
+                    <div className="bg-surface/70 border border-white/5 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Código</span>
+                        <span className="text-sm font-mono font-bold text-crown tracking-[0.2em]">{g.invite_code}</span>
+                      </div>
+                      <button
+                        onClick={() => copyCode(g.invite_code, g.id)}
+                        className={cn(
+                          'flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-all duration-200',
+                          copiedId === g.id
+                            ? 'bg-field/20 text-field-light border border-field/30'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                        )}
+                      >
+                        {copiedId === g.id ? <Check size={11} /> : <Copy size={11} />}
+                        {copiedId === g.id ? 'Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
