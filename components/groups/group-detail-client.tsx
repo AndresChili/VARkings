@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell } from 'lucide-react';
-import type { Group, Match, LeaderboardEntry } from '@/types';
-import { cn, formatMatchDate, getRankEmoji } from '@/lib/utils';
+import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft } from 'lucide-react';
+import type { Group, Match, LeaderboardEntry, Team } from '@/types';
+import { cn, formatMatchDate, getRankEmoji, isTournamentLocked } from '@/lib/utils';
 
 interface ChampionPick {
   champion: string | null;
@@ -28,7 +28,15 @@ interface GroupDetailClientProps {
   championPicks: Record<string, ChampionPick>;
   myPodio: ChampionPick | null;
   pendingRequests: PendingRequest[];
+  teams: Team[];
+  hasGlobalPrediction: boolean;
 }
+
+const PODIO_STEPS = [
+  { key: 'champion' as const, label: 'Campeón del Mundial', medal: '🥇', pts: 20 },
+  { key: 'runnerUp' as const, label: 'Segundo clasificado', medal: '🥈', pts: 10 },
+  { key: 'thirdPlace' as const, label: 'Tercer clasificado', medal: '🥉', pts: 5 },
+];
 
 export function GroupDetailClient({
   group,
@@ -39,6 +47,8 @@ export function GroupDetailClient({
   championPicks,
   myPodio,
   pendingRequests: initialRequests,
+  teams,
+  hasGlobalPrediction,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
@@ -55,7 +65,17 @@ export function GroupDetailClient({
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
 
+  const [podioStep, setPodioStep] = useState(0);
+  const [podioSearch, setPodioSearch] = useState('');
+  const [champion, setChampion] = useState('');
+  const [runnerUp, setRunnerUp] = useState('');
+  const [thirdPlace, setThirdPlace] = useState('');
+  const [savingPodio, setSavingPodio] = useState(false);
+  const [podioError, setPodioError] = useState('');
+
+  const locked = isTournamentLocked();
   const isCreator = group.created_by === userId;
+  const showPodioSetup = !myPodio?.champion && !locked;
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(group.invite_code);
@@ -103,6 +123,57 @@ export function GroupDetailClient({
     }
     setProcessingUserId(null);
   }
+
+  function getPodioStepValue(step: number) {
+    if (step === 0) return champion;
+    if (step === 1) return runnerUp;
+    return thirdPlace;
+  }
+
+  function setPodioStepValue(step: number, val: string) {
+    if (step === 0) setChampion(val);
+    else if (step === 1) setRunnerUp(val);
+    else setThirdPlace(val);
+  }
+
+  function handleTeamSelect(name: string) {
+    setPodioStepValue(podioStep, name);
+    setPodioSearch('');
+    if (podioStep < 2) setTimeout(() => setPodioStep((s) => s + 1), 150);
+  }
+
+  async function handleSavePodio() {
+    setPodioError('');
+    if (!champion || !runnerUp || !thirdPlace) {
+      setPodioError('Completa los tres puestos');
+      return;
+    }
+    setSavingPodio(true);
+    const res = await fetch(`/api/groups/${group.id}/podio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ champion, runner_up: runnerUp, third_place: thirdPlace }),
+    });
+    setSavingPodio(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setPodioError(data.error ?? 'Error al guardar');
+      return;
+    }
+    router.refresh();
+  }
+
+  const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const filteredTeams = teamOptions.filter(
+    (t) =>
+      t.name.toLowerCase().includes(podioSearch.toLowerCase()) &&
+      t.name !== champion &&
+      t.name !== runnerUp &&
+      t.name !== thirdPlace
+  );
+  const currentPodioStep = PODIO_STEPS[podioStep];
+  const currentPodioValue = getPodioStepValue(podioStep);
+  const podioAllDone = champion && runnerUp && thirdPlace;
 
   const myEntry = leaderboard.find((e) => e.user_id === userId);
   const myRank = leaderboard.findIndex((e) => e.user_id === userId) + 1;
@@ -246,17 +317,22 @@ export function GroupDetailClient({
         </div>
       )}
 
-      {/* My podio — read only */}
-      <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
+      {/* My podio */}
+      <div className={cn(
+        'bg-surface-card border rounded-2xl p-4',
+        showPodioSetup ? 'border-crown/30' : 'border-white/10'
+      )}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <Crown size={14} className="text-crown" />
             Mi podio en este grupo
           </h3>
-          <span className="flex items-center gap-1 text-[10px] text-gray-600">
-            <Lock size={10} />
-            Definitivo
-          </span>
+          {!showPodioSetup && (
+            <span className="flex items-center gap-1 text-[10px] text-gray-600">
+              <Lock size={10} />
+              Definitivo
+            </span>
+          )}
         </div>
 
         {myPodio?.champion ? (
@@ -273,10 +349,107 @@ export function GroupDetailClient({
               </div>
             ))}
           </div>
+        ) : showPodioSetup ? (
+          <div className="space-y-3">
+            {/* Step indicator */}
+            <div className="flex gap-1.5 mb-1">
+              {PODIO_STEPS.map((s, i) => (
+                <div
+                  key={s.key}
+                  className={cn(
+                    'flex-1 h-1 rounded-full transition-colors',
+                    i < podioStep ? 'bg-crown' : i === podioStep ? 'bg-crown/60' : 'bg-white/10'
+                  )}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {podioStep > 0 && (
+                <button
+                  onClick={() => setPodioStep((s) => s - 1)}
+                  className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+              <p className="text-sm text-gray-300 font-medium">
+                {currentPodioStep.medal} {currentPodioStep.label}
+                <span className="text-xs text-crown ml-1.5">+{currentPodioStep.pts} pts</span>
+              </p>
+            </div>
+
+            {currentPodioValue ? (
+              <div className="flex items-center justify-between bg-crown/10 border border-crown/20 rounded-xl px-4 py-2.5">
+                <span className="text-sm font-semibold text-white">{currentPodioValue}</span>
+                <button
+                  onClick={() => setPodioStepValue(podioStep, '')}
+                  className="text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar selección..."
+                    value={podioSearch}
+                    onChange={(e) => setPodioSearch(e.target.value)}
+                    className="w-full bg-surface border border-white/10 rounded-xl pl-8 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-crown/50 transition-colors text-sm"
+                  />
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {filteredTeams.slice(0, 20).map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleTeamSelect(t.name)}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {podioAllDone && (
+              <div className="pt-1 space-y-1.5">
+                <div className="flex gap-2 text-xs text-gray-400">
+                  {[{ m: '🥇', v: champion }, { m: '🥈', v: runnerUp }, { m: '🥉', v: thirdPlace }].map(({ m, v }) => (
+                    <span key={m} className="flex-1 bg-white/5 rounded-lg px-2 py-1.5 text-center truncate">{m} {v}</span>
+                  ))}
+                </div>
+                {podioError && <p className="text-xs text-red-400">{podioError}</p>}
+                <button
+                  onClick={handleSavePodio}
+                  disabled={savingPodio}
+                  className="w-full py-2.5 bg-crown text-black font-bold text-sm rounded-xl hover:bg-crown/90 transition-colors disabled:opacity-50"
+                >
+                  {savingPodio ? 'Guardando...' : 'Guardar podio'}
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
-          <p className="text-sm text-gray-500 text-center py-2">No elegiste podio al unirte</p>
+          <p className="text-sm text-gray-500 text-center py-2">Predicciones cerradas</p>
         )}
       </div>
+
+      {/* Global predictions notice */}
+      {!hasGlobalPrediction && !locked && (
+        <Link href="/predictions">
+          <div className="bg-field/10 border border-field/30 rounded-2xl p-4 flex items-center justify-between card-hover">
+            <div>
+              <p className="text-sm font-semibold text-white">Predicciones globales pendientes</p>
+              <p className="text-xs text-gray-400 mt-0.5">Elige qué equipos pasan de fase para sumar puntos</p>
+            </div>
+            <ChevronRight size={18} className="text-field-light shrink-0" />
+          </div>
+        </Link>
+      )}
 
       {/* Leave confirm */}
       {showLeaveConfirm && (
