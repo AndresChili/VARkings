@@ -92,7 +92,7 @@ export function GroupDetailClient({
     setDeleting(true);
     const res = await fetch(`/api/groups/${group.id}`, { method: 'DELETE' });
     if (res.ok) {
-      router.push('/groups');
+      router.push('/dashboard');
       router.refresh();
     }
     setDeleting(false);
@@ -102,7 +102,7 @@ export function GroupDetailClient({
     setLeaving(true);
     const res = await fetch(`/api/groups/${group.id}/leave`, { method: 'DELETE' });
     if (res.ok) {
-      router.push('/groups');
+      router.push('/dashboard');
       router.refresh();
     }
     setLeaving(false);

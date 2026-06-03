@@ -21,7 +21,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   ]);
 
   if (!groupRes.data) notFound();
-  if (!memberRes.data) redirect('/groups');
+  if (!memberRes.data) redirect('/dashboard');
 
   const isCreator = groupRes.data.created_by === user.id;
 
