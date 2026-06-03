@@ -85,7 +85,14 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Mis grupos</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Mis grupos</h1>
+          {memberships.length > 0 && (
+            <p className="text-xs text-gray-500 mt-0.5">
+              {memberships.length} {memberships.length === 1 ? 'grupo' : 'grupos'}
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => { setShowJoin(true); setShowCreate(false); setError(''); }}
@@ -205,62 +212,87 @@ export function GroupsClient({ memberships, memberCounts, userId }: GroupsClient
 
       {/* Groups list */}
       {memberships.length === 0 ? (
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
-          <Users size={40} className="text-gray-600 mx-auto mb-3" />
+        <div className="bg-surface-card border border-white/10 rounded-2xl p-10 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-field/20 to-field-dark/30 border border-field/20 flex items-center justify-center mx-auto mb-4">
+            <Users size={28} className="text-field-light" />
+          </div>
           <p className="text-white font-semibold mb-1">Sin grupos todavía</p>
-          <p className="text-gray-400 text-sm">Crea un grupo o únete con un código de invitación</p>
+          <p className="text-gray-500 text-sm">Crea un grupo o únete con un código de invitación</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {memberships.map((m) => {
             if (!m.groups) return null;
             const g = m.groups;
             const count = memberCounts[g.id] ?? 1;
             const isCreator = g.created_by === userId;
+            const initials = g.name.slice(0, 2).toUpperCase();
 
             return (
-              <div key={g.id} className="bg-surface-card border border-white/10 rounded-2xl p-4 card-hover">
-                <Link href={`/groups/${g.id}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
+              <div
+                key={g.id}
+                className="group relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden
+                  transition-all duration-200 hover:border-field/40 hover:shadow-lg hover:shadow-field/5 card-hover"
+              >
+                {/* Top accent line */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-field via-field-light/60 to-transparent" />
+
+                <Link href={`/groups/${g.id}`} className="block p-4 pt-5">
+                  <div className="flex items-start gap-3">
+                    {/* Avatar */}
+                    <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-field/30 to-field-dark/60
+                      border border-field/25 flex items-center justify-center shadow-inner">
+                      <span className="text-field-light font-bold text-base">{initials}</span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-white truncate">{g.name}</h3>
                         {isCreator && (
-                          <span className="text-[10px] bg-crown/20 text-crown px-1.5 py-0.5 rounded font-medium shrink-0">
+                          <span className="text-[10px] bg-crown/20 text-crown border border-crown/20 px-1.5 py-0.5 rounded-md font-semibold shrink-0">
                             Admin
                           </span>
                         )}
                       </div>
-                      {g.description && (
+                      {g.description ? (
                         <p className="text-sm text-gray-400 mt-0.5 line-clamp-1">{g.description}</p>
+                      ) : (
+                        <p className="text-xs text-gray-600 mt-0.5 italic">Sin descripción</p>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        <Users size={11} className="inline mr-1" />
-                        {count} {count === 1 ? 'miembro' : 'miembros'}
-                      </p>
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <Users size={11} className="text-gray-500" />
+                        <span className="text-xs text-gray-500">{count} {count === 1 ? 'miembro' : 'miembros'}</span>
+                      </div>
                     </div>
-                    <ChevronRight size={16} className="text-gray-500 mt-0.5 shrink-0" />
+
+                    <ChevronRight
+                      size={16}
+                      className="text-gray-500 mt-1 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-field-light"
+                    />
                   </div>
                 </Link>
 
                 {/* Invite code */}
-                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500">Código de invitación</p>
-                    <p className="text-sm font-mono font-bold text-crown tracking-widest">{g.invite_code}</p>
+                <div className="mx-4 mb-4">
+                  <div className="bg-surface/70 border border-white/5 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Código</span>
+                      <span className="text-sm font-mono font-bold text-crown tracking-[0.2em]">{g.invite_code}</span>
+                    </div>
+                    <button
+                      onClick={() => copyCode(g.invite_code, g.id)}
+                      className={cn(
+                        'flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-all duration-200',
+                        copiedId === g.id
+                          ? 'bg-field/20 text-field-light border border-field/30'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-transparent'
+                      )}
+                    >
+                      {copiedId === g.id ? <Check size={11} /> : <Copy size={11} />}
+                      {copiedId === g.id ? 'Copiado' : 'Copiar'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => copyCode(g.invite_code, g.id)}
-                    className={cn(
-                      'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors',
-                      copiedId === g.id
-                        ? 'bg-field/20 text-field-light'
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                    )}
-                  >
-                    {copiedId === g.id ? <Check size={12} /> : <Copy size={12} />}
-                    {copiedId === g.id ? 'Copiado' : 'Copiar'}
-                  </button>
                 </div>
               </div>
             );
