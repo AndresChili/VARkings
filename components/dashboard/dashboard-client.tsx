@@ -337,22 +337,40 @@ export function DashboardClient({
 
           {groups.length === 0 ? (
             <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-field/20 to-field-dark/30 border border-field/20 flex items-center justify-center mx-auto mb-3">
+                <Users size={22} className="text-field-light" />
+              </div>
               <p className="text-gray-400 text-sm">No estás en ningún grupo todavía</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {groups.map((m) => {
                 if (!m.groups) return null;
+                const initials = m.groups.name.slice(0, 2).toUpperCase();
                 return (
-                  <Link key={m.group_id} href={`/groups/${m.groups.id}`}>
-                    <div className="bg-surface-card border border-white/10 rounded-2xl p-4 flex items-center justify-between card-hover">
-                      <div>
-                        <p className="font-semibold text-white">{m.groups.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {m.member_count} {m.member_count === 1 ? 'miembro' : 'miembros'}
-                        </p>
+                  <Link key={m.group_id} href={`/groups/${m.groups.id}`} className="block">
+                    <div className="group relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden
+                      transition-all duration-200 hover:border-field/40 hover:shadow-lg hover:shadow-field/5 card-hover">
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-field via-field-light/60 to-transparent" />
+                      <div className="p-4 pt-5 flex items-center gap-3">
+                        <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-field/30 to-field-dark/60
+                          border border-field/25 flex items-center justify-center">
+                          <span className="text-field-light font-bold text-sm">{initials}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-white truncate">{m.groups.name}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Users size={10} className="text-gray-500" />
+                            <p className="text-xs text-gray-500">
+                              {m.member_count} {m.member_count === 1 ? 'miembro' : 'miembros'}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight
+                          size={15}
+                          className="text-gray-500 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-field-light"
+                        />
                       </div>
-                      <ChevronRight size={16} className="text-gray-500" />
                     </div>
                   </Link>
                 );
