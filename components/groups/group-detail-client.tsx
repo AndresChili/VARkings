@@ -65,7 +65,7 @@ export function GroupDetailClient({
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
 
-  const [showPodio, setShowPodio] = useState(false);
+  const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isTournamentLocked());
   const [podioStep, setPodioStep] = useState(0);
   const [podioSearch, setPodioSearch] = useState('');
   const [champion, setChampion] = useState('');
