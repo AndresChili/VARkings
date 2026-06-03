@@ -29,7 +29,6 @@ interface GroupDetailClientProps {
   myPodio: ChampionPick | null;
   pendingRequests: PendingRequest[];
   teams: Team[];
-  hasGlobalPrediction: boolean;
 }
 
 const PODIO_STEPS = [
@@ -48,7 +47,6 @@ export function GroupDetailClient({
   myPodio,
   pendingRequests: initialRequests,
   teams,
-  hasGlobalPrediction,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
@@ -181,12 +179,8 @@ export function GroupDetailClient({
       return;
     }
     setShowPodio(false);
-    if (!hasGlobalPrediction) {
-      setGroupStep(0); setGroupPicks({}); setGroupsError('');
-      setShowGroups(true);
-    } else {
-      router.refresh();
-    }
+    setGroupStep(0); setGroupPicks({}); setGroupsError('');
+    setShowGroups(true);
   }
 
   async function handleSaveGroups() {
