@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
-import { cn, formatMatchDate, getRankEmoji, isTournamentLocked } from '@/lib/utils';
+import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 
 interface ChampionPick {
   champion: string | null;
@@ -65,6 +65,7 @@ export function GroupDetailClient({
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
 
+  const [showPodio, setShowPodio] = useState(false);
   const [podioStep, setPodioStep] = useState(0);
   const [podioSearch, setPodioSearch] = useState('');
   const [champion, setChampion] = useState('');
@@ -73,9 +74,15 @@ export function GroupDetailClient({
   const [savingPodio, setSavingPodio] = useState(false);
   const [podioError, setPodioError] = useState('');
 
+  const [showGroups, setShowGroups] = useState(false);
+  const [groupStep, setGroupStep] = useState(0);
+  const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
+  const [savingGroups, setSavingGroups] = useState(false);
+  const [groupsError, setGroupsError] = useState('');
+
   const locked = isTournamentLocked();
   const isCreator = group.created_by === userId;
-  const showPodioSetup = !myPodio?.champion && !locked;
+  const needsPodioSetup = !myPodio?.champion && !locked;
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(group.invite_code);
@@ -124,30 +131,43 @@ export function GroupDetailClient({
     setProcessingUserId(null);
   }
 
-  function getPodioStepValue(step: number) {
+  function getStepValue(step: number) {
     if (step === 0) return champion;
     if (step === 1) return runnerUp;
     return thirdPlace;
   }
 
-  function setPodioStepValue(step: number, val: string) {
+  function setStepValue(step: number, val: string) {
     if (step === 0) setChampion(val);
     else if (step === 1) setRunnerUp(val);
     else setThirdPlace(val);
   }
 
+  function openPodio() {
+    setChampion(''); setRunnerUp(''); setThirdPlace('');
+    setPodioStep(0); setPodioSearch(''); setPodioError('');
+    setShowPodio(true);
+  }
+
+  function toggleGroupTeam(teamName: string) {
+    const g = WC_GROUPS[groupStep];
+    setGroupPicks((prev) => {
+      const picks = prev[g] || [];
+      if (picks.includes(teamName)) return { ...prev, [g]: picks.filter((t) => t !== teamName) };
+      if (picks.length >= 2) return prev;
+      return { ...prev, [g]: [...picks, teamName] };
+    });
+  }
+
   function handleTeamSelect(name: string) {
-    setPodioStepValue(podioStep, name);
+    setStepValue(podioStep, name);
     setPodioSearch('');
     if (podioStep < 2) setTimeout(() => setPodioStep((s) => s + 1), 150);
   }
 
   async function handleSavePodio() {
     setPodioError('');
-    if (!champion || !runnerUp || !thirdPlace) {
-      setPodioError('Completa los tres puestos');
-      return;
-    }
+    if (!champion || !runnerUp || !thirdPlace) { setPodioError('Completa los tres puestos'); return; }
     setSavingPodio(true);
     const res = await fetch(`/api/groups/${group.id}/podio`, {
       method: 'POST',
@@ -160,6 +180,29 @@ export function GroupDetailClient({
       setPodioError(data.error ?? 'Error al guardar');
       return;
     }
+    setShowPodio(false);
+    if (!hasGlobalPrediction) {
+      setGroupStep(0); setGroupPicks({}); setGroupsError('');
+      setShowGroups(true);
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function handleSaveGroups() {
+    setSavingGroups(true); setGroupsError('');
+    const res = await fetch('/api/predictions/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_predictions: groupPicks }),
+    });
+    setSavingGroups(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setGroupsError(data.error);
+      return;
+    }
+    setShowGroups(false);
     router.refresh();
   }
 
@@ -167,18 +210,23 @@ export function GroupDetailClient({
   const filteredTeams = teamOptions.filter(
     (t) =>
       t.name.toLowerCase().includes(podioSearch.toLowerCase()) &&
-      t.name !== champion &&
-      t.name !== runnerUp &&
-      t.name !== thirdPlace
+      t.name !== champion && t.name !== runnerUp && t.name !== thirdPlace
   );
-  const currentPodioStep = PODIO_STEPS[podioStep];
-  const currentPodioValue = getPodioStepValue(podioStep);
-  const podioAllDone = champion && runnerUp && thirdPlace;
+  const currentStep = PODIO_STEPS[podioStep];
+  const currentValue = getStepValue(podioStep);
+  const allDone = champion && runnerUp && thirdPlace;
+
+  const currentGroupLetter = WC_GROUPS[groupStep];
+  const teamsInCurrentGroup = teams.filter((t) => t.group_name === currentGroupLetter);
+  const currentGroupPicks = groupPicks[currentGroupLetter] || [];
+  const isLastGroup = groupStep === WC_GROUPS.length - 1;
+  const canProceedGroup = currentGroupPicks.length === 2;
 
   const myEntry = leaderboard.find((e) => e.user_id === userId);
   const myRank = leaderboard.findIndex((e) => e.user_id === userId) + 1;
 
   return (
+    <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
       {/* Header */}
       <div className="bg-surface-card border border-white/10 rounded-2xl p-5">
@@ -320,14 +368,14 @@ export function GroupDetailClient({
       {/* My podio */}
       <div className={cn(
         'bg-surface-card border rounded-2xl p-4',
-        showPodioSetup ? 'border-crown/30' : 'border-white/10'
+        needsPodioSetup ? 'border-crown/30' : 'border-white/10'
       )}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <Crown size={14} className="text-crown" />
             Mi podio en este grupo
           </h3>
-          {!showPodioSetup && (
+          {!needsPodioSetup && (
             <span className="flex items-center gap-1 text-[10px] text-gray-600">
               <Lock size={10} />
               Definitivo
@@ -349,107 +397,18 @@ export function GroupDetailClient({
               </div>
             ))}
           </div>
-        ) : showPodioSetup ? (
-          <div className="space-y-3">
-            {/* Step indicator */}
-            <div className="flex gap-1.5 mb-1">
-              {PODIO_STEPS.map((s, i) => (
-                <div
-                  key={s.key}
-                  className={cn(
-                    'flex-1 h-1 rounded-full transition-colors',
-                    i < podioStep ? 'bg-crown' : i === podioStep ? 'bg-crown/60' : 'bg-white/10'
-                  )}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {podioStep > 0 && (
-                <button
-                  onClick={() => setPodioStep((s) => s - 1)}
-                  className="p-1.5 text-gray-400 hover:text-white transition-colors"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-              )}
-              <p className="text-sm text-gray-300 font-medium">
-                {currentPodioStep.medal} {currentPodioStep.label}
-                <span className="text-xs text-crown ml-1.5">+{currentPodioStep.pts} pts</span>
-              </p>
-            </div>
-
-            {currentPodioValue ? (
-              <div className="flex items-center justify-between bg-crown/10 border border-crown/20 rounded-xl px-4 py-2.5">
-                <span className="text-sm font-semibold text-white">{currentPodioValue}</span>
-                <button
-                  onClick={() => setPodioStepValue(podioStep, '')}
-                  className="text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Buscar selección..."
-                    value={podioSearch}
-                    onChange={(e) => setPodioSearch(e.target.value)}
-                    className="w-full bg-surface border border-white/10 rounded-xl pl-8 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-crown/50 transition-colors text-sm"
-                  />
-                </div>
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {filteredTeams.slice(0, 20).map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleTeamSelect(t.name)}
-                      className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {podioAllDone && (
-              <div className="pt-1 space-y-1.5">
-                <div className="flex gap-2 text-xs text-gray-400">
-                  {[{ m: '🥇', v: champion }, { m: '🥈', v: runnerUp }, { m: '🥉', v: thirdPlace }].map(({ m, v }) => (
-                    <span key={m} className="flex-1 bg-white/5 rounded-lg px-2 py-1.5 text-center truncate">{m} {v}</span>
-                  ))}
-                </div>
-                {podioError && <p className="text-xs text-red-400">{podioError}</p>}
-                <button
-                  onClick={handleSavePodio}
-                  disabled={savingPodio}
-                  className="w-full py-2.5 bg-crown text-black font-bold text-sm rounded-xl hover:bg-crown/90 transition-colors disabled:opacity-50"
-                >
-                  {savingPodio ? 'Guardando...' : 'Guardar podio'}
-                </button>
-              </div>
-            )}
-          </div>
+        ) : needsPodioSetup ? (
+          <button
+            onClick={openPodio}
+            className="w-full py-2.5 bg-crown/20 border border-crown/30 text-crown font-semibold text-sm rounded-xl hover:bg-crown/30 transition-colors flex items-center justify-center gap-2"
+          >
+            <Crown size={14} />
+            Elegir mi podio
+          </button>
         ) : (
           <p className="text-sm text-gray-500 text-center py-2">Predicciones cerradas</p>
         )}
       </div>
-
-      {/* Global predictions notice */}
-      {!hasGlobalPrediction && !locked && (
-        <Link href="/predictions">
-          <div className="bg-field/10 border border-field/30 rounded-2xl p-4 flex items-center justify-between card-hover">
-            <div>
-              <p className="text-sm font-semibold text-white">Predicciones globales pendientes</p>
-              <p className="text-xs text-gray-400 mt-0.5">Elige qué equipos pasan de fase para sumar puntos</p>
-            </div>
-            <ChevronRight size={18} className="text-field-light shrink-0" />
-          </div>
-        </Link>
-      )}
 
       {/* Leave confirm */}
       {showLeaveConfirm && (
@@ -656,5 +615,223 @@ export function GroupDetailClient({
         </div>
       )}
     </div>
+
+    {/* Podio modal */}
+    {showPodio && (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
+          <div className="px-6 pt-6 pb-4 border-b border-white/5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Crown className="text-crown" size={20} />
+                Tu podio del Mundial
+              </h2>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider font-medium">Puntos en juego</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {PODIO_STEPS.map((s, i) => (
+                  <div
+                    key={s.key}
+                    className={cn(
+                      'rounded-lg py-2 px-1 transition-all',
+                      i === podioStep ? 'bg-crown/15 border border-crown/30' : 'opacity-50'
+                    )}
+                  >
+                    <div className="text-xl mb-0.5">{s.medal}</div>
+                    <div className={cn('text-sm font-bold', i === 0 ? 'text-crown' : i === 1 ? 'text-gray-300' : 'text-amber-600')}>+{s.pts} pts</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">{s.label.split(' ')[0]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-1.5 mt-4">
+              {PODIO_STEPS.map((s, i) => (
+                <div
+                  key={s.key}
+                  className={cn('h-1 flex-1 rounded-full transition-all', i < podioStep ? 'bg-crown' : i === podioStep ? 'bg-crown/60' : 'bg-white/10')}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-2 mb-1">
+              {podioStep > 0 && (
+                <button onClick={() => { setPodioStep((s) => s - 1); setPodioSearch(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+              <p className="text-sm font-bold text-white">{currentStep.medal} {currentStep.label}</p>
+              <span className={cn('text-xs font-bold ml-auto', podioStep === 0 ? 'text-crown' : podioStep === 1 ? 'text-gray-300' : 'text-amber-600')}>
+                +{currentStep.pts} pts
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3 ml-5">
+              {podioStep === 0 ? '¿Qué selección crees que ganará el Mundial 2026?' : podioStep === 1 ? '¿Quién llegará a la final pero no ganará?' : '¿Qué selección quedará en tercer lugar?'}
+            </p>
+
+            {currentValue && (
+              <div className="bg-crown/10 border border-crown/30 rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Check size={14} className="text-crown" />
+                  <span className="text-white font-semibold text-sm">{currentValue}</span>
+                </div>
+                <button onClick={() => setStepValue(podioStep, '')} className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Cambiar</button>
+              </div>
+            )}
+
+            <div className="relative mb-2">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Busca un equipo..."
+                value={podioSearch}
+                onChange={(e) => setPodioSearch(e.target.value)}
+                className="w-full bg-surface border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-field transition-colors text-sm"
+              />
+            </div>
+
+            <div className="max-h-44 overflow-y-auto space-y-1 pr-0.5">
+              {filteredTeams.length === 0 ? (
+                <p className="text-gray-600 text-sm text-center py-4">Sin resultados</p>
+              ) : (
+                filteredTeams.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleTeamSelect(t.name)}
+                    className={cn(
+                      'w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all',
+                      currentValue === t.name ? 'bg-crown/15 border border-crown/40 text-white font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="px-6 pb-6">
+            {podioError && <p className="text-red-400 text-sm mb-3">{podioError}</p>}
+            {(champion || runnerUp || thirdPlace) && (
+              <div className="flex gap-2 mb-3">
+                {PODIO_STEPS.map((s, i) => {
+                  const val = i === 0 ? champion : i === 1 ? runnerUp : thirdPlace;
+                  return (
+                    <div key={s.key} className={cn('flex-1 rounded-lg px-2 py-1.5 text-center border', val ? 'border-white/10 bg-white/5' : 'border-white/5 opacity-40')}>
+                      <div className="text-sm">{s.medal}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 truncate">{val || '–'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {allDone && (
+              <button
+                onClick={handleSavePodio}
+                disabled={savingPodio}
+                className="w-full py-3.5 rounded-xl bg-crown text-surface font-bold text-sm disabled:opacity-50 hover:bg-crown-muted transition-colors"
+              >
+                {savingPodio ? 'Guardando...' : 'Guardar predicciones'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Grupos modal */}
+    {showGroups && (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
+          <div className="px-6 pt-6 pb-4 border-b border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-white">Grupos del Mundial</h2>
+              <span className="text-sm text-gray-500">{groupStep + 1} / {WC_GROUPS.length}</span>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 mb-3">
+              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">Puntos en juego</p>
+              <p className="text-sm text-gray-300">
+                <span className="text-field font-bold">+2 pts</span> por cada equipo que aciertes pasando de grupos
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Elige los 2 equipos que crees que pasan de cada grupo</p>
+            </div>
+            <div className="flex gap-0.5">
+              {WC_GROUPS.map((g, i) => (
+                <div
+                  key={g}
+                  className={cn('h-1 flex-1 rounded-full transition-all', i < groupStep ? 'bg-field' : i === groupStep ? 'bg-field/60' : 'bg-white/10')}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-2 mb-4">
+              {groupStep > 0 && (
+                <button onClick={() => setGroupStep((s) => s - 1)} className="text-gray-500 hover:text-gray-300 transition-colors">
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+              <p className="text-sm font-bold text-white">Grupo {currentGroupLetter}</p>
+              <span className={cn('text-xs font-bold ml-auto', currentGroupPicks.length === 2 ? 'text-green-400' : 'text-gray-500')}>
+                {currentGroupPicks.length}/2 seleccionados
+              </span>
+            </div>
+
+            {teamsInCurrentGroup.length === 0 ? (
+              <p className="text-gray-600 text-sm text-center py-8">Sin equipos asignados a este grupo</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {teamsInCurrentGroup.map((t) => {
+                  const selected = currentGroupPicks.includes(t.name);
+                  const maxed = currentGroupPicks.length >= 2 && !selected;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => !maxed && toggleGroupTeam(t.name)}
+                      disabled={maxed}
+                      className={cn(
+                        'px-3 py-3.5 rounded-xl text-sm transition-all flex items-center justify-between gap-2',
+                        selected ? 'bg-green-500/20 border border-green-500/50 text-white font-semibold'
+                          : maxed ? 'bg-white/3 border border-white/5 text-gray-600 cursor-not-allowed'
+                          : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/20'
+                      )}
+                    >
+                      <span className="truncate text-left leading-tight">{t.name}</span>
+                      {selected && <Check size={13} className="text-green-400 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 pb-6">
+            {groupsError && <p className="text-red-400 text-sm mb-3">{groupsError}</p>}
+            {isLastGroup ? (
+              <button
+                onClick={handleSaveGroups}
+                disabled={savingGroups || !canProceedGroup}
+                className="w-full py-3.5 rounded-xl bg-field text-white font-bold text-sm disabled:opacity-50 hover:bg-field-muted transition-colors"
+              >
+                {savingGroups ? 'Guardando...' : 'Guardar predicciones'}
+              </button>
+            ) : (
+              <button
+                onClick={() => setGroupStep((s) => s + 1)}
+                disabled={!canProceedGroup}
+                className="w-full py-3.5 rounded-xl bg-field text-white font-bold text-sm disabled:opacity-50 hover:bg-field-muted transition-colors flex items-center justify-center gap-2"
+              >
+                Siguiente
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
