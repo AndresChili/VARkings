@@ -398,13 +398,7 @@ export function GroupDetailClient({
             ))}
           </div>
         ) : needsPodioSetup ? (
-          <button
-            onClick={openPodio}
-            className="w-full py-2.5 bg-crown/20 border border-crown/30 text-crown font-semibold text-sm rounded-xl hover:bg-crown/30 transition-colors flex items-center justify-center gap-2"
-          >
-            <Crown size={14} />
-            Elegir mi podio
-          </button>
+          <p className="text-sm text-gray-500 text-center py-2">Pendiente de elegir</p>
         ) : (
           <p className="text-sm text-gray-500 text-center py-2">Predicciones cerradas</p>
         )}
