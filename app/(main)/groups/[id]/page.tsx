@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
-import type { Match } from '@/types';
+import { STATIC_WC2026_TEAMS } from '@/lib/teams';
+import type { Match, Team } from '@/types';
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,7 +25,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   const isCreator = groupRes.data.created_by === user.id;
 
-  const [leaderboardRes, matchesRes, membersCountRes, requestsRes] = await Promise.all([
+  const [leaderboardRes, matchesRes, membersCountRes, requestsRes, teamsRes, globalPredRes] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
@@ -43,7 +44,13 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     isCreator
       ? supabase.from('join_requests').select('id, user_id, created_at').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: true })
       : Promise.resolve({ data: [] as Array<{ id: string; user_id: string; created_at: string }> }),
+    supabase.from('teams').select('*').order('name'),
+    supabase.from('tournament_predictions').select('user_id').eq('user_id', user.id).maybeSingle(),
   ]);
+
+  const teams: Team[] = (teamsRes.data && teamsRes.data.length > 0
+    ? teamsRes.data
+    : (STATIC_WC2026_TEAMS as unknown as Team[]));
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
   const { data: groupPreds } = memberIds.length > 0
@@ -81,6 +88,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       championPicks={championPicks}
       myPodio={championPicks[user.id] ?? null}
       pendingRequests={pendingRequests}
+      teams={teams}
+      hasGlobalPrediction={!!globalPredRes.data}
     />
   );
 }
