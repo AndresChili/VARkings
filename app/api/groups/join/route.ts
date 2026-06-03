@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Código de invitación requerido' }, { status: 400 });
   }
 
-  const { data: group } = await supabase
+  // Use admin client to bypass RLS — unauthenticated lookup by invite code
+  const adminClient = createAdminClient();
+  const { data: group } = await adminClient
     .from('groups')
     .select('id, name, created_by')
     .eq('invite_code', invite_code.trim().toUpperCase())
