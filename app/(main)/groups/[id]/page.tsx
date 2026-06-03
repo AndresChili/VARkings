@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
-import { STATIC_WC2026_TEAMS } from '@/lib/teams';
+import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
 import type { Match, Team } from '@/types';
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +25,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   const isCreator = groupRes.data.created_by === user.id;
 
-  const [leaderboardRes, matchesRes, membersCountRes, requestsRes, teamsRes] = await Promise.all([
+  const [leaderboardRes, matchesRes, membersCountRes, requestsRes, teamsRes, groupStageMatchesRes] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
@@ -45,11 +45,24 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       ? supabase.from('join_requests').select('id, user_id, created_at').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: true })
       : Promise.resolve({ data: [] as Array<{ id: string; user_id: string; created_at: string }> }),
     supabase.from('teams').select('*').order('name'),
+    supabase.from('matches').select('home_team_name, away_team_name, home_team_logo, away_team_logo, group_name').not('group_name', 'is', null).eq('stage', 'Group Stage'),
   ]);
 
-  const teams: Team[] = (teamsRes.data && teamsRes.data.length > 0
+  // Build teams with group_name from matches (same logic as dashboard)
+  const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
+  (groupStageMatchesRes.data ?? []).forEach((m) => {
+    if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name, logo: m.home_team_logo, group: m.group_name });
+    if (m.away_team_name && m.group_name) teamMap.set(m.away_team_name, { name: TEAM_NAME_ES[m.away_team_name] ?? m.away_team_name, logo: m.away_team_logo, group: m.group_name });
+  });
+  const teamsFromMatches = Array.from(teamMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    .map((t) => ({ id: t.name, name: t.name, short_name: null as string | null, logo_url: t.logo, group_name: t.group, api_id: null as number | null, created_at: '' }));
+
+  const teams: Team[] = teamsFromMatches.length > 0
+    ? teamsFromMatches
+    : teamsRes.data && teamsRes.data.length > 0
     ? teamsRes.data
-    : (STATIC_WC2026_TEAMS as unknown as Team[]));
+    : (STATIC_WC2026_TEAMS as unknown as Team[]);
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
   const { data: groupPreds } = memberIds.length > 0
