@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -25,14 +25,43 @@ function getLevel(points: number) {
   return { label: 'Novato', color: 'text-gray-400', bg: 'bg-gray-400/20', icon: '🌱' };
 }
 
+function cropAndResizeImage(file: File, size: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/jpeg', 0.88);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
 export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState(profile?.username ?? '');
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -41,6 +70,47 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const accuracy = stats.calculatedPredictions > 0
     ? Math.round((stats.correctWinners / stats.calculatedPredictions) * 100)
     : 0;
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+
+    setAvatarError('');
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Máx 5 MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const blob = await cropAndResizeImage(file, 256);
+      const path = `${profile.id}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlWithBust } as { avatar_url: string })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(urlWithBust);
+      router.refresh();
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Error subiendo imagen');
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -84,18 +154,44 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {/* Avatar row */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full border-4 border-surface overflow-hidden shadow-xl shadow-black/50">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.username ?? ''} className="w-full h-full object-cover" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="relative w-24 h-24 rounded-full border-4 border-surface overflow-hidden shadow-xl shadow-black/50 group block"
+              aria-label="Cambiar foto de perfil"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={profile?.username ?? ''} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-field to-field-dark flex items-center justify-center text-2xl font-black text-white">
                   {initials}
                 </div>
               )}
-            </div>
-            <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full ${level.bg} border-2 border-surface flex items-center justify-center text-sm`}>
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                {uploadingAvatar
+                  ? <Loader2 size={20} className="text-white animate-spin" />
+                  : <Camera size={20} className="text-white" />
+                }
+              </div>
+              {uploadingAvatar && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full">
+                  <Loader2 size={20} className="text-white animate-spin" />
+                </div>
+              )}
+            </button>
+
+            <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full ${level.bg} border-2 border-surface flex items-center justify-center text-sm pointer-events-none`}>
               {level.icon}
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
 
           {!editing && (
@@ -108,6 +204,10 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
             </button>
           )}
         </div>
+
+        {avatarError && (
+          <p className="text-red-400 text-xs mb-2 -mt-2">{avatarError}</p>
+        )}
 
         {/* Identity */}
         {editing ? (
