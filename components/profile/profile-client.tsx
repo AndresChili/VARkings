@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2 } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -154,6 +154,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {/* Avatar row */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <div className="relative">
+            {/* Avatar — click to change */}
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
@@ -167,12 +168,8 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
                   {initials}
                 </div>
               )}
-              {/* Overlay */}
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                {uploadingAvatar
-                  ? <Loader2 size={20} className="text-white animate-spin" />
-                  : <Camera size={20} className="text-white" />
-                }
+                <Camera size={20} className="text-white" />
               </div>
               {uploadingAvatar && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full">
@@ -181,9 +178,18 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
               )}
             </button>
 
-            <div className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full ${level.bg} border-2 border-surface flex items-center justify-center text-sm pointer-events-none`}>
-              {level.icon}
-            </div>
+            {/* + button at bottom-right */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-field border-2 border-surface flex items-center justify-center hover:bg-field-muted transition-colors shadow-md"
+              aria-label="Subir foto"
+            >
+              {uploadingAvatar
+                ? <Loader2 size={12} className="text-white animate-spin" />
+                : <Plus size={13} className="text-white" strokeWidth={2.5} />
+              }
+            </button>
 
             <input
               ref={fileInputRef}
