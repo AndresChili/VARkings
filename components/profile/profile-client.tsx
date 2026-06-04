@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2 } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -52,6 +52,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
 export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState(profile?.username ?? '');
@@ -62,6 +63,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -193,10 +195,10 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {/* Avatar row */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <div className="relative">
-            {/* Avatar — click to change */}
+            {/* Avatar */}
             <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
+              onClick={() => setShowAvatarMenu((v) => !v)}
+              disabled={uploadingAvatar || removingAvatar}
               className="relative w-24 h-24 rounded-full border-4 border-surface overflow-hidden shadow-xl shadow-black/50 group block"
               aria-label="Cambiar foto de perfil"
             >
@@ -208,43 +210,70 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
                 </div>
               )}
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                <Camera size={20} className="text-white" />
-              </div>
-              {uploadingAvatar && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full">
-                  <Loader2 size={20} className="text-white animate-spin" />
-                </div>
-              )}
-            </button>
-
-            {/* X button at top-right — only when avatar exists */}
-            {avatarUrl && (
-              <button
-                onClick={handleRemoveAvatar}
-                disabled={removingAvatar || uploadingAvatar}
-                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-surface-card border border-white/15 flex items-center justify-center hover:bg-red-500/80 hover:border-red-500 transition-colors shadow-md disabled:opacity-50"
-                aria-label="Eliminar foto"
-              >
-                {removingAvatar
-                  ? <Loader2 size={10} className="text-white animate-spin" />
-                  : <X size={10} className="text-gray-400 group-hover:text-white" />
+                {uploadingAvatar || removingAvatar
+                  ? <Loader2 size={20} className="text-white animate-spin" />
+                  : <Camera size={20} className="text-white" />
                 }
-              </button>
-            )}
+              </div>
+            </button>
 
             {/* + button at bottom-right */}
             <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
+              onClick={() => setShowAvatarMenu((v) => !v)}
+              disabled={uploadingAvatar || removingAvatar}
               className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-field border-2 border-surface flex items-center justify-center hover:bg-field-muted transition-colors shadow-md"
-              aria-label="Subir foto"
+              aria-label="Opciones de foto"
             >
-              {uploadingAvatar
+              {uploadingAvatar || removingAvatar
                 ? <Loader2 size={12} className="text-white animate-spin" />
                 : <Plus size={13} className="text-white" strokeWidth={2.5} />
               }
             </button>
 
+            {/* Avatar menu */}
+            {showAvatarMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowAvatarMenu(false)} />
+                <div className="absolute left-0 top-full mt-2 z-20 bg-surface-card border border-white/10 rounded-xl shadow-xl w-44 py-1 overflow-hidden">
+                  <button
+                    onClick={() => { cameraInputRef.current?.click(); setShowAvatarMenu(false); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                  >
+                    <Camera size={14} className="text-gray-400" />
+                    Hacer foto
+                  </button>
+                  <button
+                    onClick={() => { fileInputRef.current?.click(); setShowAvatarMenu(false); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                  >
+                    <ImageIcon size={14} className="text-gray-400" />
+                    Cargar foto
+                  </button>
+                  {avatarUrl && (
+                    <>
+                      <div className="border-t border-white/10 mt-1 pt-1" />
+                      <button
+                        onClick={() => { handleRemoveAvatar(); setShowAvatarMenu(false); }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                      >
+                        <Trash2 size={14} />
+                        Eliminar foto
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Hidden file inputs */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
             <input
               ref={fileInputRef}
               type="file"
