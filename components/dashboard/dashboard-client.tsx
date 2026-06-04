@@ -9,7 +9,7 @@ import { isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface DashboardClientProps {
-  groups: Array<{ group_id: string; member_count: number; groups: { id: string; name: string } | null }>;
+  groups: Array<{ group_id: string; member_count: number; is_admin: boolean; groups: { id: string; name: string } | null }>;
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
 }
@@ -349,16 +349,37 @@ export function DashboardClient({
                 const initials = m.groups.name.slice(0, 2).toUpperCase();
                 return (
                   <Link key={m.group_id} href={`/groups/${m.groups.id}`} className="block">
-                    <div className="group relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden
-                      transition-all duration-200 hover:border-field/40 hover:shadow-lg hover:shadow-field/5 card-hover">
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-field via-field-light/60 to-transparent" />
+                    <div className={cn(
+                      "group relative bg-surface-card border rounded-2xl overflow-hidden transition-all duration-200 card-hover",
+                      m.is_admin
+                        ? "border-crown/30 hover:border-crown/60 hover:shadow-lg hover:shadow-crown/5"
+                        : "border-white/10 hover:border-field/40 hover:shadow-lg hover:shadow-field/5"
+                    )}>
+                      <div className={cn(
+                        "absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r to-transparent",
+                        m.is_admin ? "from-crown via-crown/60" : "from-field via-field-light/60"
+                      )} />
                       <div className="p-4 pt-5 flex items-center gap-3">
-                        <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-field/30 to-field-dark/60
-                          border border-field/25 flex items-center justify-center">
-                          <span className="text-field-light font-bold text-sm">{initials}</span>
+                        <div className={cn(
+                          "shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br border flex items-center justify-center",
+                          m.is_admin
+                            ? "from-crown/30 to-crown-dark/60 border-crown/25"
+                            : "from-field/30 to-field-dark/60 border-field/25"
+                        )}>
+                          {m.is_admin
+                            ? <Crown size={16} className="text-crown" />
+                            : <span className="text-field-light font-bold text-sm">{initials}</span>
+                          }
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-white truncate">{m.groups.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white truncate">{m.groups.name}</p>
+                            {m.is_admin && (
+                              <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-crown bg-crown/15 border border-crown/30 rounded-full px-2 py-0.5">
+                                Admin
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <Users size={10} className="text-gray-500" />
                             <p className="text-xs text-gray-500">
