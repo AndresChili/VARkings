@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function DELETE(
   _req: NextRequest,
@@ -25,7 +25,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
     .from('group_members')
     .delete()
     .eq('group_id', id)

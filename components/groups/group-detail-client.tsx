@@ -110,9 +110,12 @@ export function GroupDetailClient({
 
   async function handleRemoveMember(targetUserId: string) {
     setRemovingUserId(targetUserId);
-    await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
     setRemovingUserId(null);
-    router.refresh();
+    if (res.ok) {
+      setShowRemoveModal(false);
+      router.refresh();
+    }
   }
 
   async function handleRequest(targetUserId: string, action: 'accept' | 'reject') {
