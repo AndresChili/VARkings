@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -62,6 +62,9 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -113,6 +116,21 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   }
 
   async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    setDeleteError('');
+    const res = await fetch('/api/account', { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json();
+      setDeleteError(data.error ?? 'Error al eliminar cuenta');
+      setDeletingAccount(false);
+      return;
+    }
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
@@ -347,7 +365,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/8 transition-colors group mb-4"
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/8 transition-colors group mb-3"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center group-hover:bg-red-500/25 transition-colors">
@@ -357,6 +375,43 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
           </div>
           <ChevronRight size={16} className="text-red-500/40" />
         </button>
+
+        {/* Delete account */}
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-white/5 text-gray-600 hover:border-red-500/20 hover:text-red-400 transition-all group mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500/15 transition-colors">
+                <Trash2 size={15} />
+              </div>
+              <span className="font-medium text-sm">Eliminar cuenta</span>
+            </div>
+          </button>
+        ) : (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-4 animate-slide-up">
+            <p className="text-white font-semibold mb-1">¿Eliminar tu cuenta?</p>
+            <p className="text-gray-400 text-sm mb-4">Se borrarán todos tus datos, predicciones y grupos. Esta acción no se puede deshacer.</p>
+            {deleteError && <p className="text-red-400 text-xs mb-3">{deleteError}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                disabled={deletingAccount}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50 hover:bg-red-600 transition-colors"
+              >
+                {deletingAccount ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
