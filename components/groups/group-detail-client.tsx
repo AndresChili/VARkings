@@ -525,13 +525,23 @@ export function GroupDetailClient({
                     )}
                   </div>
 
-                  <div
-                    className={cn(
-                      'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0',
-                      isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300'
+                  <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
+                    {entry.avatar_url ? (
+                      <img
+                        src={entry.avatar_url}
+                        alt={entry.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          'w-full h-full flex items-center justify-center text-sm font-bold',
+                          isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300'
+                        )}
+                      >
+                        {entry.username.slice(0, 2).toUpperCase()}
+                      </div>
                     )}
-                  >
-                    {entry.username.slice(0, 2).toUpperCase()}
                   </div>
 
                   <div className="flex-1 min-w-0">
