@@ -9,5 +9,5 @@
 7- [x] Añadir después del modal de ganador, un modal para elegir qué equipos crees que pasan de grupos
 8- [ ] Revisar sistema de puntos
 9- [x] He encontrado un bug o no sé que es la verdad, pero al eliminar un grupo como que me salta otra página que no es la de inicio y no sé porque donde también se ven los grupos pero es diferente a la de inicio
-10- [] Que te deje eliminar a usuarios de tu grupo si eres admin
+10- [x] Que te deje eliminar a usuarios de tu grupo si eres admin
 11- [x] En el dashboard o Inicio, que salga si eres admin del grupo algo para diferenciarlo.
