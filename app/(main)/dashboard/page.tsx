@@ -5,6 +5,7 @@ import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
 type GroupRow = {
   group_id: string;
   member_count: number;
+  is_admin: boolean;
   groups: { id: string; name: string } | null;
 };
 
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
   const groupIds = memberRows?.map((m) => m.group_id) ?? [];
   const [{ data: groupsData }, { data: allMembersData }] = await Promise.all([
     groupIds.length > 0
-      ? supabase.from('groups').select('id, name').in('id', groupIds)
+      ? supabase.from('groups').select('id, name, created_by').in('id', groupIds)
       : Promise.resolve({ data: [] }),
     groupIds.length > 0
       ? supabase.from('group_members').select('group_id').in('group_id', groupIds)
@@ -48,11 +49,15 @@ export default async function DashboardPage() {
     return acc;
   }, {});
 
-  const groups: GroupRow[] = (memberRows ?? []).map((m) => ({
-    group_id: m.group_id,
-    member_count: memberCounts[m.group_id] ?? 0,
-    groups: (groupsData ?? []).find((g) => g.id === m.group_id) ?? null,
-  }));
+  const groups: GroupRow[] = (memberRows ?? []).map((m) => {
+    const groupData = (groupsData ?? []).find((g) => g.id === m.group_id) ?? null;
+    return {
+      group_id: m.group_id,
+      member_count: memberCounts[m.group_id] ?? 0,
+      is_admin: groupData?.created_by === user.id,
+      groups: groupData ? { id: groupData.id, name: groupData.name } : null,
+    };
+  });
 
   // Build team list with group info derived from matches (source of truth for groups)
   const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
