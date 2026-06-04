@@ -368,7 +368,7 @@ export function DashboardClient({
                         )}>
                           {m.is_admin
                             ? <Crown size={16} className="text-crown" />
-                            : <span className="text-field-light font-bold text-sm">{initials}</span>
+                            : <Users size={16} className="text-field-light" />
                           }
                         </div>
                         <div className="flex-1 min-w-0">
