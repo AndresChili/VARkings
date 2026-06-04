@@ -62,6 +62,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -112,6 +113,26 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    if (!profile) return;
+    setRemovingAvatar(true);
+    setAvatarError('');
+    try {
+      await supabase.storage.from('avatars').remove([`${profile.id}.jpg`]);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null } as { avatar_url: null })
+        .eq('id', profile.id);
+      if (error) throw error;
+      setAvatarUrl(null);
+      router.refresh();
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Error eliminando foto');
+    } finally {
+      setRemovingAvatar(false);
     }
   }
 
@@ -195,6 +216,21 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
                 </div>
               )}
             </button>
+
+            {/* X button at top-right — only when avatar exists */}
+            {avatarUrl && (
+              <button
+                onClick={handleRemoveAvatar}
+                disabled={removingAvatar || uploadingAvatar}
+                className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-surface-card border border-white/15 flex items-center justify-center hover:bg-red-500/80 hover:border-red-500 transition-colors shadow-md disabled:opacity-50"
+                aria-label="Eliminar foto"
+              >
+                {removingAvatar
+                  ? <Loader2 size={10} className="text-white animate-spin" />
+                  : <X size={10} className="text-gray-400 group-hover:text-white" />
+                }
+              </button>
+            )}
 
             {/* + button at bottom-right */}
             <button
