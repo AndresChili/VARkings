@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
+import { TEAM_NAME_ES } from '@/lib/teams';
 
 interface ChampionPick {
   champion: string | null;
@@ -777,36 +778,63 @@ export function GroupDetailClient({
                 const live = isMatchLive(match.status);
                 const predsCount = match.memberPredictions.length;
 
+                const homeName = TEAM_NAME_ES[match.home_team_name ?? ''] ?? match.home_team_name;
+                const awayName = TEAM_NAME_ES[match.away_team_name ?? ''] ?? match.away_team_name;
+
                 return (
-                  <div key={match.id} className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
-                    {/* Match header row */}
+                  <div key={match.id} className={cn(
+                    'bg-surface-card border rounded-2xl overflow-hidden',
+                    live ? 'border-green-500/40' : 'border-white/10'
+                  )}>
                     <button
                       onClick={() => setExpandedMatchId(isExpanded ? null : match.id)}
-                      className="w-full text-left p-4"
+                      className="w-full text-left"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded">{match.stage}</span>
+                      {/* Header: fecha + EN VIVO */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded-md">{match.stage}</span>
                         <div className="flex items-center gap-2">
-                          {live && <span className="text-xs font-bold text-green-400">EN VIVO</span>}
+                          {live && (
+                            <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
+                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                              EN VIVO
+                            </span>
+                          )}
                           <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className={cn('font-semibold text-sm flex-1', finished || live ? 'text-white' : 'text-gray-300')}>
-                          {match.home_team_name}
-                        </span>
-                        <span className="text-base font-black text-white px-3 tabular-nums">
-                          {finished || live
-                            ? `${match.home_score ?? 0} - ${match.away_score ?? 0}`
-                            : 'vs'}
-                        </span>
-                        <span className={cn('font-semibold text-sm flex-1 text-right', finished || live ? 'text-white' : 'text-gray-300')}>
-                          {match.away_team_name}
-                        </span>
+                      {/* Equipos + marcador */}
+                      <div className="flex items-center justify-between px-4 pb-3 gap-2">
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          {match.home_team_logo
+                            ? <Image src={match.home_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
+                            : <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-lg">{homeName?.slice(0,1)}</div>
+                          }
+                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{homeName}</span>
+                        </div>
+
+                        <div className="flex flex-col items-center shrink-0 px-2">
+                          {finished || live ? (
+                            <span className="text-2xl font-black text-white tabular-nums tracking-tight">
+                              {match.home_score ?? 0} – {match.away_score ?? 0}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-gray-600 bg-white/5 px-3 py-1 rounded-lg">VS</span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          {match.away_team_logo
+                            ? <Image src={match.away_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
+                            : <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-lg">{awayName?.slice(0,1)}</div>
+                          }
+                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{awayName}</span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between mt-2">
+                      {/* Footer: predicciones + chevron */}
+                      <div className="flex items-center justify-between px-4 py-2 border-t border-white/5">
                         <span className="text-xs text-gray-600">
                           {predsCount > 0
                             ? `${predsCount} predicci${predsCount === 1 ? 'ón' : 'ones'}`
