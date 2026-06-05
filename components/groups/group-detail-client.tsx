@@ -84,7 +84,7 @@ export function GroupDetailClient({
   const [savingPodio, setSavingPodio] = useState(false);
   const [podioError, setPodioError] = useState('');
 
-  const [selectedMemberId, setSelectedMemberId] = useState(userId);
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(userId);
   const [showGroups, setShowGroups] = useState(false);
   const [groupStep, setGroupStep] = useState(0);
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
@@ -622,67 +622,89 @@ export function GroupDetailClient({
       )}
 
       {/* Grupos tab */}
-      {tab === 'grupos' && (() => {
-        const selected = localLeaderboard.find((e) => e.user_id === selectedMemberId) ?? localLeaderboard[0];
-        const picks = selected ? memberGroupPicks[selected.user_id] : null;
-        const hasPicks = picks && Object.keys(picks).length > 0;
+      {tab === 'grupos' && (
+        <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
+          {localLeaderboard.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">No hay miembros todavía</div>
+          ) : (
+            localLeaderboard.map((entry, idx) => {
+              const isMe = entry.user_id === userId;
+              const isExpanded = expandedMemberId === entry.user_id;
+              const picks = memberGroupPicks[entry.user_id];
+              const pickedCount = picks ? Object.values(picks).filter((v) => v.length > 0).length : 0;
+              const hasPicks = pickedCount > 0;
 
-        return (
-          <div className="space-y-3">
-            {/* Member selector */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {localLeaderboard.map((entry) => {
-                const isSelected = entry.user_id === selectedMemberId;
-                const isMe = entry.user_id === userId;
-                return (
+              return (
+                <div key={entry.user_id} className={cn('border-b border-white/5 last:border-0', isExpanded && 'bg-white/3')}>
+                  {/* Row header — tap to expand/collapse */}
                   <button
-                    key={entry.user_id}
-                    onClick={() => setSelectedMemberId(entry.user_id)}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border shrink-0',
-                      isSelected
-                        ? 'bg-white/15 border-white/30 text-white font-semibold'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/8'
-                    )}
+                    onClick={() => setExpandedMemberId(isExpanded ? null : entry.user_id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left"
                   >
-                    {entry.username}
-                    {isMe && <span className="text-[10px] opacity-60">(tú)</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Picks grid */}
-            {!selected ? (
-              <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-500 text-sm">
-                Sin miembros
-              </div>
-            ) : !hasPicks ? (
-              <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
-                <p className="text-gray-400 text-sm font-medium">{selected.username} no ha hecho predicciones de grupos</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {WC_GROUPS.map((g) => {
-                  const groupPick = picks[g] ?? [];
-                  return (
-                    <div key={g} className="bg-surface-card border border-white/10 rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Grupo {g}</p>
-                      {groupPick.length > 0 ? (
-                        groupPick.map((teamName) => (
-                          <p key={teamName} className="text-sm text-white font-medium leading-snug truncate">{teamName}</p>
-                        ))
+                    <div className="w-6 text-center shrink-0">
+                      {idx + 1 <= 3 ? (
+                        <span className="text-sm">{getRankEmoji(idx + 1)}</span>
                       ) : (
-                        <p className="text-sm text-gray-700">—</p>
+                        <span className="text-xs text-gray-500 font-medium">{idx + 1}º</span>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+
+                    <div className={cn('w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold', isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
+                      {entry.username.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn('text-sm font-semibold', isMe ? 'text-crown' : 'text-white')}>{entry.username}</span>
+                        {isMe && <span className="text-[10px] text-crown">(tú)</span>}
+                      </div>
+                      <span className={cn('text-xs', hasPicks ? 'text-gray-500' : 'text-gray-700')}>
+                        {hasPicks ? `${pickedCount} de ${WC_GROUPS.length} grupos` : 'Sin predicciones'}
+                      </span>
+                    </div>
+
+                    <ChevronRight
+                      size={16}
+                      className={cn('text-gray-600 transition-transform shrink-0', isExpanded && 'rotate-90')}
+                    />
+                  </button>
+
+                  {/* Expanded picks */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4">
+                      {!hasPicks ? (
+                        <p className="text-sm text-gray-600 text-center py-3">
+                          {isMe ? 'Aún no has hecho tus predicciones de grupos' : `${entry.username} no ha hecho predicciones todavía`}
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {WC_GROUPS.map((g) => {
+                            const teamPicks = picks?.[g] ?? [];
+                            return (
+                              <div key={g} className="bg-surface rounded-xl p-3 border border-white/5">
+                                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Grupo {g}</p>
+                                {teamPicks.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {teamPicks.map((name) => (
+                                      <p key={name} className="text-sm text-white font-medium leading-tight truncate">{name}</p>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-700">—</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* Upcoming matches */}
       {tab === 'matches' && (
