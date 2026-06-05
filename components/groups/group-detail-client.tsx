@@ -46,6 +46,7 @@ interface GroupDetailClientProps {
   pendingRequests: PendingRequest[];
   teams: Team[];
   memberGroupPicks: Record<string, Record<string, string[]>>;
+  groupQualifiers: Record<string, string[]>;
 }
 
 const PODIO_STEPS = [
@@ -86,6 +87,7 @@ export function GroupDetailClient({
   pendingRequests: initialRequests,
   teams,
   memberGroupPicks,
+  groupQualifiers,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
@@ -693,6 +695,10 @@ export function GroupDetailClient({
                       </span>
                     </div>
 
+                    {entry.groups_points > 0 && (
+                      <span className="text-xs font-bold text-field-light shrink-0 mr-1">{entry.groups_points} pts</span>
+                    )}
+
                     <ChevronRight
                       size={16}
                       className={cn('text-gray-600 transition-transform shrink-0', isExpanded && 'rotate-90')}
@@ -710,17 +716,53 @@ export function GroupDetailClient({
                         <div className="grid grid-cols-2 gap-2">
                           {WC_GROUPS.map((g) => {
                             const teamPicks = picks?.[g] ?? [];
+                            const qualifiers = groupQualifiers[g];
+                            const hasResults = qualifiers && qualifiers.length > 0;
+                            let correctCount = 0;
+                            if (hasResults) {
+                              correctCount = teamPicks.filter((t) => qualifiers.includes(t)).length;
+                            }
+                            const pointsEarned = correctCount * 2;
+                            const cardBg = !hasResults || teamPicks.length === 0
+                              ? 'bg-surface border-white/5'
+                              : correctCount === 2
+                              ? 'bg-green-500/10 border-green-500/30'
+                              : correctCount === 1
+                              ? 'bg-yellow-500/10 border-yellow-500/30'
+                              : 'bg-red-500/10 border-red-500/30';
                             return (
-                              <div key={g} className="bg-surface rounded-xl p-3 border border-white/5">
-                                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Grupo {g}</p>
+                              <div key={g} className={cn('rounded-xl p-3 border', cardBg)}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Grupo {g}</p>
+                                  {hasResults && teamPicks.length > 0 && (
+                                    <span className={cn(
+                                      'text-[10px] font-bold',
+                                      correctCount === 2 ? 'text-green-400' : correctCount === 1 ? 'text-yellow-400' : 'text-red-400'
+                                    )}>+{pointsEarned}</span>
+                                  )}
+                                </div>
                                 {teamPicks.length > 0 ? (
-                                  <div className="space-y-1">
-                                    {teamPicks.map((name) => (
-                                      <p key={name} className="text-sm text-white font-medium leading-tight truncate">{name}</p>
-                                    ))}
+                                  <div className="space-y-1.5">
+                                    {teamPicks.map((name) => {
+                                      const isCorrect = hasResults && qualifiers!.includes(name);
+                                      const isWrong = hasResults && !qualifiers!.includes(name);
+                                      return (
+                                        <div key={name} className={cn(
+                                          'flex items-center gap-1.5 rounded-lg px-2 py-1',
+                                          isCorrect ? 'bg-green-500/15' : isWrong ? 'bg-red-500/10' : 'bg-white/5'
+                                        )}>
+                                          {isCorrect && <Check size={9} className="text-green-400 shrink-0" />}
+                                          {isWrong && <X size={9} className="text-red-400 shrink-0" />}
+                                          <span className={cn(
+                                            'text-xs font-medium leading-tight truncate',
+                                            isCorrect ? 'text-green-300' : isWrong ? 'text-red-400' : 'text-gray-300'
+                                          )}>{name}</span>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 ) : (
-                                  <p className="text-sm text-gray-700">—</p>
+                                  <p className="text-xs text-gray-700 mt-1">—</p>
                                 )}
                               </div>
                             );
