@@ -19,13 +19,13 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   if (!user) redirect('/login');
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface">
+    <div className="flex flex-col min-h-screen bg-surface pt-16">
       <Suspense fallback={<TopBar profile={null} />}>
         <TopBarWithProfile userId={user.id} />
       </Suspense>
       <InstallPrompt />
       <PushPermissionBanner />
-      <main className="flex-1 pb-20 pt-16">{children}</main>
+      <main className="flex-1 pb-20">{children}</main>
       <BottomNav />
     </div>
   );
