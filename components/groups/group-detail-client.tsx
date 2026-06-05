@@ -726,15 +726,8 @@ export function GroupDetailClient({
                               correctCount = teamPicks.filter((t) => qualifiers.includes(t)).length;
                             }
                             const pointsEarned = correctCount * 2;
-                            const cardBg = !hasResults || teamPicks.length === 0
-                              ? 'bg-surface border-white/5'
-                              : correctCount === 2
-                              ? 'bg-green-500/10 border-green-500/30'
-                              : correctCount === 1
-                              ? 'bg-yellow-500/10 border-yellow-500/30'
-                              : 'bg-red-500/10 border-red-500/30';
                             return (
-                              <div key={g} className={cn('rounded-xl p-3 border', cardBg)}>
+                              <div key={g} className="rounded-xl p-3 border bg-surface border-white/5">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Grupo {g}</p>
                                   {hasResults && teamPicks.length > 0 && (
