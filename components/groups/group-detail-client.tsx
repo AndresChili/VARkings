@@ -55,6 +55,20 @@ const PODIO_STEPS = [
 ];
 
 
+const STAGE_ES: Record<string, string> = {
+  'Group Stage': 'Fase de Grupos',
+  'Round of 16': 'Octavos de Final',
+  'Quarter-finals': 'Cuartos de Final',
+  'Semi-finals': 'Semifinales',
+  '3rd Place Final': 'Tercer Puesto',
+  'Final': 'Final',
+};
+
+function getStageLabel(stage: string | null, groupName: string | null): string {
+  if (groupName) return `Grupo ${groupName}`;
+  return STAGE_ES[stage ?? ''] ?? stage ?? '';
+}
+
 const RANK_STYLES = [
   { row: 'bg-gradient-to-r from-crown/10 to-transparent', points: 'text-crown' },
   { row: 'bg-gradient-to-r from-gray-400/10 to-transparent', points: 'text-gray-300' },
@@ -781,68 +795,77 @@ export function GroupDetailClient({
                 const homeName = TEAM_NAME_ES[match.home_team_name ?? ''] ?? match.home_team_name;
                 const awayName = TEAM_NAME_ES[match.away_team_name ?? ''] ?? match.away_team_name;
 
+                const stageLabel = getStageLabel(match.stage, match.group_name);
+
                 return (
                   <div key={match.id} className={cn(
-                    'bg-surface-card border rounded-2xl overflow-hidden',
-                    live ? 'border-green-500/40' : 'border-white/10'
+                    'border rounded-2xl overflow-hidden',
+                    live
+                      ? 'bg-green-950/30 border-green-500/30'
+                      : finished
+                      ? 'bg-surface-card border-white/10'
+                      : 'bg-surface-card border-white/8'
                   )}>
                     <button
                       onClick={() => setExpandedMatchId(isExpanded ? null : match.id)}
                       className="w-full text-left"
                     >
-                      {/* Header: fecha + EN VIVO */}
-                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded-md">{match.stage}</span>
-                        <div className="flex items-center gap-2">
-                          {live && (
-                            <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
-                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                              EN VIVO
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
-                        </div>
+                      {/* Stage + fecha */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                        <span className={cn(
+                          'text-[11px] font-bold uppercase tracking-wider',
+                          live ? 'text-green-400' : 'text-gray-600'
+                        )}>
+                          {live ? '🟢 EN VIVO · ' : ''}{stageLabel}
+                        </span>
+                        <span className="text-[11px] text-gray-500">{formatMatchDate(match.match_date)}</span>
                       </div>
 
                       {/* Equipos + marcador */}
-                      <div className="flex items-center justify-between px-4 pb-3 gap-2">
-                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                      <div className="flex items-center px-4 pt-2 pb-3 gap-3">
+                        {/* Local */}
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           {match.home_team_logo
-                            ? <Image src={match.home_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
-                            : <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-lg">{homeName?.slice(0,1)}</div>
+                            ? <Image src={match.home_team_logo} alt="" width={36} height={36} className="w-9 h-9 object-contain shrink-0" unoptimized />
+                            : <div className="w-9 h-9 rounded-full bg-white/8 shrink-0 flex items-center justify-center text-sm font-bold text-gray-500">{homeName?.slice(0,1)}</div>
                           }
-                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{homeName}</span>
+                          <span className="text-sm font-semibold text-white leading-tight line-clamp-2">{homeName}</span>
                         </div>
 
-                        <div className="flex flex-col items-center shrink-0 px-2">
+                        {/* Marcador */}
+                        <div className="shrink-0 flex flex-col items-center">
                           {finished || live ? (
-                            <span className="text-2xl font-black text-white tabular-nums tracking-tight">
+                            <span className={cn(
+                              'text-xl font-black tabular-nums tracking-tight px-1',
+                              live ? 'text-green-300' : 'text-white'
+                            )}>
                               {match.home_score ?? 0} – {match.away_score ?? 0}
                             </span>
                           ) : (
-                            <span className="text-xs font-bold text-gray-600 bg-white/5 px-3 py-1 rounded-lg">VS</span>
+                            <span className="text-xs font-bold text-gray-600 bg-white/5 px-2.5 py-1 rounded-lg tracking-widest">VS</span>
                           )}
                         </div>
 
-                        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                        {/* Visitante */}
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-row-reverse">
                           {match.away_team_logo
-                            ? <Image src={match.away_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
-                            : <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-lg">{awayName?.slice(0,1)}</div>
+                            ? <Image src={match.away_team_logo} alt="" width={36} height={36} className="w-9 h-9 object-contain shrink-0" unoptimized />
+                            : <div className="w-9 h-9 rounded-full bg-white/8 shrink-0 flex items-center justify-center text-sm font-bold text-gray-500">{awayName?.slice(0,1)}</div>
                           }
-                          <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{awayName}</span>
+                          <span className="text-sm font-semibold text-white leading-tight line-clamp-2 text-right">{awayName}</span>
                         </div>
                       </div>
 
-                      {/* Footer: predicciones + chevron */}
+                      {/* Footer */}
                       <div className="flex items-center justify-between px-4 py-2 border-t border-white/5">
-                        <span className="text-xs text-gray-600">
+                        <span className="text-[11px] text-gray-600">
                           {predsCount > 0
                             ? `${predsCount} predicci${predsCount === 1 ? 'ón' : 'ones'}`
-                            : 'Sin predicciones'}
+                            : 'Sin predicciones aún'}
                         </span>
                         <ChevronDown
-                          size={14}
-                          className={cn('text-gray-600 transition-transform', isExpanded && 'rotate-180')}
+                          size={13}
+                          className={cn('text-gray-600 transition-transform duration-200', isExpanded && 'rotate-180')}
                         />
                       </div>
                     </button>
