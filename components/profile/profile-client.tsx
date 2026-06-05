@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -68,6 +68,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -137,6 +138,21 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
       setAvatarError(err instanceof Error ? err.message : 'Error eliminando foto');
     } finally {
       setRemovingAvatar(false);
+    }
+  }
+
+  async function handleShare() {
+    const shareData = {
+      title: 'VARkings',
+      text: '¡Juega conmigo en VARkings! Predice los partidos del Mundial 2026 y compite con amigos 🏆⚽',
+      url: window.location.origin,
+    };
+    if (typeof navigator.share === 'function') {
+      try { await navigator.share(shareData); } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(window.location.origin);
+      setShareStatus('copied');
+      setTimeout(() => setShareStatus('idle'), 2500);
     }
   }
 
@@ -429,6 +445,22 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
             </div>
           </div>
         )}
+
+        {/* Share app */}
+        <button
+          onClick={handleShare}
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-field/20 text-field-light hover:bg-field/8 transition-colors group mb-3"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-field/15 flex items-center justify-center group-hover:bg-field/25 transition-colors">
+              {shareStatus === 'copied' ? <Check size={15} className="text-field-light" /> : <Share2 size={15} className="text-field-light" />}
+            </div>
+            <span className="font-medium text-sm">
+              {shareStatus === 'copied' ? 'Enlace copiado' : 'Compartir app'}
+            </span>
+          </div>
+          {shareStatus === 'idle' && <ChevronRight size={16} className="text-field/40" />}
+        </button>
 
         {/* Logout */}
         <button
