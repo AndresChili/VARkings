@@ -62,7 +62,10 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setDeleted(true);
     setHomeScore('');
     setAwayScore('');
-    startTransition(() => router.refresh());
+    startTransition(() => {
+      router.back();
+      router.refresh();
+    });
   }
 
   async function handleSave(e: React.FormEvent) {
