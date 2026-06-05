@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { VarkingsLogo, VarkingsWordmark } from '@/components/ui/varkings-logo';
 import { PwaInstallButton } from '@/components/ui/pwa-install-button';
 import type { Profile } from '@/types';
@@ -24,9 +25,11 @@ export function TopBar({ profile }: TopBarProps) {
 
         <Link href="/profile" className="flex items-center gap-2">
           {profile?.avatar_url ? (
-            <img
+            <Image
               src={profile.avatar_url}
-              alt={profile.username}
+              alt={profile.username ?? ''}
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-full object-cover border border-field"
             />
           ) : (

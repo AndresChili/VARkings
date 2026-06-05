@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CheckCircle, Circle } from 'lucide-react';
 import type { Match } from '@/types';
 import { cn, formatMatchDate, getMatchStatusLabel, isMatchLive, isMatchFinished } from '@/lib/utils';
@@ -106,7 +107,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
                       <div className="flex items-center justify-between px-4 pb-4 gap-2">
                         <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                           {match.home_team_logo
-                            ? <img src={match.home_team_logo} alt="" className="w-10 h-10 object-contain" />
+                            ? <Image src={match.home_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
                             : <div className="w-10 h-10 rounded-full bg-white/5" />
                           }
                           <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.home_team_name}</span>
@@ -124,7 +125,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
 
                         <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                           {match.away_team_logo
-                            ? <img src={match.away_team_logo} alt="" className="w-10 h-10 object-contain" />
+                            ? <Image src={match.away_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
                             : <div className="w-10 h-10 rounded-full bg-white/5" />
                           }
                           <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.away_team_name}</span>
