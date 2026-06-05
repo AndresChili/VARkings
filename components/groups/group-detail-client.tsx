@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
-import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
+import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 
 interface ChampionPick {
   champion: string | null;
@@ -21,10 +21,23 @@ interface PendingRequest {
   created_at: string;
 }
 
+interface MemberMatchPred {
+  user_id: string;
+  match_id: string;
+  predicted_home_score: number;
+  predicted_away_score: number;
+  points_total: number;
+  is_calculated: boolean;
+}
+
+interface MatchWithMemberPreds extends Match {
+  memberPredictions: MemberMatchPred[];
+}
+
 interface GroupDetailClientProps {
   group: Group;
   leaderboard: LeaderboardEntry[];
-  upcomingMatches: Match[];
+  matchesWithPredictions: MatchWithMemberPreds[];
   userId: string;
   memberCount: number;
   championPicks: Record<string, ChampionPick>;
@@ -50,7 +63,7 @@ const RANK_STYLES = [
 export function GroupDetailClient({
   group,
   leaderboard,
-  upcomingMatches,
+  matchesWithPredictions,
   userId,
   memberCount,
   championPicks,
@@ -85,6 +98,8 @@ export function GroupDetailClient({
   const [podioError, setPodioError] = useState('');
 
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(userId);
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [matchFilter, setMatchFilter] = useState<'upcoming' | 'finished'>('upcoming');
   const [showGroups, setShowGroups] = useState(false);
   const [groupStep, setGroupStep] = useState(0);
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
@@ -706,32 +721,161 @@ export function GroupDetailClient({
         </div>
       )}
 
-      {/* Upcoming matches */}
-      {tab === 'matches' && (
-        <div className="space-y-2">
-          {upcomingMatches.length === 0 ? (
-            <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-400 text-sm">
-              No hay partidos próximos
+      {/* Matches tab */}
+      {tab === 'matches' && (() => {
+        const finishedMatches = matchesWithPredictions.filter((m) => isMatchFinished(m.status));
+        const upcomingMatchesList = matchesWithPredictions.filter((m) => !isMatchFinished(m.status));
+        const liveMatches = matchesWithPredictions.filter((m) => isMatchLive(m.status));
+        const displayed = matchFilter === 'finished' ? finishedMatches : upcomingMatchesList;
+
+        return (
+          <div className="space-y-3">
+            {/* Filter pills */}
+            <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
+              <button
+                onClick={() => setMatchFilter('upcoming')}
+                className={cn(
+                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-colors',
+                  matchFilter === 'upcoming' ? 'bg-field text-white' : 'text-gray-400'
+                )}
+              >
+                Próximos
+                {upcomingMatchesList.length > 0 && (
+                  <span className="ml-1.5 text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full">{upcomingMatchesList.length}</span>
+                )}
+              </button>
+              <button
+                onClick={() => setMatchFilter('finished')}
+                className={cn(
+                  'flex-1 py-2 text-xs font-semibold rounded-lg transition-colors',
+                  matchFilter === 'finished' ? 'bg-field text-white' : 'text-gray-400'
+                )}
+              >
+                Jugados
+                {finishedMatches.length > 0 && (
+                  <span className="ml-1.5 text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full">{finishedMatches.length}</span>
+                )}
+              </button>
             </div>
-          ) : (
-            upcomingMatches.map((match) => (
-              <Link key={match.id} href={`/matches/${match.id}`}>
-                <div className="bg-surface-card border border-white/10 rounded-2xl p-4 card-hover">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded">{match.stage}</span>
-                    <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
+
+            {/* Live badge */}
+            {liveMatches.length > 0 && matchFilter === 'upcoming' && (
+              <div className="flex items-center gap-2 px-1">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs text-green-400 font-semibold">{liveMatches.length} partido{liveMatches.length > 1 ? 's' : ''} en vivo</span>
+              </div>
+            )}
+
+            {displayed.length === 0 ? (
+              <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-400 text-sm">
+                {matchFilter === 'finished' ? 'Aún no se ha jugado ningún partido' : 'No hay partidos próximos'}
+              </div>
+            ) : (
+              displayed.map((match) => {
+                const isExpanded = expandedMatchId === match.id;
+                const finished = isMatchFinished(match.status);
+                const live = isMatchLive(match.status);
+                const predsCount = match.memberPredictions.length;
+
+                return (
+                  <div key={match.id} className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
+                    {/* Match header row */}
+                    <button
+                      onClick={() => setExpandedMatchId(isExpanded ? null : match.id)}
+                      className="w-full text-left p-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-500 bg-surface px-2 py-0.5 rounded">{match.stage}</span>
+                        <div className="flex items-center gap-2">
+                          {live && <span className="text-xs font-bold text-green-400">EN VIVO</span>}
+                          <span className="text-xs text-gray-400">{formatMatchDate(match.match_date)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className={cn('font-semibold text-sm flex-1', finished || live ? 'text-white' : 'text-gray-300')}>
+                          {match.home_team_name}
+                        </span>
+                        <span className="text-base font-black text-white px-3 tabular-nums">
+                          {finished || live
+                            ? `${match.home_score ?? 0} - ${match.away_score ?? 0}`
+                            : 'vs'}
+                        </span>
+                        <span className={cn('font-semibold text-sm flex-1 text-right', finished || live ? 'text-white' : 'text-gray-300')}>
+                          {match.away_team_name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-600">
+                          {predsCount > 0
+                            ? `${predsCount} predicci${predsCount === 1 ? 'ón' : 'ones'}`
+                            : 'Sin predicciones'}
+                        </span>
+                        <ChevronDown
+                          size={14}
+                          className={cn('text-gray-600 transition-transform', isExpanded && 'rotate-180')}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Expanded predictions */}
+                    {isExpanded && (
+                      <div className="border-t border-white/5 divide-y divide-white/5">
+                        {localLeaderboard.map((entry) => {
+                          const pred = match.memberPredictions.find((p) => p.user_id === entry.user_id);
+                          const isMe = entry.user_id === userId;
+                          return (
+                            <div
+                              key={entry.user_id}
+                              className={cn(
+                                'flex items-center gap-3 px-4 py-2.5',
+                                isMe && 'bg-field/5'
+                              )}
+                            >
+                              <div className={cn(
+                                'w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold',
+                                isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-400'
+                              )}>
+                                {entry.username.slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className={cn('text-xs font-medium flex-1', isMe ? 'text-crown' : 'text-gray-300')}>
+                                {entry.username}
+                                {isMe && <span className="text-[10px] text-crown ml-1">(tú)</span>}
+                              </span>
+                              {pred ? (
+                                <>
+                                  <span className="text-xs font-black text-white tabular-nums">
+                                    {pred.predicted_home_score} - {pred.predicted_away_score}
+                                  </span>
+                                  <span className={cn(
+                                    'text-xs font-bold w-14 text-right tabular-nums',
+                                    pred.is_calculated && pred.points_total > 0
+                                      ? 'text-field-light'
+                                      : pred.is_calculated
+                                      ? 'text-gray-600'
+                                      : 'text-gray-500'
+                                  )}>
+                                    {pred.is_calculated
+                                      ? pred.points_total > 0 ? `+${pred.points_total} pts` : '0 pts'
+                                      : '–'}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-gray-700 italic">Sin pred.</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-white text-sm">{match.home_team_name}</span>
-                    <span className="text-xs text-gray-600 px-2">vs</span>
-                    <span className="font-medium text-white text-sm text-right">{match.away_team_name}</span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      )}
+                );
+              })
+            )}
+          </div>
+        );
+      })()}
     </div>
 
     {/* Podio modal */}
