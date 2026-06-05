@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/client';
 import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
@@ -83,6 +84,34 @@ export function GroupDetailClient({
   const locked = isTournamentLocked();
   const isCreator = group.created_by === userId;
   const needsPodioSetup = !myPodio?.champion && !locked;
+
+  useEffect(() => {
+    if (!isCreator) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`join-requests-${group.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'join_requests', filter: `group_id=eq.${group.id}` },
+        async (payload) => {
+          const req = payload.new as { user_id: string; created_at: string; status: string };
+          if (req.status !== 'pending') return;
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('id', req.user_id)
+            .single();
+          setPendingRequests((prev) => {
+            if (prev.some((r) => r.user_id === req.user_id)) return prev;
+            return [...prev, { user_id: req.user_id, username: profile?.username ?? 'Usuario', created_at: req.created_at }];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [group.id, isCreator]);
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(group.invite_code);
