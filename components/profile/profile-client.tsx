@@ -109,6 +109,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
       if (updateError) throw updateError;
 
       setAvatarUrl(urlWithBust);
+      await fetch('/api/profile/revalidate', { method: 'POST' });
       router.refresh();
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Error subiendo imagen');
@@ -130,6 +131,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         .eq('id', profile.id);
       if (error) throw error;
       setAvatarUrl(null);
+      await fetch('/api/profile/revalidate', { method: 'POST' });
       router.refresh();
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Error eliminando foto');
@@ -175,6 +177,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
     if (saveError) { setError(saveError.message); return; }
     setSaved(true);
     setEditing(false);
+    await fetch('/api/profile/revalidate', { method: 'POST' });
     router.refresh();
     setTimeout(() => setSaved(false), 3000);
   }
