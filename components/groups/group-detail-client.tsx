@@ -677,24 +677,37 @@ export function GroupDetailClient({
                             <span className={cn('text-sm flex-1 min-w-0 truncate', isMyPick ? 'text-white font-semibold' : 'text-gray-300')}>
                               {team.name}
                             </span>
-                            <div className="flex gap-1 flex-wrap justify-end max-w-[55%]">
+                            <div className="flex gap-1 items-center justify-end flex-shrink-0">
                               {pickers.length === 0 ? (
                                 <span className="text-[10px] text-gray-700">—</span>
-                              ) : (
-                                pickers.map((p) => (
-                                  <span
-                                    key={p.user_id}
-                                    className={cn(
-                                      'text-[10px] px-1.5 py-0.5 rounded font-semibold',
-                                      p.user_id === userId
-                                        ? `${color.bg} ${color.text} border ${color.border}`
-                                        : 'bg-white/8 text-gray-400'
+                              ) : (() => {
+                                const MAX = 3;
+                                const meFirst = [...pickers].sort((a, b) => (b.user_id === userId ? 1 : 0) - (a.user_id === userId ? 1 : 0));
+                                const visible = meFirst.slice(0, MAX);
+                                const overflow = pickers.length - MAX;
+                                return (
+                                  <>
+                                    {visible.map((p) => (
+                                      <span
+                                        key={p.user_id}
+                                        className={cn(
+                                          'text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap',
+                                          p.user_id === userId
+                                            ? `${color.bg} ${color.text} border ${color.border}`
+                                            : 'bg-white/10 text-gray-400'
+                                        )}
+                                      >
+                                        {p.username.slice(0, 4)}
+                                      </span>
+                                    ))}
+                                    {overflow > 0 && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-white/5 text-gray-500 whitespace-nowrap">
+                                        +{overflow}
+                                      </span>
                                     )}
-                                  >
-                                    {p.username.slice(0, 4)}
-                                  </span>
-                                ))
-                              )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         );
