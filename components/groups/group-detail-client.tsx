@@ -690,14 +690,15 @@ export function GroupDetailClient({
                         <span className={cn('text-sm font-semibold', isMe ? 'text-crown' : 'text-white')}>{entry.username}</span>
                         {isMe && <span className="text-[10px] text-crown">(tú)</span>}
                       </div>
-                      <span className={cn('text-xs', hasPicks ? 'text-gray-500' : 'text-gray-700')}>
-                        {hasPicks ? `${pickedCount} de ${WC_GROUPS.length} grupos` : 'Sin predicciones'}
-                      </span>
+                      {!hasPicks && (
+                        <span className="text-xs text-gray-700">Sin predicciones</span>
+                      )}
                     </div>
 
-                    {entry.groups_points > 0 && (
-                      <span className="text-xs font-bold text-field-light shrink-0 mr-1">{entry.groups_points} pts</span>
-                    )}
+                    <span className={cn(
+                      'text-xs font-bold shrink-0 mr-1',
+                      entry.groups_points > 0 ? 'text-field-light' : 'text-gray-600'
+                    )}>{entry.groups_points} pts</span>
 
                     <ChevronRight
                       size={16}
