@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Users, Layers } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 
@@ -642,81 +642,52 @@ export function GroupDetailClient({
               No hay miembros en este grupo todavía
             </div>
           ) : (
-            <>
-              <div className="bg-surface-card border border-violet-500/20 rounded-2xl p-3 flex items-center gap-2">
-                <Layers size={14} className="text-violet-400 shrink-0" />
-                <p className="text-xs text-gray-400">Quién eligió qué equipos pasando de fase de grupos</p>
-              </div>
-              {WC_GROUPS.map((g, idx) => {
-                const color = GROUP_COLORS[idx] ?? GROUP_COLORS[0];
-                const teamsInGroup = teams.filter((t) => t.group_name === g);
-                if (teamsInGroup.length === 0) return null;
-                return (
-                  <div key={g} className={cn('bg-surface-card border rounded-2xl overflow-hidden', color.border)}>
-                    <div className={cn('px-4 py-2.5 flex items-center gap-2', color.bg)}>
-                      <span className={cn('text-xs font-black tracking-widest uppercase', color.text)}>Grupo {g}</span>
-                      <div className="ml-auto flex items-center gap-1">
-                        <Users size={10} className="text-gray-500" />
-                        <span className="text-[10px] text-gray-500">{localLeaderboard.length}</span>
-                      </div>
+            localLeaderboard.map((entry) => {
+              const isMe = entry.user_id === userId;
+              const picks = memberGroupPicks[entry.user_id];
+              const hasPicks = picks && Object.keys(picks).length > 0;
+              return (
+                <div key={entry.user_id} className={cn('bg-surface-card border rounded-2xl overflow-hidden', isMe ? 'border-violet-500/30' : 'border-white/10')}>
+                  {/* Member header */}
+                  <div className={cn('px-4 py-3 flex items-center gap-3', isMe ? 'bg-violet-500/10' : 'bg-white/3')}>
+                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', isMe ? 'bg-violet-500/30 text-violet-300' : 'bg-surface-hover text-gray-300')}>
+                      {entry.username.slice(0, 2).toUpperCase()}
                     </div>
+                    <span className={cn('font-semibold text-sm', isMe ? 'text-violet-300' : 'text-white')}>
+                      {entry.username}
+                    </span>
+                    {isMe && <span className="text-[10px] text-violet-400">(tú)</span>}
+                    {!hasPicks && (
+                      <span className="ml-auto text-[10px] text-gray-600">Sin predicciones</span>
+                    )}
+                  </div>
+                  {/* Group picks grid */}
+                  {hasPicks && (
                     <div className="divide-y divide-white/5">
-                      {teamsInGroup.map((team) => {
-                        const pickers = localLeaderboard.filter((entry) => {
-                          const picks = memberGroupPicks[entry.user_id];
-                          return picks?.[g]?.includes(team.name);
-                        });
-                        const isMyPick = pickers.some((p) => p.user_id === userId);
+                      {WC_GROUPS.map((g, idx) => {
+                        const groupPick = picks[g];
+                        if (!groupPick || groupPick.length === 0) return null;
+                        const color = GROUP_COLORS[idx] ?? GROUP_COLORS[0];
                         return (
-                          <div key={team.id} className={cn('px-4 py-2.5 flex items-center gap-3', isMyPick && 'bg-white/3')}>
-                            {team.logo_url ? (
-                              <Image src={team.logo_url} width={18} height={18} alt="" className="shrink-0 rounded-sm" />
-                            ) : (
-                              <div className="w-4.5 h-4.5 shrink-0" />
-                            )}
-                            <span className={cn('text-sm flex-1 min-w-0 truncate', isMyPick ? 'text-white font-semibold' : 'text-gray-300')}>
-                              {team.name}
+                          <div key={g} className="px-4 py-2.5 flex items-center gap-3">
+                            <span className={cn('text-[10px] font-black w-5 text-center shrink-0', color.text)}>
+                              {g}
                             </span>
-                            <div className="flex gap-1 items-center justify-end flex-shrink-0">
-                              {pickers.length === 0 ? (
-                                <span className="text-[10px] text-gray-700">—</span>
-                              ) : (() => {
-                                const MAX = 3;
-                                const meFirst = [...pickers].sort((a, b) => (b.user_id === userId ? 1 : 0) - (a.user_id === userId ? 1 : 0));
-                                const visible = meFirst.slice(0, MAX);
-                                const overflow = pickers.length - MAX;
-                                return (
-                                  <>
-                                    {visible.map((p) => (
-                                      <span
-                                        key={p.user_id}
-                                        className={cn(
-                                          'text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap',
-                                          p.user_id === userId
-                                            ? `${color.bg} ${color.text} border ${color.border}`
-                                            : 'bg-white/10 text-gray-400'
-                                        )}
-                                      >
-                                        {p.username.slice(0, 4)}
-                                      </span>
-                                    ))}
-                                    {overflow > 0 && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-white/5 text-gray-500 whitespace-nowrap">
-                                        +{overflow}
-                                      </span>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                            <div className="flex gap-1.5 flex-wrap">
+                              {groupPick.map((teamName) => (
+                                <span key={teamName} className={cn('text-xs px-2 py-0.5 rounded-lg font-medium', color.bg, color.text)}>
+                                  {teamName}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                );
-              })}
-            </>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       )}
