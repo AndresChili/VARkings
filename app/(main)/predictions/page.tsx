@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getCachedTeams } from '@/lib/data-cache';
 import { TournamentPredictionsClient } from '@/components/predictions/tournament-predictions-client';
 import { STATIC_WC2026_TEAMS } from '@/lib/teams';
 
@@ -7,8 +8,8 @@ export default async function PredictionsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [teamsRes, predictionRes] = await Promise.all([
-    supabase.from('teams').select('*').order('name'),
+  const [teamsData, predictionRes] = await Promise.all([
+    getCachedTeams(),
     supabase
       .from('tournament_predictions')
       .select('*')
@@ -16,13 +17,13 @@ export default async function PredictionsPage() {
       .maybeSingle(),
   ]);
 
-  const teams = teamsRes.data && teamsRes.data.length > 0
-    ? teamsRes.data
-    : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data);
+  const teams = teamsData.length > 0
+    ? teamsData
+    : (STATIC_WC2026_TEAMS as unknown as typeof teamsData);
 
   return (
     <TournamentPredictionsClient
-      teams={teams ?? []}
+      teams={teams}
       existingPrediction={predictionRes.data}
     />
   );

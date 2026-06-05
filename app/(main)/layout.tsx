@@ -1,18 +1,14 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCachedUserProfile } from '@/lib/data-cache';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { PushPermissionBanner } from '@/components/ui/push-permission';
 import { InstallPrompt } from '@/components/ui/install-prompt';
 
 async function TopBarWithProfile({ userId }: { userId: string }) {
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  const profile = await getCachedUserProfile(userId);
   return <TopBar profile={profile} />;
 }
 

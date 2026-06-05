@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getCachedAllMatches } from '@/lib/data-cache';
 import { MatchesClient } from '@/components/matches/matches-client';
 
 type PredictionRow = {
@@ -14,8 +15,8 @@ export default async function MatchesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [matchesRes, predsRes] = await Promise.all([
-    supabase.from('matches').select('*').order('match_date', { ascending: true }),
+  const [matches, predsRes] = await Promise.all([
+    getCachedAllMatches(),
     supabase
       .from('match_predictions')
       .select('match_id, predicted_home_score, predicted_away_score, points_total, is_calculated')
@@ -28,5 +29,5 @@ export default async function MatchesPage() {
     return acc;
   }, {} as Record<string, PredictionRow>);
 
-  return <MatchesClient matches={matchesRes.data ?? []} predictionMap={predictionMap} />;
+  return <MatchesClient matches={matches} predictionMap={predictionMap} />;
 }
