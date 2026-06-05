@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getLiveWCMatches, getRecentlyFinishedWCMatches, mapFDStatus } from '@/lib/football-data';
 import { calculateMatchPoints } from '@/lib/scoring';
@@ -87,6 +88,7 @@ export async function GET(req: NextRequest) {
         .eq('api_id', fixture.id);
     }
 
+    revalidateTag('matches');
     return NextResponse.json({ success: true, updated, live: live.length });
   } catch (error) {
     console.error('Cron update-results error:', error);

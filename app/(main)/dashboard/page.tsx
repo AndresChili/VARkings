@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getCachedTeams, getCachedGroupStageMatches } from '@/lib/data-cache';
 import { DashboardClient } from '@/components/dashboard/dashboard-client';
 import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
 
@@ -14,18 +15,14 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [predictionRes, teamsRes, matchesRes, memberRowsRes] = await Promise.all([
+  const [predictionRes, teamsData, groupStageMatchesData, memberRowsRes] = await Promise.all([
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase.from('teams').select('*').order('name'),
-    supabase
-      .from('matches')
-      .select('home_team_name, away_team_name, home_team_logo, away_team_logo, group_name')
-      .not('group_name', 'is', null)
-      .eq('stage', 'Group Stage'),
+    getCachedTeams(),
+    getCachedGroupStageMatches(),
     supabase.from('group_members').select('group_id').eq('user_id', user.id),
   ]);
 
@@ -58,7 +55,7 @@ export default async function DashboardPage() {
 
   // Build team list with group info derived from matches (source of truth for groups)
   const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
-  (matchesRes.data ?? []).forEach((m) => {
+  groupStageMatchesData.forEach((m) => {
     if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name, logo: m.home_team_logo, group: m.group_name });
     if (m.away_team_name && m.group_name) teamMap.set(m.away_team_name, { name: TEAM_NAME_ES[m.away_team_name] ?? m.away_team_name, logo: m.away_team_logo, group: m.group_name });
   });
@@ -77,9 +74,9 @@ export default async function DashboardPage() {
 
   const teams = teamsFromMatches.length > 0
     ? teamsFromMatches
-    : teamsRes.data && teamsRes.data.length > 0
-    ? teamsRes.data
-    : (STATIC_WC2026_TEAMS as unknown as typeof teamsRes.data);
+    : teamsData.length > 0
+    ? teamsData
+    : (STATIC_WC2026_TEAMS as unknown as typeof teamsData);
 
   return (
     <DashboardClient
