@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { VarkingsLogo, VarkingsWordmark } from '@/components/ui/varkings-logo';
-import { PwaInstallButton } from '@/components/ui/pwa-install-button';
 import type { Profile } from '@/types';
 
 interface TopBarProps {
@@ -20,8 +19,6 @@ export function TopBar({ profile }: TopBarProps) {
           <VarkingsLogo size={32} />
           <VarkingsWordmark className="text-xl" />
         </Link>
-
-        <PwaInstallButton />
 
         <Link href="/profile" className="flex items-center gap-2">
           {profile?.avatar_url ? (
