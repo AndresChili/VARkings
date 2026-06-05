@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Users, Layers } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 
@@ -31,12 +31,34 @@ interface GroupDetailClientProps {
   myPodio: ChampionPick | null;
   pendingRequests: PendingRequest[];
   teams: Team[];
+  memberGroupPicks: Record<string, Record<string, string[]>>;
 }
 
 const PODIO_STEPS = [
   { key: 'champion' as const, label: 'Campeón del Mundial', medal: '🥇', pts: 20 },
   { key: 'runnerUp' as const, label: 'Segundo clasificado', medal: '🥈', pts: 10 },
   { key: 'thirdPlace' as const, label: 'Tercer clasificado', medal: '🥉', pts: 5 },
+];
+
+const GROUP_COLORS = [
+  { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
+  { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', dot: 'bg-blue-400' },
+  { bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/30', dot: 'bg-violet-400' },
+  { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30', dot: 'bg-orange-400' },
+  { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30', dot: 'bg-rose-400' },
+  { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30', dot: 'bg-amber-400' },
+  { bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/30', dot: 'bg-teal-400' },
+  { bg: 'bg-indigo-500/15', text: 'text-indigo-400', border: 'border-indigo-500/30', dot: 'bg-indigo-400' },
+  { bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30', dot: 'bg-cyan-400' },
+  { bg: 'bg-fuchsia-500/15', text: 'text-fuchsia-400', border: 'border-fuchsia-500/30', dot: 'bg-fuchsia-400' },
+  { bg: 'bg-lime-500/15', text: 'text-lime-400', border: 'border-lime-500/30', dot: 'bg-lime-400' },
+  { bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30', dot: 'bg-sky-400' },
+];
+
+const RANK_STYLES = [
+  { row: 'bg-gradient-to-r from-crown/10 to-transparent', points: 'text-crown' },
+  { row: 'bg-gradient-to-r from-gray-400/10 to-transparent', points: 'text-gray-300' },
+  { row: 'bg-gradient-to-r from-amber-700/10 to-transparent', points: 'text-amber-600' },
 ];
 
 export function GroupDetailClient({
@@ -49,12 +71,13 @@ export function GroupDetailClient({
   myPodio,
   pendingRequests: initialRequests,
   teams,
+  memberGroupPicks,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
   const [copied, setCopied] = useState(false);
   const [showInviteCode, setShowInviteCode] = useState(false);
-  const [tab, setTab] = useState<'leaderboard' | 'matches'>('leaderboard');
+  const [tab, setTab] = useState<'leaderboard' | 'grupos' | 'matches'>('leaderboard');
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -140,12 +163,10 @@ export function GroupDetailClient({
   }
 
   async function handleRemoveMember(targetUserId: string) {
-    // Optimistic removal
     setLocalLeaderboard((prev) => prev.filter((e) => e.user_id !== targetUserId));
     setShowRemoveModal(false);
     const res = await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
     if (!res.ok) {
-      // Revert on error
       setLocalLeaderboard(leaderboard);
       router.refresh();
     }
@@ -259,8 +280,9 @@ export function GroupDetailClient({
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="bg-surface-card border border-white/10 rounded-2xl p-5">
-        <div className="flex items-start justify-between">
+      <div className="relative bg-surface-card border border-white/10 rounded-2xl p-5 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-field-dark/30 via-transparent to-crown/5 pointer-events-none" />
+        <div className="relative flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">{group.name}</h1>
             {group.description && (
@@ -321,9 +343,8 @@ export function GroupDetailClient({
           </div>
         </div>
 
-        {/* Invite code — only when toggled from menu */}
         {showInviteCode && (
-          <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+          <div className="relative mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 mb-0.5">Código de invitación</p>
               <p className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</p>
@@ -342,16 +363,16 @@ export function GroupDetailClient({
         )}
 
         {myEntry && (
-          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-3 gap-3">
-            <div className="text-center">
+          <div className="relative mt-4 pt-4 border-t border-white/5 grid grid-cols-3 gap-3">
+            <div className="bg-crown/10 border border-crown/20 rounded-xl py-2.5 text-center">
               <div className="text-xl font-black text-crown">{myEntry.total_points}</div>
               <div className="text-xs text-gray-500">Mis puntos</div>
             </div>
-            <div className="text-center">
+            <div className="bg-white/5 border border-white/10 rounded-xl py-2.5 text-center">
               <div className="text-xl font-black text-white">{myRank}º</div>
               <div className="text-xs text-gray-500">Posición</div>
             </div>
-            <div className="text-center">
+            <div className="bg-field/10 border border-field/20 rounded-xl py-2.5 text-center">
               <div className="text-xl font-black text-field-light">{memberCount}</div>
               <div className="text-xs text-gray-500">Miembros</div>
             </div>
@@ -397,10 +418,11 @@ export function GroupDetailClient({
 
       {/* My podio */}
       <div className={cn(
-        'bg-surface-card border rounded-2xl p-4',
+        'bg-surface-card border rounded-2xl p-4 overflow-hidden relative',
         needsPodioSetup ? 'border-crown/30' : 'border-white/10'
       )}>
-        <div className="flex items-center justify-between mb-3">
+        {needsPodioSetup && <div className="absolute inset-0 bg-gradient-to-r from-crown/5 to-transparent pointer-events-none" />}
+        <div className="relative flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <Crown size={14} className="text-crown" />
             Mi podio en este grupo
@@ -414,13 +436,13 @@ export function GroupDetailClient({
         </div>
 
         {myPodio?.champion ? (
-          <div className="flex gap-2">
+          <div className="relative flex gap-2">
             {[
-              { medal: '🥇', value: myPodio.champion, pts: 20 },
-              { medal: '🥈', value: myPodio.runner_up, pts: 10 },
-              { medal: '🥉', value: myPodio.third_place, pts: 5 },
-            ].map(({ medal, value, pts }) => (
-              <div key={medal} className="flex-1 bg-white/5 rounded-xl p-2.5 text-center">
+              { medal: '🥇', value: myPodio.champion, pts: 20, bg: 'bg-crown/10 border-crown/30' },
+              { medal: '🥈', value: myPodio.runner_up, pts: 10, bg: 'bg-gray-400/10 border-gray-400/20' },
+              { medal: '🥉', value: myPodio.third_place, pts: 5, bg: 'bg-amber-700/10 border-amber-700/20' },
+            ].map(({ medal, value, pts, bg }) => (
+              <div key={medal} className={cn('flex-1 border rounded-xl p-2.5 text-center', bg)}>
                 <div className="text-lg">{medal}</div>
                 <div className="text-xs font-semibold text-white mt-1 leading-tight">{value || '–'}</div>
                 <div className="text-[10px] text-gray-500 mt-0.5">+{pts} pts</div>
@@ -428,29 +450,25 @@ export function GroupDetailClient({
             ))}
           </div>
         ) : needsPodioSetup ? (
-          <p className="text-sm text-gray-500 text-center py-2">Pendiente de elegir</p>
+          <button
+            onClick={openPodio}
+            className="relative w-full py-2.5 rounded-xl bg-crown/15 border border-crown/30 text-crown text-sm font-semibold hover:bg-crown/20 transition-colors"
+          >
+            Elegir mi podio
+          </button>
         ) : (
-          <p className="text-sm text-gray-500 text-center py-2">Predicciones cerradas</p>
+          <p className="relative text-sm text-gray-500 text-center py-2">Predicciones cerradas</p>
         )}
       </div>
 
-      {/* Leave confirm */}
+      {/* Confirms */}
       {showLeaveConfirm && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 animate-slide-up">
           <p className="text-white font-semibold mb-1">¿Salir del grupo?</p>
           <p className="text-gray-400 text-sm mb-4">Perderás tu acceso y posición en la clasificación.</p>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowLeaveConfirm(false)}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={leaveGroup}
-              disabled={leaving}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50"
-            >
+            <button onClick={() => setShowLeaveConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm">Cancelar</button>
+            <button onClick={leaveGroup} disabled={leaving} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50">
               {leaving ? 'Saliendo...' : 'Salir'}
             </button>
           </div>
@@ -462,17 +480,8 @@ export function GroupDetailClient({
           <p className="text-white font-semibold mb-1">¿Eliminar grupo?</p>
           <p className="text-gray-400 text-sm mb-4">Esta acción no se puede deshacer.</p>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={deleteGroup}
-              disabled={deleting}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50"
-            >
+            <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm">Cancelar</button>
+            <button onClick={deleteGroup} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50">
               {deleting ? 'Eliminando...' : 'Eliminar'}
             </button>
           </div>
@@ -511,23 +520,41 @@ export function GroupDetailClient({
       )}
 
       {/* Tabs */}
-      <div className="flex bg-surface-card border border-white/10 rounded-xl p-1">
+      <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
         <button
           onClick={() => setTab('leaderboard')}
           className={cn(
-            'flex-1 py-2 text-sm font-medium rounded-lg transition-colors',
-            tab === 'leaderboard' ? 'bg-field text-white' : 'text-gray-400'
+            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+            tab === 'leaderboard'
+              ? 'bg-gradient-to-r from-field to-field-muted text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
           )}
         >
+          <Trophy size={12} />
           Clasificación
+        </button>
+        <button
+          onClick={() => setTab('grupos')}
+          className={cn(
+            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+            tab === 'grupos'
+              ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
+          )}
+        >
+          <Layers size={12} />
+          Grupos
         </button>
         <button
           onClick={() => setTab('matches')}
           className={cn(
-            'flex-1 py-2 text-sm font-medium rounded-lg transition-colors',
-            tab === 'matches' ? 'bg-field text-white' : 'text-gray-400'
+            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+            tab === 'matches'
+              ? 'bg-gradient-to-r from-crown-dark to-crown text-surface shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
           )}
         >
+          <Target size={12} />
           Partidos
         </button>
       </div>
@@ -542,12 +569,14 @@ export function GroupDetailClient({
               const rank = idx + 1;
               const isMe = entry.user_id === userId;
               const picks = championPicks[entry.user_id];
+              const rankStyle = rank <= 3 ? RANK_STYLES[rank - 1] : null;
               return (
                 <div
                   key={entry.user_id}
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0',
-                    isMe && 'bg-field/10'
+                    rankStyle?.row,
+                    isMe && !rankStyle && 'bg-field/10'
                   )}
                 >
                   <div className="w-8 text-center">
@@ -558,22 +587,11 @@ export function GroupDetailClient({
                     )}
                   </div>
 
-                  <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
+                  <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden ring-2 ring-transparent" style={rank === 1 ? { '--tw-ring-color': 'rgba(212,175,55,0.4)' } as React.CSSProperties : {}}>
                     {entry.avatar_url ? (
-                      <Image
-                        src={entry.avatar_url}
-                        alt={entry.username}
-                        width={36}
-                        height={36}
-                        className="w-full h-full object-cover"
-                      />
+                      <Image src={entry.avatar_url} alt={entry.username} width={36} height={36} className="w-full h-full object-cover" />
                     ) : (
-                      <div
-                        className={cn(
-                          'w-full h-full flex items-center justify-center text-sm font-bold',
-                          isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300'
-                        )}
-                      >
+                      <div className={cn('w-full h-full flex items-center justify-center text-sm font-bold', isMe ? 'bg-field text-white' : rank === 1 ? 'bg-crown/20 text-crown' : 'bg-surface-hover text-gray-300')}>
                         {entry.username.slice(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -581,10 +599,11 @@ export function GroupDetailClient({
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className={cn('font-semibold text-sm', isMe ? 'text-crown' : 'text-white')}>
+                      <span className={cn('font-semibold text-sm', isMe ? 'text-crown' : rank === 1 ? 'text-crown' : 'text-white')}>
                         {entry.username}
                       </span>
                       {isMe && <span className="text-[10px] text-crown">(tú)</span>}
+                      {isCreator && entry.user_id === userId && <span className="text-[10px] bg-crown/15 text-crown px-1.5 py-0.5 rounded">Admin</span>}
                     </div>
                     {picks?.champion ? (
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -596,23 +615,14 @@ export function GroupDetailClient({
                       <p className="text-[10px] text-gray-600 mt-0.5">Sin predicción de podio</p>
                     )}
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Crown size={10} />
-                        {entry.podio_points}
-                      </span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Trophy size={10} />
-                        {entry.groups_points}
-                      </span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Target size={10} />
-                        {entry.matches_points}
-                      </span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1"><Crown size={10} />{entry.podio_points}</span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1"><Trophy size={10} />{entry.groups_points}</span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1"><Target size={10} />{entry.matches_points}</span>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className={cn('text-lg font-black', rank === 1 ? 'text-crown' : 'text-white')}>
+                    <div className={cn('text-lg font-black', rankStyle?.points ?? (isMe ? 'text-crown' : 'text-white'))}>
                       {entry.total_points}
                     </div>
                     <div className="text-xs text-gray-500">pts</div>
@@ -620,6 +630,80 @@ export function GroupDetailClient({
                 </div>
               );
             })
+          )}
+        </div>
+      )}
+
+      {/* Grupos tab */}
+      {tab === 'grupos' && (
+        <div className="space-y-3">
+          {localLeaderboard.length === 0 ? (
+            <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-400 text-sm">
+              No hay miembros en este grupo todavía
+            </div>
+          ) : (
+            <>
+              <div className="bg-surface-card border border-violet-500/20 rounded-2xl p-3 flex items-center gap-2">
+                <Layers size={14} className="text-violet-400 shrink-0" />
+                <p className="text-xs text-gray-400">Quién eligió qué equipos pasando de fase de grupos</p>
+              </div>
+              {WC_GROUPS.map((g, idx) => {
+                const color = GROUP_COLORS[idx] ?? GROUP_COLORS[0];
+                const teamsInGroup = teams.filter((t) => t.group_name === g);
+                if (teamsInGroup.length === 0) return null;
+                return (
+                  <div key={g} className={cn('bg-surface-card border rounded-2xl overflow-hidden', color.border)}>
+                    <div className={cn('px-4 py-2.5 flex items-center gap-2', color.bg)}>
+                      <span className={cn('text-xs font-black tracking-widest uppercase', color.text)}>Grupo {g}</span>
+                      <div className="ml-auto flex items-center gap-1">
+                        <Users size={10} className="text-gray-500" />
+                        <span className="text-[10px] text-gray-500">{localLeaderboard.length}</span>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {teamsInGroup.map((team) => {
+                        const pickers = localLeaderboard.filter((entry) => {
+                          const picks = memberGroupPicks[entry.user_id];
+                          return picks?.[g]?.includes(team.name);
+                        });
+                        const isMyPick = pickers.some((p) => p.user_id === userId);
+                        return (
+                          <div key={team.id} className={cn('px-4 py-2.5 flex items-center gap-3', isMyPick && 'bg-white/3')}>
+                            {team.logo_url ? (
+                              <Image src={team.logo_url} width={18} height={18} alt="" className="shrink-0 rounded-sm" />
+                            ) : (
+                              <div className="w-4.5 h-4.5 shrink-0" />
+                            )}
+                            <span className={cn('text-sm flex-1 min-w-0 truncate', isMyPick ? 'text-white font-semibold' : 'text-gray-300')}>
+                              {team.name}
+                            </span>
+                            <div className="flex gap-1 flex-wrap justify-end max-w-[55%]">
+                              {pickers.length === 0 ? (
+                                <span className="text-[10px] text-gray-700">—</span>
+                              ) : (
+                                pickers.map((p) => (
+                                  <span
+                                    key={p.user_id}
+                                    className={cn(
+                                      'text-[10px] px-1.5 py-0.5 rounded font-semibold',
+                                      p.user_id === userId
+                                        ? `${color.bg} ${color.text} border ${color.border}`
+                                        : 'bg-white/8 text-gray-400'
+                                    )}
+                                  >
+                                    {p.username.slice(0, 4)}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
           )}
         </div>
       )}
@@ -683,10 +767,7 @@ export function GroupDetailClient({
             </div>
             <div className="flex gap-1.5 mt-4">
               {PODIO_STEPS.map((s, i) => (
-                <div
-                  key={s.key}
-                  className={cn('h-1 flex-1 rounded-full transition-all', i < podioStep ? 'bg-crown' : i === podioStep ? 'bg-crown/60' : 'bg-white/10')}
-                />
+                <div key={s.key} className={cn('h-1 flex-1 rounded-full transition-all', i < podioStep ? 'bg-crown' : i === podioStep ? 'bg-crown/60' : 'bg-white/10')} />
               ))}
             </div>
           </div>

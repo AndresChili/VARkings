@@ -63,7 +63,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
   const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
 
-  const [{ data: groupPreds }, { data: pendingProfiles }] = await Promise.all([
+  const [{ data: groupPreds }, { data: pendingProfiles }, { data: memberGroupPredsRaw }] = await Promise.all([
     memberIds.length > 0
       ? supabase
           .from('group_tournament_predictions')
@@ -74,11 +74,21 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     pendingUserIds.length > 0
       ? supabase.from('profiles').select('id, username').in('id', pendingUserIds)
       : Promise.resolve({ data: [] as Array<{ id: string; username: string }> }),
+    memberIds.length > 0
+      ? supabase
+          .from('tournament_predictions')
+          .select('user_id, group_predictions')
+          .in('user_id', memberIds)
+      : Promise.resolve({ data: [] as Array<{ user_id: string; group_predictions: Record<string, string[]> | null }> }),
   ]);
 
   const championPicks: Record<string, { champion: string | null; runner_up: string | null; third_place: string | null }> = {};
   for (const p of groupPreds ?? []) {
     championPicks[p.user_id] = { champion: p.champion, runner_up: p.runner_up, third_place: p.third_place };
+  }
+  const memberGroupPicks: Record<string, Record<string, string[]>> = {};
+  for (const p of memberGroupPredsRaw ?? []) {
+    if (p.group_predictions) memberGroupPicks[p.user_id] = p.group_predictions as Record<string, string[]>;
   }
   const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
   const pendingRequests = (requestsRes.data ?? []).map((r) => ({
@@ -98,6 +108,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       myPodio={championPicks[user.id] ?? null}
       pendingRequests={pendingRequests}
       teams={teams}
+      memberGroupPicks={memberGroupPicks}
     />
   );
 }
