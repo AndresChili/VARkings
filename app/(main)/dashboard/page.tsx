@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   const teams = teamsFromMatches.length > 0
     ? teamsFromMatches
     : teamsData.length > 0
-    ? teamsData
+    ? teamsData.map((t) => ({ ...t, name: TEAM_NAME_ES[t.name] ?? t.name }))
     : (STATIC_WC2026_TEAMS as unknown as typeof teamsData);
 
   return (

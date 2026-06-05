@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCachedAllMatches } from '@/lib/data-cache';
 import { MatchesClient } from '@/components/matches/matches-client';
+import { TEAM_NAME_ES } from '@/lib/teams';
 
 type PredictionRow = {
   match_id: string;
@@ -29,5 +30,11 @@ export default async function MatchesPage() {
     return acc;
   }, {} as Record<string, PredictionRow>);
 
-  return <MatchesClient matches={matches} predictionMap={predictionMap} />;
+  const translatedMatches = matches.map((m) => ({
+    ...m,
+    home_team_name: TEAM_NAME_ES[m.home_team_name ?? ''] ?? m.home_team_name,
+    away_team_name: TEAM_NAME_ES[m.away_team_name ?? ''] ?? m.away_team_name,
+  }));
+
+  return <MatchesClient matches={translatedMatches} predictionMap={predictionMap} />;
 }
