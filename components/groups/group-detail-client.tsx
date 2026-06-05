@@ -63,6 +63,7 @@ export function GroupDetailClient({
   const [leaving, setLeaving] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [localLeaderboard, setLocalLeaderboard] = useState(leaderboard);
 
   const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isTournamentLocked());
   const [podioStep, setPodioStep] = useState(0);
@@ -110,11 +111,13 @@ export function GroupDetailClient({
   }
 
   async function handleRemoveMember(targetUserId: string) {
-    setRemovingUserId(targetUserId);
+    // Optimistic removal
+    setLocalLeaderboard((prev) => prev.filter((e) => e.user_id !== targetUserId));
+    setShowRemoveModal(false);
     const res = await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
-    setRemovingUserId(null);
-    if (res.ok) {
-      setShowRemoveModal(false);
+    if (!res.ok) {
+      // Revert on error
+      setLocalLeaderboard(leaderboard);
       router.refresh();
     }
   }
@@ -220,8 +223,8 @@ export function GroupDetailClient({
   const isLastGroup = groupStep === WC_GROUPS.length - 1;
   const canProceedGroup = currentGroupPicks.length === 2;
 
-  const myEntry = leaderboard.find((e) => e.user_id === userId);
-  const myRank = leaderboard.findIndex((e) => e.user_id === userId) + 1;
+  const myEntry = localLeaderboard.find((e) => e.user_id === userId);
+  const myRank = localLeaderboard.findIndex((e) => e.user_id === userId) + 1;
 
   return (
     <>
@@ -455,7 +458,7 @@ export function GroupDetailClient({
               <X size={18} />
             </button>
           </div>
-          {leaderboard.filter((e) => e.user_id !== userId).length === 0 ? (
+          {localLeaderboard.filter((e) => e.user_id !== userId).length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-2">No hay otros miembros</p>
           ) : (
             <div className="space-y-2">
@@ -503,10 +506,10 @@ export function GroupDetailClient({
       {/* Leaderboard */}
       {tab === 'leaderboard' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
-          {leaderboard.length === 0 ? (
+          {localLeaderboard.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">No hay clasificación todavía</div>
           ) : (
-            leaderboard.map((entry, idx) => {
+            localLeaderboard.map((entry, idx) => {
               const rank = idx + 1;
               const isMe = entry.user_id === userId;
               const picks = championPicks[entry.user_id];

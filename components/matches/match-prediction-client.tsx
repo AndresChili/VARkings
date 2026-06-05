@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trophy, CheckCircle, Lock } from 'lucide-react';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ interface MatchPredictionClientProps {
 
 export function MatchPredictionClient({ match, existingPrediction }: MatchPredictionClientProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const started = isMatchStarted(match.match_date) || match.status !== 'NS';
   const live = isMatchLive(match.status);
   const done = isMatchFinished(match.status);
@@ -62,10 +63,10 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     }
 
     setSaved(true);
-    setTimeout(() => {
+    startTransition(() => {
       router.back();
       router.refresh();
-    }, 1000);
+    });
   }
 
   const predictedWinner =

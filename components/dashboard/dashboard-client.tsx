@@ -169,27 +169,39 @@ export function DashboardClient({
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    const code = joinCode;
+    // Close modal + show pending immediately (optimistic)
+    setShowJoin(false);
+    setJoinCode('');
+    setJoinPending(true);
+
     const res = await fetch('/api/groups/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invite_code: joinCode }),
+      body: JSON.stringify({ invite_code: code }),
     });
     const data = await res.json();
-    setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
+
+    if (!res.ok) {
+      setJoinPending(false);
+      setJoinCode(code);
+      setShowJoin(true);
+      setError(data.error);
+      return;
+    }
     if (data.already_member) {
+      setJoinPending(false);
+      setJoinCode(code);
+      setShowJoin(true);
       setError('Ya eres miembro de este grupo');
       return;
     }
     if (data.pending) {
-      setShowJoin(false);
-      setJoinCode('');
-      setJoinPending(true);
+      // Already showing pending banner, nothing more to do
       return;
     }
-    setShowJoin(false);
-    setJoinCode('');
+    // Direct join — navigate to group
+    setJoinPending(false);
     setNewGroupId(data.group.id);
     if (!locked) {
       openPodio();
