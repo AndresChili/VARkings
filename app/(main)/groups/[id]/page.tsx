@@ -1,9 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getCachedTeams, getCachedGroupStageMatches, getCachedUpcomingMatches } from '@/lib/data-cache';
+import { getCachedTeams, getCachedGroupStageMatches, getCachedAllMatches } from '@/lib/data-cache';
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
 import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
-import type { Match, Team } from '@/types';
+import type { Match, Team, MatchPrediction } from '@/types';
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,13 +26,13 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   const isCreator = groupRes.data.created_by === user.id;
 
-  const [leaderboardRes, upcomingMatches, membersCountRes, requestsRes, teamsData, groupStageMatchesData] = await Promise.all([
+  const [leaderboardRes, allMatches, membersCountRes, requestsRes, teamsData, groupStageMatchesData] = await Promise.all([
     supabase
       .from('group_leaderboard')
       .select('*')
       .eq('group_id', id)
       .order('total_points', { ascending: false }),
-    getCachedUpcomingMatches(),
+    getCachedAllMatches(),
     supabase
       .from('group_members')
       .select('user_id', { count: 'exact', head: true })
@@ -63,7 +63,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
   const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
 
-  const [{ data: groupPreds }, { data: pendingProfiles }, { data: memberGroupPredsRaw }] = await Promise.all([
+  const [{ data: groupPreds }, { data: pendingProfiles }, { data: memberGroupPredsRaw }, { data: memberMatchPredsRaw }] = await Promise.all([
     memberIds.length > 0
       ? supabase
           .from('group_tournament_predictions')
@@ -80,6 +80,12 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           .select('user_id, group_predictions')
           .in('user_id', memberIds)
       : Promise.resolve({ data: [] as Array<{ user_id: string; group_predictions: Record<string, string[]> | null }> }),
+    memberIds.length > 0
+      ? supabase
+          .from('match_predictions')
+          .select('user_id, match_id, predicted_home_score, predicted_away_score, points_total, is_calculated')
+          .in('user_id', memberIds)
+      : Promise.resolve({ data: [] as Array<Pick<MatchPrediction, 'user_id' | 'match_id' | 'predicted_home_score' | 'predicted_away_score' | 'points_total' | 'is_calculated'>> }),
   ]);
 
   const championPicks: Record<string, { champion: string | null; runner_up: string | null; third_place: string | null }> = {};
@@ -90,6 +96,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   for (const p of memberGroupPredsRaw ?? []) {
     if (p.group_predictions) memberGroupPicks[p.user_id] = p.group_predictions as Record<string, string[]>;
   }
+  const predsByMatch: Record<string, Array<Pick<MatchPrediction, 'user_id' | 'match_id' | 'predicted_home_score' | 'predicted_away_score' | 'points_total' | 'is_calculated'>>> = {};
+  for (const pred of memberMatchPredsRaw ?? []) {
+    if (!predsByMatch[pred.match_id]) predsByMatch[pred.match_id] = [];
+    predsByMatch[pred.match_id].push(pred);
+  }
+  const matchesWithPredictions = (allMatches as Match[]).map((m) => ({
+    ...m,
+    memberPredictions: predsByMatch[m.id] ?? [],
+  }));
+
   const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
   const pendingRequests = (requestsRes.data ?? []).map((r) => ({
     user_id: r.user_id,
@@ -101,7 +117,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     <GroupDetailClient
       group={groupRes.data}
       leaderboard={leaderboardRes.data ?? []}
-      upcomingMatches={upcomingMatches as Match[]}
+      matchesWithPredictions={matchesWithPredictions}
       userId={user.id}
       memberCount={membersCountRes.count ?? 0}
       championPicks={championPicks}
