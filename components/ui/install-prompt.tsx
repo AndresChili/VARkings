@@ -7,6 +7,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+declare global {
+  interface Window {
+    __pwaPrompt?: BeforeInstallPromptEvent;
+  }
+}
+
 function isIOS() {
   if (typeof navigator === 'undefined') return false;
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -18,6 +24,8 @@ function isInStandaloneMode() {
     ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true);
 }
 
+const DISMISS_KEY = 'pwa-install-dismissed-v2';
+
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [platform, setPlatform] = useState<'ios' | 'android' | null>(null);
@@ -25,15 +33,20 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (isInStandaloneMode()) return;
-    if (localStorage.getItem('pwa-install-dismissed')) return;
+    if (localStorage.getItem(DISMISS_KEY)) return;
 
     if (isIOS()) {
       setPlatform('ios');
       return;
     }
 
-    // Android/Chrome: show banner immediately; upgrade to native prompt if available
+    // Android: show banner immediately
     setPlatform('android');
+
+    // Pick up event captured before React hydrated
+    if (window.__pwaPrompt) {
+      setDeferredPrompt(window.__pwaPrompt);
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -44,24 +57,23 @@ export function InstallPrompt() {
   }, []);
 
   function dismiss() {
-    localStorage.setItem('pwa-install-dismissed', '1');
+    localStorage.setItem(DISMISS_KEY, '1');
     setDeferredPrompt(null);
     setPlatform(null);
     setDismissed(true);
   }
 
   async function install() {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') dismiss();
-      else setDeferredPrompt(null);
-    }
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') dismiss();
+    else setDeferredPrompt(null);
   }
 
   if (dismissed || !platform) return null;
 
-  const banner = (
+  return (
     <div className="mx-4 mt-2 mb-1 rounded-xl bg-field/20 border border-field/40 px-4 py-3 flex items-start gap-3">
       <img src="/icons/icon-72x72.png" alt="VARkings" className="w-10 h-10 rounded-xl flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
@@ -85,21 +97,21 @@ export function InstallPrompt() {
           </>
         )}
       </div>
-      {platform === 'android' && deferredPrompt ? (
-        <button
-          onClick={install}
-          className="bg-crown text-surface text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 self-center"
-        >
-          Instalar
-        </button>
-      ) : platform === 'android' ? (
-        <p className="text-xs text-white/40 flex-shrink-0 self-center text-right leading-tight">
-          Menú ⋮<br />→ Instalar
-        </p>
-      ) : null}
+      {platform === 'android' && (
+        deferredPrompt ? (
+          <button
+            onClick={install}
+            className="bg-crown text-surface text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 self-center"
+          >
+            Instalar
+          </button>
+        ) : (
+          <p className="text-xs text-white/40 flex-shrink-0 self-center text-right leading-tight">
+            Menú ⋮<br />→ Instalar
+          </p>
+        )
+      )}
       <button onClick={dismiss} className="text-white/40 text-lg leading-none flex-shrink-0 self-start">×</button>
     </div>
   );
-
-  return banner;
 }
