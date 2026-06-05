@@ -295,6 +295,8 @@ export function GroupDetailClient({
   const myEntry = localLeaderboard.find((e) => e.user_id === userId);
   const myRank = localLeaderboard.findIndex((e) => e.user_id === userId) + 1;
 
+  const gruposLeaderboard = [...localLeaderboard].sort((a, b) => (b.groups_points ?? 0) - (a.groups_points ?? 0));
+
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
@@ -656,10 +658,10 @@ export function GroupDetailClient({
       {/* Grupos tab */}
       {tab === 'grupos' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
-          {localLeaderboard.length === 0 ? (
+          {gruposLeaderboard.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">No hay miembros todavía</div>
           ) : (
-            localLeaderboard.map((entry, idx) => {
+            gruposLeaderboard.map((entry, idx) => {
               const isMe = entry.user_id === userId;
               const isExpanded = expandedMemberId === entry.user_id;
               const picks = memberGroupPicks[entry.user_id];
