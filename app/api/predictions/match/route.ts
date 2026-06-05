@@ -55,3 +55,33 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, action: 'created' }, { status: 201 });
 }
+
+export async function DELETE(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { match_id } = await req.json();
+  if (!match_id) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+
+  const { data: match } = await supabase
+    .from('matches')
+    .select('id, match_date, status')
+    .eq('id', match_id)
+    .single();
+
+  if (!match) return NextResponse.json({ error: 'Partido no encontrado' }, { status: 404 });
+
+  if (match.status !== 'NS' || new Date(match.match_date) <= new Date()) {
+    return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from('match_predictions')
+    .delete()
+    .eq('match_id', match_id)
+    .eq('user_id', user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

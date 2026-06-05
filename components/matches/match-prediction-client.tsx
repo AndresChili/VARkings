@@ -31,12 +31,39 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
 
   const preview =
     homeScore !== '' && awayScore !== '' && match.home_score != null && match.away_score != null
       ? calculateMatchPoints(+homeScore, +awayScore, match.home_score, match.away_score)
       : null;
+
+  async function handleDelete() {
+    if (started || deleting) return;
+    setError('');
+    setDeleting(true);
+
+    const res = await fetch('/api/predictions/match', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ match_id: match.id }),
+    });
+
+    const data = await res.json();
+    setDeleting(false);
+
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
+
+    setDeleted(true);
+    setHomeScore('');
+    setAwayScore('');
+    startTransition(() => router.refresh());
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -251,12 +278,23 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
                 </span>
               ) : saving ? (
                 'Guardando...'
-              ) : existingPrediction ? (
+              ) : existingPrediction && !deleted ? (
                 'Actualizar predicción'
               ) : (
                 'Guardar predicción'
               )}
             </button>
+
+            {existingPrediction && !deleted && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full mt-2 py-2.5 rounded-xl text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Borrando...' : 'Eliminar predicción'}
+              </button>
+            )}
           </form>
         )}
       </div>
