@@ -106,6 +106,26 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     memberPredictions: predsByMatch[m.id] ?? [],
   }));
 
+  // Derive which teams qualified (appeared in Round of 16 matches)
+  const teamGroupMap = new Map<string, string>();
+  groupStageMatchesData.forEach((m) => {
+    if (m.home_team_name && m.group_name) teamGroupMap.set(m.home_team_name, m.group_name);
+    if (m.away_team_name && m.group_name) teamGroupMap.set(m.away_team_name, m.group_name);
+  });
+  const groupQualifiers: Record<string, string[]> = {};
+  (allMatches as Match[])
+    .filter((m) => m.stage === 'Round of 16')
+    .forEach((m) => {
+      [m.home_team_name, m.away_team_name].forEach((teamName) => {
+        if (!teamName) return;
+        const group = teamGroupMap.get(teamName);
+        if (!group) return;
+        const esName = TEAM_NAME_ES[teamName] ?? teamName;
+        if (!groupQualifiers[group]) groupQualifiers[group] = [];
+        if (!groupQualifiers[group].includes(esName)) groupQualifiers[group].push(esName);
+      });
+    });
+
   const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
   const pendingRequests = (requestsRes.data ?? []).map((r) => ({
     user_id: r.user_id,
@@ -125,6 +145,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       pendingRequests={pendingRequests}
       teams={teams}
       memberGroupPicks={memberGroupPicks}
+      groupQualifiers={groupQualifiers}
     />
   );
 }
