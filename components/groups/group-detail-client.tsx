@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Copy, Check, MoreVertical, ChevronRight, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS } from '@/lib/utils';
@@ -527,9 +528,11 @@ export function GroupDetailClient({
 
                   <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
                     {entry.avatar_url ? (
-                      <img
+                      <Image
                         src={entry.avatar_url}
                         alt={entry.username}
+                        width={36}
+                        height={36}
                         className="w-full h-full object-cover"
                       />
                     ) : (

@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [predictionRes, teamsRes, matchesRes] = await Promise.all([
+  const [predictionRes, teamsRes, matchesRes, memberRowsRes] = await Promise.all([
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
@@ -26,15 +26,12 @@ export default async function DashboardPage() {
       .select('home_team_name, away_team_name, home_team_logo, away_team_logo, group_name')
       .not('group_name', 'is', null)
       .eq('stage', 'Group Stage'),
+    supabase.from('group_members').select('group_id').eq('user_id', user.id),
   ]);
 
-  // Separate query for groups to avoid nested select relation error
-  const { data: memberRows } = await supabase
-    .from('group_members')
-    .select('group_id')
-    .eq('user_id', user.id);
+  const memberRows = memberRowsRes;
 
-  const groupIds = memberRows?.map((m) => m.group_id) ?? [];
+  const groupIds = memberRows.data?.map((m) => m.group_id) ?? [];
   const [{ data: groupsData }, { data: allMembersData }] = await Promise.all([
     groupIds.length > 0
       ? supabase.from('groups').select('id, name, created_by').in('id', groupIds)
@@ -49,7 +46,7 @@ export default async function DashboardPage() {
     return acc;
   }, {});
 
-  const groups: GroupRow[] = (memberRows ?? []).map((m) => {
+  const groups: GroupRow[] = (memberRows.data ?? []).map((m) => {
     const groupData = (groupsData ?? []).find((g) => g.id === m.group_id) ?? null;
     return {
       group_id: m.group_id,

@@ -65,25 +65,26 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     : (STATIC_WC2026_TEAMS as unknown as Team[]);
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
-  const { data: groupPreds } = memberIds.length > 0
-    ? await supabase
-        .from('group_tournament_predictions')
-        .select('user_id, champion, runner_up, third_place')
-        .eq('group_id', id)
-        .in('user_id', memberIds)
-    : { data: [] };
+  const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
+
+  const [{ data: groupPreds }, { data: pendingProfiles }] = await Promise.all([
+    memberIds.length > 0
+      ? supabase
+          .from('group_tournament_predictions')
+          .select('user_id, champion, runner_up, third_place')
+          .eq('group_id', id)
+          .in('user_id', memberIds)
+      : Promise.resolve({ data: [] as Array<{ user_id: string; champion: string | null; runner_up: string | null; third_place: string | null }> }),
+    pendingUserIds.length > 0
+      ? supabase.from('profiles').select('id, username').in('id', pendingUserIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; username: string }> }),
+  ]);
 
   const championPicks: Record<string, { champion: string | null; runner_up: string | null; third_place: string | null }> = {};
   for (const p of groupPreds ?? []) {
     championPicks[p.user_id] = { champion: p.champion, runner_up: p.runner_up, third_place: p.third_place };
   }
-
-  // Fetch usernames for pending requests
-  const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
-  const { data: pendingProfiles } = pendingUserIds.length > 0
-    ? await supabase.from('profiles').select('id, username').in('id', pendingUserIds)
-    : { data: [] };
-  const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p) => [p.id, p.username]));
+  const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
   const pendingRequests = (requestsRes.data ?? []).map((r) => ({
     user_id: r.user_id,
     username: profileMap[r.user_id] ?? 'Usuario',
