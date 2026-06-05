@@ -40,20 +40,6 @@ const PODIO_STEPS = [
   { key: 'thirdPlace' as const, label: 'Tercer clasificado', medal: '🥉', pts: 5 },
 ];
 
-const GROUP_COLORS = [
-  { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400' },
-  { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', dot: 'bg-blue-400' },
-  { bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/30', dot: 'bg-violet-400' },
-  { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30', dot: 'bg-orange-400' },
-  { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30', dot: 'bg-rose-400' },
-  { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30', dot: 'bg-amber-400' },
-  { bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/30', dot: 'bg-teal-400' },
-  { bg: 'bg-indigo-500/15', text: 'text-indigo-400', border: 'border-indigo-500/30', dot: 'bg-indigo-400' },
-  { bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30', dot: 'bg-cyan-400' },
-  { bg: 'bg-fuchsia-500/15', text: 'text-fuchsia-400', border: 'border-fuchsia-500/30', dot: 'bg-fuchsia-400' },
-  { bg: 'bg-lime-500/15', text: 'text-lime-400', border: 'border-lime-500/30', dot: 'bg-lime-400' },
-  { bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30', dot: 'bg-sky-400' },
-];
 
 const RANK_STYLES = [
   { row: 'bg-gradient-to-r from-crown/10 to-transparent', points: 'text-crown' },
@@ -98,6 +84,7 @@ export function GroupDetailClient({
   const [savingPodio, setSavingPodio] = useState(false);
   const [podioError, setPodioError] = useState('');
 
+  const [selectedMemberId, setSelectedMemberId] = useState(userId);
   const [showGroups, setShowGroups] = useState(false);
   const [groupStep, setGroupStep] = useState(0);
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
@@ -635,62 +622,67 @@ export function GroupDetailClient({
       )}
 
       {/* Grupos tab */}
-      {tab === 'grupos' && (
-        <div className="space-y-3">
-          {localLeaderboard.length === 0 ? (
-            <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-400 text-sm">
-              No hay miembros en este grupo todavía
-            </div>
-          ) : (
-            localLeaderboard.map((entry) => {
-              const isMe = entry.user_id === userId;
-              const picks = memberGroupPicks[entry.user_id];
-              const hasPicks = picks && Object.keys(picks).length > 0;
-              return (
-                <div key={entry.user_id} className={cn('bg-surface-card border rounded-2xl overflow-hidden', isMe ? 'border-violet-500/30' : 'border-white/10')}>
-                  {/* Member header */}
-                  <div className={cn('px-4 py-3 flex items-center gap-3', isMe ? 'bg-violet-500/10' : 'bg-white/3')}>
-                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', isMe ? 'bg-violet-500/30 text-violet-300' : 'bg-surface-hover text-gray-300')}>
-                      {entry.username.slice(0, 2).toUpperCase()}
-                    </div>
-                    <span className={cn('font-semibold text-sm', isMe ? 'text-violet-300' : 'text-white')}>
-                      {entry.username}
-                    </span>
-                    {isMe && <span className="text-[10px] text-violet-400">(tú)</span>}
-                    {!hasPicks && (
-                      <span className="ml-auto text-[10px] text-gray-600">Sin predicciones</span>
+      {tab === 'grupos' && (() => {
+        const selected = localLeaderboard.find((e) => e.user_id === selectedMemberId) ?? localLeaderboard[0];
+        const picks = selected ? memberGroupPicks[selected.user_id] : null;
+        const hasPicks = picks && Object.keys(picks).length > 0;
+
+        return (
+          <div className="space-y-3">
+            {/* Member selector */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {localLeaderboard.map((entry) => {
+                const isSelected = entry.user_id === selectedMemberId;
+                const isMe = entry.user_id === userId;
+                return (
+                  <button
+                    key={entry.user_id}
+                    onClick={() => setSelectedMemberId(entry.user_id)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border shrink-0',
+                      isSelected
+                        ? 'bg-white/15 border-white/30 text-white font-semibold'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/8'
                     )}
-                  </div>
-                  {/* Group picks grid */}
-                  {hasPicks && (
-                    <div className="divide-y divide-white/5">
-                      {WC_GROUPS.map((g, idx) => {
-                        const groupPick = picks[g];
-                        if (!groupPick || groupPick.length === 0) return null;
-                        const color = GROUP_COLORS[idx] ?? GROUP_COLORS[0];
-                        return (
-                          <div key={g} className="px-4 py-2.5 flex items-center gap-3">
-                            <span className={cn('text-[10px] font-black w-5 text-center shrink-0', color.text)}>
-                              {g}
-                            </span>
-                            <div className="flex gap-1.5 flex-wrap">
-                              {groupPick.map((teamName) => (
-                                <span key={teamName} className={cn('text-xs px-2 py-0.5 rounded-lg font-medium', color.bg, color.text)}>
-                                  {teamName}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+                  >
+                    {entry.username}
+                    {isMe && <span className="text-[10px] opacity-60">(tú)</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Picks grid */}
+            {!selected ? (
+              <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center text-gray-500 text-sm">
+                Sin miembros
+              </div>
+            ) : !hasPicks ? (
+              <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
+                <p className="text-gray-400 text-sm font-medium">{selected.username} no ha hecho predicciones de grupos</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {WC_GROUPS.map((g) => {
+                  const groupPick = picks[g] ?? [];
+                  return (
+                    <div key={g} className="bg-surface-card border border-white/10 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Grupo {g}</p>
+                      {groupPick.length > 0 ? (
+                        groupPick.map((teamName) => (
+                          <p key={teamName} className="text-sm text-white font-medium leading-snug truncate">{teamName}</p>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-700">—</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Upcoming matches */}
       {tab === 'matches' && (
