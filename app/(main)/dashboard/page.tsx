@@ -94,6 +94,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
+      userId={user.id}
       groups={groups}
       tournamentPrediction={predictionRes.data}
       teams={teams ?? []}

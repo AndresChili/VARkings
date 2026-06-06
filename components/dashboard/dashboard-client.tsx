@@ -19,6 +19,7 @@ interface GroupInvite {
 }
 
 interface DashboardClientProps {
+  userId: string;
   groups: Array<{ group_id: string; member_count: number; is_admin: boolean; groups: { id: string; name: string } | null }>;
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
@@ -32,6 +33,7 @@ const PODIO_STEPS = [
 ];
 
 export function DashboardClient({
+  userId,
   groups,
   tournamentPrediction,
   teams,
@@ -70,14 +72,14 @@ export function DashboardClient({
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel('dashboard-invites')
+      .channel(`notify:${userId}`)
       .on('broadcast', { event: 'group_invite' }, ({ payload }) => {
         const invite = payload.invite as GroupInvite;
         setPendingInvites((prev) => prev.find((i) => i.id === invite.id) ? prev : [invite, ...prev]);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [userId]);
 
   async function respondToInvite(invite: GroupInvite, action: 'accept' | 'reject') {
     setRespondingId(invite.id);

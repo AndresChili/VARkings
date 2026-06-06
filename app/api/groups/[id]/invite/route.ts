@@ -32,12 +32,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Broadcast real-time notification to invitee
-  await supabase.channel(`notify:${invitee_id}`).send({
-    type: 'broadcast',
-    event: 'group_invite',
-    payload: { invite: { ...data, group_name: group?.name } },
-  });
-
   return NextResponse.json(data);
 }
