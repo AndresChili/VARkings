@@ -69,6 +69,61 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddMenu]);
 
+  // Real-time: solicitudes recibidas + cambios en las enviadas
+  useEffect(() => {
+    const channel = supabase
+      .channel(`friendships:${currentUserId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
+        async (payload) => {
+          const f = payload.new as Friendship;
+          setFriendships((prev) => prev.find((x) => x.id === f.id) ? prev : [f, ...prev]);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .eq('id', f.requester_id)
+            .single();
+          if (profile) setProfileMap((prev) => new Map(prev).set(profile.id, profile));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `requester_id=eq.${currentUserId}` },
+        (payload) => {
+          const f = payload.new as Friendship;
+          setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
+        (payload) => {
+          const f = payload.new as Friendship;
+          setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'friendships', filter: `requester_id=eq.${currentUserId}` },
+        (payload) => {
+          const id = (payload.old as { id: string }).id;
+          setFriendships((prev) => prev.filter((x) => x.id !== id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
+        (payload) => {
+          const id = (payload.old as { id: string }).id;
+          setFriendships((prev) => prev.filter((x) => x.id !== id));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, currentUserId]);
+
   const getFriendship = (otherId: string) =>
     friendships.find(
       (f) =>
@@ -187,7 +242,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       {/* Delete confirmation modal */}
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
           onClick={() => setConfirmDelete(null)}
         >
           <div
