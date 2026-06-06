@@ -168,54 +168,80 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     <div className="animate-fade-in max-w-lg mx-auto px-4 py-4 space-y-6">
 
       {/* Search + Add */}
-      <div className="flex gap-2">
+      <div className="flex gap-2.5 items-stretch">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           <input
             ref={searchInputRef}
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Buscar por nombre de usuario…"
-            className="w-full bg-surface-card border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-white text-sm focus:outline-none focus:border-field/50 placeholder-gray-600"
+            className="w-full h-12 bg-surface-card border border-white/10 rounded-2xl pl-10 pr-10 text-white text-sm focus:outline-none focus:border-field/40 focus:bg-surface-hover placeholder-gray-600 transition-colors"
           />
           {searching && (
             <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />
           )}
         </div>
-        <div className="relative" ref={addMenuRef}>
+        <div className="relative shrink-0" ref={addMenuRef}>
           <button
             onClick={() => setShowAddMenu((v) => !v)}
-            className="h-full aspect-square bg-surface-card border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/5 transition-colors"
+            className={cn(
+              'w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200',
+              'bg-gradient-to-br from-field to-field-dark border border-field-light/25',
+              'shadow-lg shadow-field/25 text-white',
+              'hover:shadow-field/45 hover:scale-105 active:scale-95',
+              showAddMenu && 'scale-95 shadow-none brightness-90'
+            )}
             aria-label="Añadir amigo"
           >
-            <Plus size={18} />
+            <Plus
+              size={20}
+              strokeWidth={2.5}
+              className={cn('transition-transform duration-200', showAddMenu && 'rotate-45')}
+            />
           </button>
+
           {showAddMenu && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-surface-card border border-white/10 rounded-2xl overflow-hidden z-20 shadow-xl">
+            <div className="absolute right-0 top-[calc(100%+8px)] w-64 bg-surface-card border border-white/10 rounded-2xl overflow-hidden z-20 shadow-2xl shadow-black/40 animate-slide-up">
+              <div className="px-4 pt-3.5 pb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Añadir amigo</p>
+              </div>
+
               <button
                 onClick={handleShare}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-white hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 hover:bg-surface-hover transition-colors group"
               >
-                <div className="w-7 h-7 rounded-xl bg-field/15 flex items-center justify-center shrink-0">
-                  {shareStatus === 'copied' ? <Check size={13} className="text-field-light" /> : <Link2 size={13} className="text-field-light" />}
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-field/25 to-field-dark/25 border border-field/20 flex items-center justify-center shrink-0 group-hover:border-field/40 transition-colors">
+                  {shareStatus === 'copied'
+                    ? <Check size={15} className="text-field-light" />
+                    : <Link2 size={15} className="text-field-light" />
+                  }
                 </div>
-                <div className="text-left">
-                  <p className="font-medium text-sm">{shareStatus === 'copied' ? 'Enlace copiado' : 'Compartir enlace'}</p>
+                <div className="text-left min-w-0">
+                  <p className="font-semibold text-sm text-white leading-tight">
+                    {shareStatus === 'copied' ? '¡Enlace copiado!' : 'Compartir enlace'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">Invita con tu link personal</p>
                 </div>
               </button>
-              <div className="h-px bg-white/5 mx-3" />
+
+              <div className="h-px bg-white/5 mx-4" />
+
               <button
                 onClick={handleAddByUsername}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-white hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 hover:bg-surface-hover transition-colors group"
               >
-                <div className="w-7 h-7 rounded-xl bg-field/15 flex items-center justify-center shrink-0">
-                  <UserPlus size={13} className="text-field-light" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-field/25 to-field-dark/25 border border-field/20 flex items-center justify-center shrink-0 group-hover:border-field/40 transition-colors">
+                  <UserPlus size={15} className="text-field-light" />
                 </div>
-                <div className="text-left">
-                  <p className="font-medium text-sm">Añadir por usuario</p>
+                <div className="text-left min-w-0">
+                  <p className="font-semibold text-sm text-white leading-tight">Buscar usuario</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">Añade por nombre de usuario</p>
                 </div>
               </button>
+
+              <div className="pb-1" />
             </div>
           )}
         </div>
