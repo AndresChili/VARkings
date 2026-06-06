@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     supabase.from('group_members').select('group_id').eq('user_id', user.id),
     supabase
       .from('group_invites')
-      .select('id, group_id, inviter_id, created_at, groups(name), profiles!group_invites_inviter_id_fkey(username)')
+      .select('id, group_id, inviter_id, created_at')
       .eq('invitee_id', user.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
@@ -84,12 +84,28 @@ export default async function DashboardPage() {
     ? teamsData.map((t) => ({ ...t, name: TEAM_NAME_ES[t.name] ?? t.name }))
     : (STATIC_WC2026_TEAMS as unknown as typeof teamsData);
 
-  const groupInvites = (invitesRes.data ?? []).map((inv: Record<string, unknown>) => ({
-    id: inv.id as string,
-    group_id: inv.group_id as string,
-    group_name: (inv.groups as { name: string } | null)?.name ?? 'Grupo',
-    inviter_username: (inv.profiles as { username: string } | null)?.username ?? 'Alguien',
-    created_at: inv.created_at as string,
+  const rawInvites = invitesRes.data ?? [];
+  const inviteGroupIds = [...new Set(rawInvites.map((i) => i.group_id))];
+  const inviteInviterIds = [...new Set(rawInvites.map((i) => i.inviter_id))];
+
+  const [inviteGroupsRes, inviteProfilesRes] = await Promise.all([
+    inviteGroupIds.length > 0
+      ? supabase.from('groups').select('id, name').in('id', inviteGroupIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    inviteInviterIds.length > 0
+      ? supabase.from('profiles').select('id, username').in('id', inviteInviterIds)
+      : Promise.resolve({ data: [] as { id: string; username: string }[] }),
+  ]);
+
+  const inviteGroupMap = Object.fromEntries((inviteGroupsRes.data ?? []).map((g) => [g.id, g.name]));
+  const inviteProfileMap = Object.fromEntries((inviteProfilesRes.data ?? []).map((p) => [p.id, p.username]));
+
+  const groupInvites = rawInvites.map((inv) => ({
+    id: inv.id,
+    group_id: inv.group_id,
+    group_name: inviteGroupMap[inv.group_id] ?? 'Grupo',
+    inviter_username: inviteProfileMap[inv.inviter_id] ?? 'Alguien',
+    created_at: inv.created_at,
   }));
 
   return (
