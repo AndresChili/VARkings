@@ -432,7 +432,10 @@ export function DashboardClient({
               <div className="bg-white/5 rounded-xl p-3 mb-3">
                 <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-medium">Puntos en juego</p>
                 <p className="text-sm text-gray-300">
-                  <span className="text-field font-bold">+2 pts</span> por cada equipo que aciertes pasando de grupos
+                  <span className="text-field font-bold">+5 pts</span> si aciertas los dos equipos del grupo
+                </p>
+                <p className="text-sm text-gray-300 mt-0.5">
+                  <span className="text-blue-400 font-bold">+2 pts</span> si aciertas solo uno
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Elige los 2 equipos que crees que pasan de cada grupo</p>
               </div>
