@@ -10,23 +10,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { invitee_id } = await req.json();
   if (!invitee_id) return NextResponse.json({ error: 'invitee_id required' }, { status: 400 });
 
-  const { data: membership } = await supabase
-    .from('group_members')
-    .select('id')
-    .eq('group_id', group_id)
-    .eq('user_id', user.id)
-    .single();
-  if (!membership) return NextResponse.json({ error: 'Not a member' }, { status: 403 });
-
+  // Only group creator (admin) can invite
   const { data: group } = await supabase
     .from('groups')
-    .select('name')
+    .select('id, name, created_by')
     .eq('id', group_id)
     .single();
+  if (!group) return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+  if (group.created_by !== user.id) return NextResponse.json({ error: 'Only the group admin can invite' }, { status: 403 });
 
+  // Upsert: reset to pending if previously rejected
   const { data, error } = await supabase
     .from('group_invites')
-    .insert({ group_id, inviter_id: user.id, invitee_id, status: 'pending' })
+    .upsert(
+      { group_id, inviter_id: user.id, invitee_id, status: 'pending' },
+      { onConflict: 'group_id,invitee_id', ignoreDuplicates: false }
+    )
     .select()
     .single();
 

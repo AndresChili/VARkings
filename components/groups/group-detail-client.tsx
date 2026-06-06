@@ -374,13 +374,15 @@ export function GroupDetailClient({
                     <Copy size={14} />
                     Código de invitación
                   </button>
-                  <button
-                    onClick={openInviteFriends}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
-                  >
-                    <UserPlus size={14} />
-                    Invitar amigos
-                  </button>
+                  {isCreator && (
+                    <button
+                      onClick={openInviteFriends}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                    >
+                      <UserPlus size={14} />
+                      Invitar amigos
+                    </button>
+                  )}
                   {isCreator ? (
                     <>
                       <div className="border-t border-white/10 mt-1 pt-1">
