@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Plus } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Plus, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -49,12 +49,12 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
 
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FriendProfile[]>([]);
+  const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showAddMenu, setShowAddMenu] = useState(false);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
 
@@ -67,8 +67,6 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     if (showAddMenu) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddMenu]);
-
-  const knownIds = new Set(friendships.flatMap((f) => [f.requester_id, f.addressee_id]));
 
   const getFriendship = (otherId: string) =>
     friendships.find(
@@ -85,28 +83,28 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     (f) => f.requester_id === currentUserId && f.status === 'pending'
   );
 
-  const handleSearch = useCallback(
-    (value: string) => {
-      setQuery(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (!value.trim()) {
-        setSearchResults([]);
-        return;
-      }
-      debounceRef.current = setTimeout(async () => {
-        setSearching(true);
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .ilike('username', `%${value.trim()}%`)
-          .neq('id', currentUserId)
-          .limit(10);
-        setSearching(false);
-        setSearchResults(data ?? []);
-      }, 350);
-    },
-    [supabase, currentUserId]
-  );
+  async function triggerSearch() {
+    const term = query.trim();
+    if (!term) return;
+    setSearching(true);
+    setSearched(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .ilike('username', `%${term}%`)
+      .neq('id', currentUserId)
+      .limit(10);
+    setSearching(false);
+    setSearchResults(data ?? []);
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (!value.trim()) {
+      setSearchResults([]);
+      setSearched(false);
+    }
+  }
 
   const setItemLoading = (id: string, val: boolean) =>
     setLoading((prev) => ({ ...prev, [id]: val }));
@@ -129,9 +127,13 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     const { error } = await supabase
       .from('friendships')
       .update({ status: 'accepted' })
-      .eq('id', friendship.id);
+      .eq('id', friendship.id)
+      .eq('addressee_id', currentUserId);
     setItemLoading(friendship.id, false);
-    if (error) return;
+    if (error) {
+      console.error('acceptRequest error:', error.message);
+      return;
+    }
     setFriendships((prev) =>
       prev.map((f) => (f.id === friendship.id ? { ...f, status: 'accepted' } : f))
     );
@@ -175,13 +177,22 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
             ref={searchInputRef}
             type="text"
             value={query}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Buscar por nombre de usuario…"
-            className="w-full h-12 bg-surface-card border border-white/10 rounded-2xl pl-10 pr-10 text-white text-sm focus:outline-none focus:border-field/40 focus:bg-surface-hover placeholder-gray-600 transition-colors"
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && triggerSearch()}
+            placeholder="Nombre de usuario exacto…"
+            className="w-full h-12 bg-surface-card border border-white/10 rounded-2xl pl-10 pr-12 text-white text-sm focus:outline-none focus:border-field/40 focus:bg-surface-hover placeholder-gray-600 transition-colors"
           />
-          {searching && (
+          {searching ? (
             <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />
-          )}
+          ) : query.trim() ? (
+            <button
+              onClick={triggerSearch}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl bg-field flex items-center justify-center text-white hover:bg-field-muted transition-colors"
+              aria-label="Buscar"
+            >
+              <ArrowRight size={13} strokeWidth={2.5} />
+            </button>
+          ) : null}
         </div>
         <div className="relative shrink-0" ref={addMenuRef}>
           <button
@@ -248,9 +259,9 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       </div>
 
       {/* Search results */}
-      {query.trim() && (
+      {searched && (
         <div className="space-y-2">
-          {searchResults.length === 0 && !searching ? (
+          {searching ? null : searchResults.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-4">Sin resultados para &ldquo;{query}&rdquo;</p>
           ) : (
             searchResults.map((profile) => {
@@ -305,7 +316,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       )}
 
       {/* Received requests */}
-      {!query.trim() && received.length > 0 && (
+      {!searched && received.length > 0 && (
         <section>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
             Solicitudes recibidas ({received.length})
@@ -350,7 +361,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       )}
 
       {/* Friends list */}
-      {!query.trim() && (
+      {!searched && (
         <section>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
             Amigos ({accepted.length})
@@ -394,7 +405,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       )}
 
       {/* Sent requests */}
-      {!query.trim() && sent.length > 0 && (
+      {!searched && sent.length > 0 && (
         <section>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
             Solicitudes enviadas ({sent.length})
