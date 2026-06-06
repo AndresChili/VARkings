@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [predictionRes, teamsData, groupStageMatchesData, memberRowsRes] = await Promise.all([
+  const [predictionRes, teamsData, groupStageMatchesData, memberRowsRes, invitesRes] = await Promise.all([
     supabase
       .from('tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, group_predictions_points')
@@ -24,6 +24,12 @@ export default async function DashboardPage() {
     getCachedTeams(),
     getCachedGroupStageMatches(),
     supabase.from('group_members').select('group_id').eq('user_id', user.id),
+    supabase
+      .from('group_invites')
+      .select('id, group_id, inviter_id, created_at, groups(name), profiles!group_invites_inviter_id_fkey(username)')
+      .eq('invitee_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false }),
   ]);
 
   const memberRows = memberRowsRes;
@@ -78,11 +84,20 @@ export default async function DashboardPage() {
     ? teamsData.map((t) => ({ ...t, name: TEAM_NAME_ES[t.name] ?? t.name }))
     : (STATIC_WC2026_TEAMS as unknown as typeof teamsData);
 
+  const groupInvites = (invitesRes.data ?? []).map((inv: Record<string, unknown>) => ({
+    id: inv.id as string,
+    group_id: inv.group_id as string,
+    group_name: (inv.groups as { name: string } | null)?.name ?? 'Grupo',
+    inviter_username: (inv.profiles as { username: string } | null)?.username ?? 'Alguien',
+    created_at: inv.created_at as string,
+  }));
+
   return (
     <DashboardClient
       groups={groups}
       tournamentPrediction={predictionRes.data}
       teams={teams ?? []}
+      groupInvites={groupInvites}
     />
   );
 }

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Share2, Loader2 } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2 } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 import { TEAM_NAME_ES } from '@/lib/teams';
@@ -184,14 +184,13 @@ export function GroupDetailClient({
   }
 
   async function inviteFriend(friend: { id: string; username: string }) {
-    const text = `¡Únete a mi grupo "${group.name}" en VARkings! El código de invitación es: ${group.invite_code}`;
-    if (typeof navigator.share === 'function') {
-      try { await navigator.share({ title: 'VARkings', text }); } catch { return; }
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
     setSharedFriendId(friend.id);
-    setTimeout(() => setSharedFriendId(null), 2500);
+    const res = await fetch(`/api/groups/${group.id}/invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitee_id: friend.id }),
+    });
+    if (!res.ok) setSharedFriendId(null);
   }
 
   async function copyInviteCode() {
@@ -1153,7 +1152,7 @@ export function GroupDetailClient({
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
             <div>
               <p className="font-bold text-white text-base">Invitar amigos</p>
-              <p className="text-xs text-gray-500 mt-0.5">Comparte el código de <span className="text-crown font-semibold">{group.name}</span></p>
+              <p className="text-xs text-gray-500 mt-0.5">Envía una solicitud para unirse a <span className="text-crown font-semibold">{group.name}</span></p>
             </div>
             <button onClick={() => setShowInviteFriends(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
               <X size={18} />
@@ -1191,10 +1190,11 @@ export function GroupDetailClient({
                       <Check size={15} className="text-field-light shrink-0" />
                     ) : (
                       <button
-                        onClick={() => inviteFriend(friend)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-field text-white text-xs font-semibold hover:bg-field-muted transition-colors shrink-0"
+                        onClick={() => !isShared && inviteFriend(friend)}
+                        disabled={isShared}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-field text-white text-xs font-semibold hover:bg-field-muted transition-colors shrink-0 disabled:opacity-60 disabled:cursor-default"
                       >
-                        {isShared ? <Check size={12} /> : <Share2 size={12} />}
+                        {isShared ? <Check size={12} /> : <UserPlus size={12} />}
                         {isShared ? 'Enviado' : 'Invitar'}
                       </button>
                     )}

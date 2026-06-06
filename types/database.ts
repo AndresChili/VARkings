@@ -344,6 +344,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      group_invites: {
+        Row: {
+          id: string;
+          group_id: string;
+          inviter_id: string;
+          invitee_id: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          inviter_id: string;
+          invitee_id: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+        };
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: {
           id: string;
