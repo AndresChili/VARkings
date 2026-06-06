@@ -13,8 +13,8 @@
 11- [x] En el dashboard o Inicio, que salga si eres admin del grupo algo para diferenciarlo.
 12- [] Ver perfil de la gente
 13- [] Seguridad en las contraseñas y rate limit
-14- [] No poder salirte a otra pantalla o que avise si lo vas a hacer al estar en el modal de elegir podio y quien pasa de fase de grupos.
+14- [x] No poder salirte a otra pantalla o que avise si lo vas a hacer al estar en el modal de elegir podio y quien pasa de fase de grupos.
 15- [] Poner estadisticas dentro de un boton como lo de compartir app y cerrar sesión etc
-16- [] Añadir un cambiar contraseña
+16- [x] Añadir un cambiar contraseña
 17- [] Añadir sistema de puntos para los usuarios, dependiendo de los puntos, los días que lleve jugando, rachas de entrar a la app, compartir la aplicación, amigos que tenga etc..
 18- [] Filtro de busqueda en los partidos

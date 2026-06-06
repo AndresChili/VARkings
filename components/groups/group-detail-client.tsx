@@ -304,7 +304,7 @@ export function GroupDetailClient({
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="relative bg-surface-card border border-white/10 rounded-2xl p-5 overflow-hidden">
+      <div className="relative bg-surface-card border border-white/10 rounded-2xl p-5">
         <div className="absolute inset-0 bg-gradient-to-br from-field-dark/30 via-transparent to-crown/5 pointer-events-none" />
         <div className="relative flex items-start justify-between">
           <div>
