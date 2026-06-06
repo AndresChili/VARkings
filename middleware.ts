@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const isPublicPath =
     pathname === '/' ||
+    pathname.startsWith('/add/') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/icons/') ||

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2 } from 'lucide-react';
+import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2, LogIn } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Profile {
@@ -20,7 +20,7 @@ interface Friendship {
 }
 
 interface Props {
-  currentUserId: string;
+  currentUserId: string | null;
   target: Profile;
   existingFriendship: Friendship | null;
 }
@@ -36,6 +36,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
   const initials = target.username.slice(0, 2).toUpperCase();
 
   async function sendRequest() {
+    if (!currentUserId) return;
     setLoading(true);
     setError('');
     const { data, error: err } = await supabase
@@ -56,6 +57,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
     setFriendship(null);
   }
 
+  const isSelf = false;
   const isSent = friendship?.requester_id === currentUserId && friendship?.status === 'pending';
   const isReceived = friendship?.addressee_id === currentUserId && friendship?.status === 'pending';
   const isAccepted = friendship?.status === 'accepted';
@@ -91,22 +93,36 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        {/* Action button */}
-        {isAccepted && (
+        {/* Not logged in */}
+        {!currentUserId && (
+          <div className="flex flex-col items-center gap-3 w-full">
+            <p className="text-gray-400 text-sm">Inicia sesión para añadir a @{target.username} como amigo</p>
+            <button
+              onClick={() => router.push(`/login?next=/add/${target.id}`)}
+              className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-field text-white font-semibold hover:bg-field-muted transition-colors text-sm w-full justify-center"
+            >
+              <LogIn size={16} />
+              Iniciar sesión
+            </button>
+          </div>
+        )}
+
+        {/* Logged in states */}
+        {currentUserId && isAccepted && (
           <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-field/15 text-field-light font-semibold text-sm">
             <Users size={16} />
             Ya sois amigos
           </div>
         )}
 
-        {isReceived && (
+        {currentUserId && isReceived && (
           <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-surface border border-white/10 text-gray-400 text-sm">
             <Clock size={16} />
             Te ha enviado una solicitud — revisa Amigos
           </div>
         )}
 
-        {isSent && (
+        {currentUserId && isSent && (
           <button
             onClick={cancelRequest}
             disabled={loading}
@@ -117,7 +133,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
           </button>
         )}
 
-        {!friendship && (
+        {currentUserId && !friendship && (
           <button
             onClick={sendRequest}
             disabled={loading}
