@@ -54,7 +54,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<{ friendshipId: string; username: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ friendshipId: string; username: string; otherUserId: string } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -69,44 +69,27 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddMenu]);
 
-  // Real-time: RLS garantiza que solo llegan filas propias
+  // Broadcast: recibe eventos de otros usuarios en tiempo real
   useEffect(() => {
     const channel = supabase
-      .channel(`friendships:${currentUserId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'friendships' },
-        async (payload) => {
-          const f = payload.new as Friendship;
-          if (f.requester_id !== currentUserId && f.addressee_id !== currentUserId) return;
-          setFriendships((prev) => prev.find((x) => x.id === f.id) ? prev : [f, ...prev]);
-          const otherId = f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', otherId)
-            .single();
-          if (profile) setProfileMap((prev) => new Map(prev).set(profile.id, profile));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'friendships' },
-        (payload) => {
-          const f = payload.new as Friendship;
-          if (f.requester_id !== currentUserId && f.addressee_id !== currentUserId) return;
-          setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'friendships' },
-        (payload) => {
-          const old = payload.old as Partial<Friendship>;
-          if (!old.id) return;
-          setFriendships((prev) => prev.filter((x) => x.id !== old.id));
-        }
-      )
+      .channel(`notify:${currentUserId}`)
+      .on('broadcast', { event: 'new_request' }, async ({ payload }) => {
+        const f = payload.friendship as Friendship;
+        setFriendships((prev) => prev.find((x) => x.id === f.id) ? prev : [f, ...prev]);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .eq('id', f.requester_id)
+          .single();
+        if (profile) setProfileMap((prev) => new Map(prev).set(profile.id, profile));
+      })
+      .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
+        const f = payload.friendship as Friendship;
+        setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
+      })
+      .on('broadcast', { event: 'friendship_deleted' }, ({ payload }) => {
+        setFriendships((prev) => prev.filter((x) => x.id !== payload.friendshipId));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -176,6 +159,13 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       return;
     }
     setFriendships((prev) => prev.map((f) => (f.id === tempId ? (data as Friendship) : f)));
+
+    // Notifica al destinatario en tiempo real
+    supabase.channel(`notify:${addressee.id}`).send({
+      type: 'broadcast',
+      event: 'new_request',
+      payload: { friendship: data },
+    });
   }
 
   async function acceptRequest(friendship: Friendship) {
@@ -194,14 +184,27 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       setFriendships((prev) =>
         prev.map((f) => (f.id === friendship.id ? { ...f, status: 'pending' } : f))
       );
+      return;
     }
+
+    // Notifica al que envió la solicitud
+    supabase.channel(`notify:${friendship.requester_id}`).send({
+      type: 'broadcast',
+      event: 'request_accepted',
+      payload: { friendship: { ...friendship, status: 'accepted' } },
+    });
   }
 
-  async function deleteFriendship(friendshipId: string) {
-    setItemLoading(friendshipId, true);
+  async function deleteFriendship(friendshipId: string, otherUserId: string) {
     setFriendships((prev) => prev.filter((f) => f.id !== friendshipId));
     await supabase.from('friendships').delete().eq('id', friendshipId);
-    setItemLoading(friendshipId, false);
+
+    // Notifica al otro usuario
+    supabase.channel(`notify:${otherUserId}`).send({
+      type: 'broadcast',
+      event: 'friendship_deleted',
+      payload: { friendshipId },
+    });
   }
 
   const getProfile = (id: string): FriendProfile =>
@@ -254,7 +257,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                 </button>
                 <button
                   onClick={() => {
-                    deleteFriendship(confirmDelete.friendshipId);
+                    deleteFriendship(confirmDelete.friendshipId, confirmDelete.otherUserId);
                     setConfirmDelete(null);
                   }}
                   className="flex-1 py-3 rounded-2xl bg-red-500/90 text-white text-sm font-semibold hover:bg-red-500 transition-colors"
@@ -434,7 +437,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
-                      onClick={() => deleteFriendship(f.id)}
+                      onClick={() => deleteFriendship(f.id, f.requester_id)}
                       disabled={isLoading}
                       className="w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-50"
                       aria-label="Rechazar"
@@ -487,7 +490,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                       )}
                     </div>
                     <button
-                      onClick={() => setConfirmDelete({ friendshipId: f.id, username: profile.username })}
+                      onClick={() => setConfirmDelete({ friendshipId: f.id, username: profile.username, otherUserId: friendId })}
                       disabled={isLoading}
                       className="w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-50"
                       aria-label="Eliminar amigo"
@@ -523,7 +526,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                     </p>
                   </div>
                   <button
-                    onClick={() => deleteFriendship(f.id)}
+                    onClick={() => deleteFriendship(f.id, f.addressee_id)}
                     disabled={isLoading}
                     className="text-gray-600 hover:text-red-400 text-xs flex items-center gap-1 transition-colors disabled:opacity-50"
                   >
