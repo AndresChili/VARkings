@@ -42,6 +42,7 @@ export function DashboardClient({
   const router = useRouter();
   const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>(initialInvites);
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [acceptedPendingGroup, setAcceptedPendingGroup] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', description: '' });
@@ -91,8 +92,8 @@ export function DashboardClient({
     setRespondingId(null);
     setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
     if (res.ok && action === 'accept') {
-      router.push(`/groups/${invite.group_id}`);
-      router.refresh();
+      // Admin must approve — show pending banner instead of navigating
+      setAcceptedPendingGroup(invite.group_name);
     }
   }
 
@@ -277,6 +278,22 @@ export function DashboardClient({
   return (
     <>
       <div className="max-w-lg mx-auto px-4 py-4 space-y-5 animate-fade-in">
+
+        {/* Accepted invite pending admin approval banner */}
+        {acceptedPendingGroup && (
+          <div className="bg-field/10 border border-field/30 rounded-2xl p-4 flex items-start gap-3">
+            <span className="text-lg">⏳</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Solicitud enviada</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                El admin de <span className="text-white font-medium">{acceptedPendingGroup}</span> debe aceptarte para unirte.
+              </p>
+            </div>
+            <button onClick={() => setAcceptedPendingGroup(null)} className="text-gray-500 hover:text-gray-300 transition-colors shrink-0">
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         {/* Group invite notifications */}
         {pendingInvites.length > 0 && (
