@@ -7,6 +7,7 @@ export const POINTS = {
   TOURNAMENT_CHAMPION: 20,
   TOURNAMENT_RUNNER_UP: 10,
   TOURNAMENT_THIRD: 5,
+  TOURNAMENT_PODIUM_ANY: 3,
   GROUP_BOTH_TEAMS: 5,
   GROUP_ONE_TEAM: 2,
 } as const;
@@ -53,18 +54,18 @@ export function calculateTournamentPoints(params: {
   actualRunnerUp: string | null;
   actualThird: string | null;
 }): { champion: number; runner_up: number; third_place: number; total: number } {
-  const champion =
-    params.predictedChampion && params.predictedChampion === params.actualChampion
-      ? POINTS.TOURNAMENT_CHAMPION
-      : 0;
-  const runner_up =
-    params.predictedRunnerUp && params.predictedRunnerUp === params.actualRunnerUp
-      ? POINTS.TOURNAMENT_RUNNER_UP
-      : 0;
-  const third_place =
-    params.predictedThird && params.predictedThird === params.actualThird
-      ? POINTS.TOURNAMENT_THIRD
-      : 0;
+  const actualPodium = [params.actualChampion, params.actualRunnerUp, params.actualThird].filter(Boolean) as string[];
+
+  function scorePosition(predicted: string | null, exactMatch: string | null, exactPts: number): number {
+    if (!predicted) return 0;
+    if (predicted === exactMatch) return exactPts;
+    if (actualPodium.includes(predicted)) return POINTS.TOURNAMENT_PODIUM_ANY;
+    return 0;
+  }
+
+  const champion = scorePosition(params.predictedChampion, params.actualChampion, POINTS.TOURNAMENT_CHAMPION);
+  const runner_up = scorePosition(params.predictedRunnerUp, params.actualRunnerUp, POINTS.TOURNAMENT_RUNNER_UP);
+  const third_place = scorePosition(params.predictedThird, params.actualThird, POINTS.TOURNAMENT_THIRD);
 
   return { champion, runner_up, third_place, total: champion + runner_up + third_place };
 }

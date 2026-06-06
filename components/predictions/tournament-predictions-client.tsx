@@ -122,6 +122,12 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
           </div>
           <div className="border-t border-white/10 pt-2 mt-1">
             <div className="flex justify-between">
+              <span className="text-gray-300">Equipo en podio, posición incorrecta</span>
+              <span className="text-orange-400 font-bold">3 pts/equipo</span>
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-2 mt-1">
+            <div className="flex justify-between">
               <span className="text-gray-300">Ambos clasificados de grupo</span>
               <span className="text-field-light font-bold">5 pts/grupo</span>
             </div>
@@ -167,7 +173,10 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
             <div key={label}>
               <label className="flex items-center justify-between text-sm mb-2">
                 <span className="font-medium text-white">{label}</span>
-                <span className="text-xs text-crown font-bold">+{pts} pts</span>
+                <div className="text-right">
+                  <span className="text-xs text-crown font-bold">+{pts} pts exacto</span>
+                  <span className="text-xs text-orange-400 font-bold ml-2">+3 en podio</span>
+                </div>
               </label>
               {locked ? (
                 <div className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-gray-300 text-sm">
