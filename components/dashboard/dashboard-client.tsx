@@ -92,8 +92,13 @@ export function DashboardClient({
     setRespondingId(null);
     setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
     if (res.ok && action === 'accept') {
-      // Admin must approve — show pending banner instead of navigating
-      setAcceptedPendingGroup(invite.group_name);
+      const data = await res.json();
+      if (data.pending) {
+        setAcceptedPendingGroup(invite.group_name);
+      } else {
+        router.push(`/groups/${invite.group_id}`);
+        router.refresh();
+      }
     }
   }
 

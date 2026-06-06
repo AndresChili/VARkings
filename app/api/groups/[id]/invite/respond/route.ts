@@ -19,20 +19,48 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!invite) return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
 
   if (action === 'accept') {
-    // Create a join_request — admin must approve before joining group_members
-    const { error: reqError } = await supabase
-      .from('join_requests')
-      .upsert(
-        { group_id: invite.group_id, user_id: user.id, status: 'pending' },
-        { onConflict: 'group_id,user_id', ignoreDuplicates: true }
-      );
-    if (reqError) return NextResponse.json({ error: reqError.message }, { status: 400 });
+    const { data: group } = await supabase
+      .from('groups')
+      .select('created_by')
+      .eq('id', invite.group_id)
+      .single();
+
+    const inviterIsAdmin = group?.created_by === invite.inviter_id;
+
+    if (inviterIsAdmin) {
+      // Admin invited → join directly
+      const { error: joinError } = await supabase
+        .from('group_members')
+        .insert({ group_id: invite.group_id, user_id: user.id });
+      if (joinError && !joinError.message.includes('duplicate')) {
+        return NextResponse.json({ error: joinError.message }, { status: 400 });
+      }
+      await supabase
+        .from('group_invites')
+        .update({ status: 'accepted' })
+        .eq('id', invite_id);
+      return NextResponse.json({ ok: true, action, pending: false });
+    } else {
+      // Non-admin invited → create join_request, admin must approve
+      const { error: reqError } = await supabase
+        .from('join_requests')
+        .upsert(
+          { group_id: invite.group_id, user_id: user.id, status: 'pending' },
+          { onConflict: 'group_id,user_id', ignoreDuplicates: true }
+        );
+      if (reqError) return NextResponse.json({ error: reqError.message }, { status: 400 });
+      await supabase
+        .from('group_invites')
+        .update({ status: 'accepted' })
+        .eq('id', invite_id);
+      return NextResponse.json({ ok: true, action, pending: true });
+    }
   }
 
   await supabase
     .from('group_invites')
-    .update({ status: action === 'accept' ? 'accepted' : 'rejected' })
+    .update({ status: 'rejected' })
     .eq('id', invite_id);
 
-  return NextResponse.json({ ok: true, action, pending: action === 'accept' });
+  return NextResponse.json({ ok: true, action, pending: false });
 }
