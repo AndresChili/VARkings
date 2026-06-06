@@ -69,54 +69,42 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddMenu]);
 
-  // Real-time: solicitudes recibidas + cambios en las enviadas
+  // Real-time: RLS garantiza que solo llegan filas propias
   useEffect(() => {
     const channel = supabase
       .channel(`friendships:${currentUserId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
+        { event: 'INSERT', schema: 'public', table: 'friendships' },
         async (payload) => {
           const f = payload.new as Friendship;
+          if (f.requester_id !== currentUserId && f.addressee_id !== currentUserId) return;
           setFriendships((prev) => prev.find((x) => x.id === f.id) ? prev : [f, ...prev]);
+          const otherId = f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
           const { data: profile } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
-            .eq('id', f.requester_id)
+            .eq('id', otherId)
             .single();
           if (profile) setProfileMap((prev) => new Map(prev).set(profile.id, profile));
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `requester_id=eq.${currentUserId}` },
+        { event: 'UPDATE', schema: 'public', table: 'friendships' },
         (payload) => {
           const f = payload.new as Friendship;
+          if (f.requester_id !== currentUserId && f.addressee_id !== currentUserId) return;
           setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
+        { event: 'DELETE', schema: 'public', table: 'friendships' },
         (payload) => {
-          const f = payload.new as Friendship;
-          setFriendships((prev) => prev.map((x) => x.id === f.id ? f : x));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'friendships', filter: `requester_id=eq.${currentUserId}` },
-        (payload) => {
-          const id = (payload.old as { id: string }).id;
-          setFriendships((prev) => prev.filter((x) => x.id !== id));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${currentUserId}` },
-        (payload) => {
-          const id = (payload.old as { id: string }).id;
-          setFriendships((prev) => prev.filter((x) => x.id !== id));
+          const old = payload.old as Partial<Friendship>;
+          if (!old.id) return;
+          setFriendships((prev) => prev.filter((x) => x.id !== old.id));
         }
       )
       .subscribe();
