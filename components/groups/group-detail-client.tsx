@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -122,6 +123,8 @@ export function GroupDetailClient({
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
   const [savingGroups, setSavingGroups] = useState(false);
   const [groupsError, setGroupsError] = useState('');
+
+  useNavigationGuard(showPodio || showGroups);
 
   const locked = isTournamentLocked();
   const isCreator = group.created_by === userId;
