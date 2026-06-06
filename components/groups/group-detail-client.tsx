@@ -469,7 +469,8 @@ export function GroupDetailClient({
               <div key={medal} className={cn('flex-1 border rounded-xl p-2.5 text-center', bg)}>
                 <div className="text-lg">{medal}</div>
                 <div className="text-xs font-semibold text-white mt-1 leading-tight">{value || '–'}</div>
-                <div className="text-[10px] text-gray-500 mt-0.5">+{pts} pts</div>
+                <div className="text-[10px] text-gray-500 mt-0.5">+{pts} exacto</div>
+                <div className="text-[10px] text-orange-400">+3 en podio</div>
               </div>
             ))}
           </div>
@@ -998,6 +999,9 @@ export function GroupDetailClient({
                   </div>
                 ))}
               </div>
+              <p className="text-[10px] text-orange-400 mt-2 text-center">
+                Si el equipo llega al podio en otra posición → +3 pts
+              </p>
             </div>
             <div className="flex gap-1.5 mt-4">
               {PODIO_STEPS.map((s, i) => (
