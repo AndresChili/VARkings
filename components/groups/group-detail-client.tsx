@@ -108,6 +108,7 @@ export function GroupDetailClient({
   const [leaving, setLeaving] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [localLeaderboard, setLocalLeaderboard] = useState(leaderboard);
 
   const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isTournamentLocked());
@@ -359,9 +360,14 @@ export function GroupDetailClient({
           <div className="relative">
             <button
               onClick={() => setShowMenu((v) => !v)}
-              className="p-2 text-gray-500 hover:text-white transition-colors"
+              className="relative p-2 text-gray-500 hover:text-white transition-colors"
             >
               <MoreVertical size={18} />
+              {isCreator && pendingRequests.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  {pendingRequests.length}
+                </span>
+              )}
             </button>
             {showMenu && (
               <>
@@ -374,13 +380,27 @@ export function GroupDetailClient({
                     <Copy size={14} />
                     Código de invitación
                   </button>
+                  <button
+                    onClick={() => { openInviteFriends(); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                  >
+                    <UserPlus size={14} />
+                    Invitar amigos
+                  </button>
                   {isCreator && (
                     <button
-                      onClick={openInviteFriends}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => { setShowRequestsModal(true); setShowMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center justify-between gap-2"
                     >
-                      <UserPlus size={14} />
-                      Invitar amigos
+                      <span className="flex items-center gap-2">
+                        <Bell size={14} />
+                        Solicitudes
+                      </span>
+                      {pendingRequests.length > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                          {pendingRequests.length}
+                        </span>
+                      )}
                     </button>
                   )}
                   {isCreator ? (
@@ -456,41 +476,6 @@ export function GroupDetailClient({
         )}
       </div>
 
-      {/* Pending requests (creator only) */}
-      {isCreator && pendingRequests.length > 0 && (
-        <div className="bg-surface-card border border-crown/20 rounded-2xl p-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-            <Bell size={14} className="text-crown" />
-            Solicitudes de unión
-            <span className="bg-crown/20 text-crown text-xs px-1.5 py-0.5 rounded-full font-bold ml-1">
-              {pendingRequests.length}
-            </span>
-          </h3>
-          <div className="space-y-2">
-            {pendingRequests.map((req) => (
-              <div key={req.user_id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
-                <span className="text-sm text-white font-medium">{req.username}</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRequest(req.user_id, 'reject')}
-                    disabled={processingUserId === req.user_id}
-                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                  >
-                    <UserX size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleRequest(req.user_id, 'accept')}
-                    disabled={processingUserId === req.user_id}
-                    className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
-                  >
-                    <UserCheck size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* My podio */}
       <div className={cn(
@@ -1142,6 +1127,61 @@ export function GroupDetailClient({
               >
                 {savingPodio ? 'Guardando...' : 'Guardar predicciones'}
               </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Pending requests modal (admin only) */}
+    {showRequestsModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={() => setShowRequestsModal(false)}
+      >
+        <div
+          className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+            <div>
+              <p className="font-bold text-white text-base flex items-center gap-2">
+                <Bell size={15} className="text-crown" />
+                Solicitudes de unión
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">{group.name}</p>
+            </div>
+            <button onClick={() => setShowRequestsModal(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="px-5 py-4 max-h-80 overflow-y-auto">
+            {pendingRequests.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-6">No hay solicitudes pendientes</p>
+            ) : (
+              <div className="space-y-2">
+                {pendingRequests.map((req) => (
+                  <div key={req.user_id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
+                    <span className="text-sm text-white font-medium">@{req.username}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRequest(req.user_id, 'reject')}
+                        disabled={processingUserId === req.user_id}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      >
+                        {processingUserId === req.user_id ? <Loader2 size={15} className="animate-spin" /> : <UserX size={15} />}
+                      </button>
+                      <button
+                        onClick={() => handleRequest(req.user_id, 'accept')}
+                        disabled={processingUserId === req.user_id}
+                        className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                      >
+                        {processingUserId === req.user_id ? <Loader2 size={15} className="animate-spin" /> : <UserCheck size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

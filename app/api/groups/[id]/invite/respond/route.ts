@@ -19,10 +19,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!invite) return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
 
   if (action === 'accept') {
-    const { error: joinError } = await supabase
-      .from('group_members')
-      .insert({ group_id: invite.group_id, user_id: user.id });
-    if (joinError) return NextResponse.json({ error: joinError.message }, { status: 400 });
+    // Create a join_request — admin must approve before joining group_members
+    const { error: reqError } = await supabase
+      .from('join_requests')
+      .upsert(
+        { group_id: invite.group_id, user_id: user.id, status: 'pending' },
+        { onConflict: 'group_id,user_id', ignoreDuplicates: true }
+      );
+    if (reqError) return NextResponse.json({ error: reqError.message }, { status: 400 });
   }
 
   await supabase
@@ -30,5 +34,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .update({ status: action === 'accept' ? 'accepted' : 'rejected' })
     .eq('id', invite_id);
 
-  return NextResponse.json({ ok: true, action });
+  return NextResponse.json({ ok: true, action, pending: action === 'accept' });
 }
