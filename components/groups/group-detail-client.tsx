@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Share2, Loader2 } from 'lucide-react';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 import { TEAM_NAME_ES } from '@/lib/teams';
@@ -94,6 +94,10 @@ export function GroupDetailClient({
 
   const [copied, setCopied] = useState(false);
   const [showInviteCode, setShowInviteCode] = useState(false);
+  const [showInviteFriends, setShowInviteFriends] = useState(false);
+  const [friends, setFriends] = useState<{ id: string; username: string; avatar_url: string | null }[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [sharedFriendId, setSharedFriendId] = useState<string | null>(null);
   const [tab, setTab] = useState<'leaderboard' | 'grupos' | 'matches'>('leaderboard');
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -157,6 +161,38 @@ export function GroupDetailClient({
 
     return () => { supabase.removeChannel(channel); };
   }, [group.id, isCreator]);
+
+  async function openInviteFriends() {
+    setShowMenu(false);
+    setShowInviteFriends(true);
+    if (friends.length > 0) return;
+    setLoadingFriends(true);
+    const supabase = createClient();
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+    if (!friendships?.length) { setLoadingFriends(false); return; }
+    const ids = friendships.map((f) => f.requester_id === userId ? f.addressee_id : f.requester_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', ids);
+    setFriends(profiles ?? []);
+    setLoadingFriends(false);
+  }
+
+  async function inviteFriend(friend: { id: string; username: string }) {
+    const text = `¡Únete a mi grupo "${group.name}" en VARkings! El código de invitación es: ${group.invite_code}`;
+    if (typeof navigator.share === 'function') {
+      try { await navigator.share({ title: 'VARkings', text }); } catch { return; }
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    setSharedFriendId(friend.id);
+    setTimeout(() => setSharedFriendId(null), 2500);
+  }
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(group.invite_code);
@@ -330,6 +366,13 @@ export function GroupDetailClient({
                   >
                     <Copy size={14} />
                     Código de invitación
+                  </button>
+                  <button
+                    onClick={openInviteFriends}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                  >
+                    <UserPlus size={14} />
+                    Invitar amigos
                   </button>
                   {isCreator ? (
                     <>
@@ -1091,6 +1134,92 @@ export function GroupDetailClient({
                 {savingPodio ? 'Guardando...' : 'Guardar predicciones'}
               </button>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Invite friends modal */}
+    {showInviteFriends && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={() => setShowInviteFriends(false)}
+      >
+        <div
+          className="w-full max-w-sm bg-surface-card border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-slide-up"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+            <div>
+              <p className="font-bold text-white text-base">Invitar amigos</p>
+              <p className="text-xs text-gray-500 mt-0.5">Comparte el código de <span className="text-crown font-semibold">{group.name}</span></p>
+            </div>
+            <button onClick={() => setShowInviteFriends(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Friends list */}
+          <div className="max-h-80 overflow-y-auto">
+            {loadingFriends ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="text-gray-500 animate-spin" />
+              </div>
+            ) : friends.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center px-6">
+                <UserPlus size={22} className="text-gray-600" />
+                <p className="text-gray-500 text-sm">Aún no tienes amigos en VARkings</p>
+              </div>
+            ) : (
+              friends.map((friend) => {
+                const isShared = sharedFriendId === friend.id;
+                const isMember = localLeaderboard.some((e) => e.user_id === friend.id);
+                return (
+                  <div key={friend.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5 last:border-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-bold text-white text-xs shrink-0">
+                      {friend.avatar_url
+                        ? <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover rounded-full" />
+                        : friend.username.slice(0, 2).toUpperCase()
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">@{friend.username}</p>
+                      {isMember && <p className="text-xs text-field-light">Ya es miembro</p>}
+                    </div>
+                    {isMember ? (
+                      <Check size={15} className="text-field-light shrink-0" />
+                    ) : (
+                      <button
+                        onClick={() => inviteFriend(friend)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-field text-white text-xs font-semibold hover:bg-field-muted transition-colors shrink-0"
+                      >
+                        {isShared ? <Check size={12} /> : <Share2 size={12} />}
+                        {isShared ? 'Enviado' : 'Invitar'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Invite code footer */}
+          <div className="px-5 py-4 border-t border-white/5 bg-white/2">
+            <p className="text-xs text-gray-500 mb-1">Código del grupo</p>
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-mono font-black text-crown tracking-widest">{group.invite_code}</span>
+              <button
+                onClick={copyInviteCode}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors',
+                  copied ? 'bg-field/20 text-field-light' : 'bg-crown/20 text-crown hover:bg-crown/30'
+                )}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
