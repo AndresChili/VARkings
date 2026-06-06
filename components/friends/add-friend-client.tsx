@@ -66,7 +66,10 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
     <div className="animate-fade-in max-w-lg mx-auto px-4 py-6">
 
       <button
-        onClick={() => router.back()}
+        onClick={() => {
+          if (window.history.length > 1) router.back();
+          else router.push(currentUserId ? '/friends' : '/login');
+        }}
         className="flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors text-sm mb-8"
       >
         <ArrowLeft size={16} />
