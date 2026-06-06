@@ -70,6 +70,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [deleteError, setDeleteError] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -165,13 +166,21 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordError('');
+    if (!currentPassword) { setPasswordError('Introduce tu contraseña actual'); return; }
     if (newPassword.length < 6) { setPasswordError('Mínimo 6 caracteres'); return; }
     if (newPassword !== confirmPassword) { setPasswordError('Las contraseñas no coinciden'); return; }
     setPasswordSaving(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (signInError) {
+      setPasswordSaving(false);
+      setPasswordError('Contraseña actual incorrecta');
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPasswordSaving(false);
     if (error) { setPasswordError(error.message); return; }
     setPasswordSaved(true);
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setShowPasswordForm(false);
@@ -487,7 +496,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {/* Change password */}
         {!showPasswordForm ? (
           <button
-            onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSaved(false); }}
+            onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSaved(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
             className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-white/8 text-gray-300 hover:border-white/15 hover:text-white transition-colors group mb-3"
           >
             <div className="flex items-center gap-3">
@@ -506,9 +515,19 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
           <form onSubmit={handleChangePassword} className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up space-y-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-semibold text-white">Cambiar contraseña</p>
-              <button type="button" onClick={() => { setShowPasswordForm(false); setPasswordError(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <button type="button" onClick={() => { setShowPasswordForm(false); setPasswordError(''); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
                 <X size={15} />
               </button>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Contraseña actual</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
+                autoFocus
+              />
             </div>
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Nueva contraseña</label>
@@ -517,7 +536,6 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
-                autoFocus
                 minLength={6}
               />
             </div>
@@ -535,7 +553,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
             <div className="flex gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => { setShowPasswordForm(false); setPasswordError(''); }}
+                onClick={() => { setShowPasswordForm(false); setPasswordError(''); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm flex items-center justify-center gap-1.5 hover:border-white/20 transition-colors"
               >
                 <X size={13} />
