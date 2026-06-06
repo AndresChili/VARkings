@@ -11,32 +11,33 @@ export default async function AddFriendPage({ params }: Props) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
 
-  if (userId === user.id) notFound();
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('id, username, full_name, avatar_url')
+    .eq('id', userId)
+    .single();
 
-  const [{ data: target }, { data: friendship }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .eq('id', userId)
-      .single(),
-    supabase
+  if (!target) notFound();
+  if (user && userId === user.id) notFound();
+
+  let friendship = null;
+  if (user) {
+    const { data } = await supabase
       .from('friendships')
       .select('id, requester_id, addressee_id, status')
       .or(
         `and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`
       )
-      .maybeSingle(),
-  ]);
-
-  if (!target) notFound();
+      .maybeSingle();
+    friendship = data ?? null;
+  }
 
   return (
     <AddFriendClient
-      currentUserId={user.id}
+      currentUserId={user?.id ?? null}
       target={target}
-      existingFriendship={friendship ?? null}
+      existingFriendship={friendship}
     />
   );
 }
