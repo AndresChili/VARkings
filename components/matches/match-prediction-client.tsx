@@ -64,7 +64,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setAwayScore('');
     startTransition(() => {
       router.refresh();
-      router.back();
+      router.push('/matches');
     });
   }
 
@@ -95,7 +95,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setSaved(true);
     startTransition(() => {
       router.refresh();
-      router.back();
+      router.push('/matches');
     });
   }
 
