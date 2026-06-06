@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import Link from 'next/link';
 import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check } from 'lucide-react';
 import type { Team } from '@/types';
@@ -49,6 +50,8 @@ export function DashboardClient({
   const [groupPicks, setGroupPicks] = useState<Record<string, string[]>>({});
   const [savingGroups, setSavingGroups] = useState(false);
   const [groupsError, setGroupsError] = useState('');
+
+  useNavigationGuard(showPodio || showGroups);
 
   const locked = isTournamentLocked();
   const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));

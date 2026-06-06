@@ -17,3 +17,4 @@
 15- [] Poner estadisticas dentro de un boton como lo de compartir app y cerrar sesión etc
 16- [] Añadir un cambiar contraseña
 17- [] Añadir sistema de puntos para los usuarios, dependiendo de los puntos, los días que lleve jugando, rachas de entrar a la app, compartir la aplicación, amigos que tenga etc..
+18- [] Filtro de busqueda en los partidos
