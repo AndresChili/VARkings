@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -69,6 +69,12 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSaved, setPasswordSaved] = useState(false);
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -154,6 +160,22 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
       setShareStatus('copied');
       setTimeout(() => setShareStatus('idle'), 2500);
     }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError('');
+    if (newPassword.length < 6) { setPasswordError('Mínimo 6 caracteres'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('Las contraseñas no coinciden'); return; }
+    setPasswordSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordSaving(false);
+    if (error) { setPasswordError(error.message); return; }
+    setPasswordSaved(true);
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordForm(false);
+    setTimeout(() => setPasswordSaved(false), 3000);
   }
 
   async function handleLogout() {
@@ -461,6 +483,74 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
           </div>
           {shareStatus === 'idle' && <ChevronRight size={16} className="text-field/40" />}
         </button>
+
+        {/* Change password */}
+        {!showPasswordForm ? (
+          <button
+            onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSaved(false); }}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-white/8 text-gray-300 hover:border-white/15 hover:text-white transition-colors group mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/8 flex items-center justify-center group-hover:bg-white/12 transition-colors">
+                <Lock size={15} className="text-gray-400 group-hover:text-gray-300" />
+              </div>
+              <span className="font-medium text-sm">
+                {passwordSaved ? (
+                  <span className="flex items-center gap-1 text-field-light"><CheckCircle size={13} /> Contraseña cambiada</span>
+                ) : 'Cambiar contraseña'}
+              </span>
+            </div>
+            <ChevronRight size={16} className="text-white/20" />
+          </button>
+        ) : (
+          <form onSubmit={handleChangePassword} className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-white">Cambiar contraseña</p>
+              <button type="button" onClick={() => { setShowPasswordForm(false); setPasswordError(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+                <X size={15} />
+              </button>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Nueva contraseña</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
+                autoFocus
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Confirmar contraseña</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
+                minLength={6}
+              />
+            </div>
+            {passwordError && <p className="text-red-400 text-xs">{passwordError}</p>}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowPasswordForm(false); setPasswordError(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm flex items-center justify-center gap-1.5 hover:border-white/20 transition-colors"
+              >
+                <X size={13} />
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="flex-1 py-2.5 rounded-xl bg-field text-white text-sm font-semibold disabled:opacity-50 hover:bg-field-muted transition-colors"
+              >
+                {passwordSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Logout */}
         <button
