@@ -54,6 +54,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ friendshipId: string; username: string } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -110,40 +111,54 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     setLoading((prev) => ({ ...prev, [id]: val }));
 
   async function sendRequest(addressee: FriendProfile) {
-    setItemLoading(addressee.id, true);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Friendship = {
+      id: tempId,
+      requester_id: currentUserId,
+      addressee_id: addressee.id,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+    setFriendships((prev) => [optimistic, ...prev]);
+    setProfileMap((prev) => new Map(prev).set(addressee.id, addressee));
+
     const { data, error } = await supabase
       .from('friendships')
       .insert({ requester_id: currentUserId, addressee_id: addressee.id, status: 'pending' })
       .select()
       .single();
-    setItemLoading(addressee.id, false);
-    if (error || !data) return;
-    setFriendships((prev) => [data as Friendship, ...prev]);
-    setProfileMap((prev) => new Map(prev).set(addressee.id, addressee));
+
+    if (error || !data) {
+      setFriendships((prev) => prev.filter((f) => f.id !== tempId));
+      return;
+    }
+    setFriendships((prev) => prev.map((f) => (f.id === tempId ? (data as Friendship) : f)));
   }
 
   async function acceptRequest(friendship: Friendship) {
-    setItemLoading(friendship.id, true);
+    setFriendships((prev) =>
+      prev.map((f) => (f.id === friendship.id ? { ...f, status: 'accepted' } : f))
+    );
+
     const { error } = await supabase
       .from('friendships')
       .update({ status: 'accepted' })
       .eq('id', friendship.id)
       .eq('addressee_id', currentUserId);
-    setItemLoading(friendship.id, false);
+
     if (error) {
       console.error('acceptRequest error:', error.message);
-      return;
+      setFriendships((prev) =>
+        prev.map((f) => (f.id === friendship.id ? { ...f, status: 'pending' } : f))
+      );
     }
-    setFriendships((prev) =>
-      prev.map((f) => (f.id === friendship.id ? { ...f, status: 'accepted' } : f))
-    );
   }
 
   async function deleteFriendship(friendshipId: string) {
     setItemLoading(friendshipId, true);
+    setFriendships((prev) => prev.filter((f) => f.id !== friendshipId));
     await supabase.from('friendships').delete().eq('id', friendshipId);
     setItemLoading(friendshipId, false);
-    setFriendships((prev) => prev.filter((f) => f.id !== friendshipId));
   }
 
   const getProfile = (id: string): FriendProfile =>
@@ -168,6 +183,46 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
 
   return (
     <div className="animate-fade-in max-w-lg mx-auto px-4 py-4 space-y-6">
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-surface-card border border-white/10 rounded-3xl p-6 shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                <UserMinus size={22} className="text-red-400" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-lg">¿Eliminar amigo?</p>
+                <p className="text-gray-400 text-sm mt-1">@{confirmDelete.username} dejará de ser tu amigo</p>
+              </div>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-3 rounded-2xl border border-white/10 text-white text-sm font-semibold hover:bg-white/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    deleteFriendship(confirmDelete.friendshipId);
+                    setConfirmDelete(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-red-500/90 text-white text-sm font-semibold hover:bg-red-500 transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search + Add */}
       <div className="flex gap-2.5 items-stretch">
@@ -389,7 +444,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                       )}
                     </div>
                     <button
-                      onClick={() => deleteFriendship(f.id)}
+                      onClick={() => setConfirmDelete({ friendshipId: f.id, username: profile.username })}
                       disabled={isLoading}
                       className="w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-600 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-50"
                       aria-label="Eliminar amigo"
