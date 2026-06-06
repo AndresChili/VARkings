@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: group_id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { invitee_id } = await req.json();
+  if (!invitee_id) return NextResponse.json({ error: 'invitee_id required' }, { status: 400 });
+
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('id')
+    .eq('group_id', group_id)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership) return NextResponse.json({ error: 'Not a member' }, { status: 403 });
+
+  const { data: group } = await supabase
+    .from('groups')
+    .select('name')
+    .eq('id', group_id)
+    .single();
+
+  const { data, error } = await supabase
+    .from('group_invites')
+    .insert({ group_id, inviter_id: user.id, invitee_id, status: 'pending' })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Broadcast real-time notification to invitee
+  await supabase.channel(`notify:${invitee_id}`).send({
+    type: 'broadcast',
+    event: 'group_invite',
+    payload: { invite: { ...data, group_name: group?.name } },
+  });
+
+  return NextResponse.json(data);
+}

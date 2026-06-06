@@ -4,15 +4,25 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import Link from 'next/link';
-import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check } from 'lucide-react';
+import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check, Bell, X, Loader2 } from 'lucide-react';
 import type { Team } from '@/types';
 import { isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+
+interface GroupInvite {
+  id: string;
+  group_id: string;
+  group_name: string;
+  inviter_username: string;
+  created_at: string;
+}
 
 interface DashboardClientProps {
   groups: Array<{ group_id: string; member_count: number; is_admin: boolean; groups: { id: string; name: string } | null }>;
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
+  groupInvites: GroupInvite[];
 }
 
 const PODIO_STEPS = [
@@ -25,8 +35,11 @@ export function DashboardClient({
   groups,
   tournamentPrediction,
   teams,
+  groupInvites: initialInvites,
 }: DashboardClientProps) {
   const router = useRouter();
+  const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>(initialInvites);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', description: '' });
@@ -52,6 +65,34 @@ export function DashboardClient({
   const [groupsError, setGroupsError] = useState('');
 
   useNavigationGuard(showPodio || showGroups);
+
+  // Real-time: receive group invite notifications
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('dashboard-invites')
+      .on('broadcast', { event: 'group_invite' }, ({ payload }) => {
+        const invite = payload.invite as GroupInvite;
+        setPendingInvites((prev) => prev.find((i) => i.id === invite.id) ? prev : [invite, ...prev]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  async function respondToInvite(invite: GroupInvite, action: 'accept' | 'reject') {
+    setRespondingId(invite.id);
+    const res = await fetch(`/api/groups/${invite.group_id}/invite/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invite_id: invite.id, action }),
+    });
+    setRespondingId(null);
+    setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+    if (res.ok && action === 'accept') {
+      router.push(`/groups/${invite.group_id}`);
+      router.refresh();
+    }
+  }
 
   const locked = isTournamentLocked();
   const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));
@@ -234,6 +275,50 @@ export function DashboardClient({
   return (
     <>
       <div className="max-w-lg mx-auto px-4 py-4 space-y-5 animate-fade-in">
+
+        {/* Group invite notifications */}
+        {pendingInvites.length > 0 && (
+          <div className="space-y-2">
+            {pendingInvites.map((invite) => (
+              <div
+                key={invite.id}
+                className="bg-gradient-to-r from-field/15 to-field-dark/10 border border-field/30 rounded-2xl p-4 flex items-start gap-3"
+              >
+                <div className="shrink-0 w-8 h-8 rounded-xl bg-field/20 border border-field/30 flex items-center justify-center mt-0.5">
+                  <Bell size={14} className="text-field-light" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">
+                    Invitación al grupo
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    <span className="text-field-light font-medium">{invite.inviter_username}</span> te ha invitado a{' '}
+                    <span className="text-white font-medium">{invite.group_name}</span>
+                  </p>
+                  <div className="flex gap-2 mt-2.5">
+                    <button
+                      onClick={() => respondToInvite(invite, 'accept')}
+                      disabled={respondingId === invite.id}
+                      className="flex items-center gap-1.5 bg-field text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-field-muted transition-colors disabled:opacity-50"
+                    >
+                      {respondingId === invite.id ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                      Aceptar
+                    </button>
+                    <button
+                      onClick={() => respondToInvite(invite, 'reject')}
+                      disabled={respondingId === invite.id}
+                      className="flex items-center gap-1.5 border border-white/15 text-gray-400 text-xs px-3 py-1.5 rounded-lg hover:border-white/30 hover:text-gray-300 transition-colors disabled:opacity-50"
+                    >
+                      <X size={11} />
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
