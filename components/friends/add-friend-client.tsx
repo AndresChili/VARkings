@@ -1,0 +1,134 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+
+interface Profile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface Friendship {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: 'pending' | 'accepted';
+}
+
+interface Props {
+  currentUserId: string;
+  target: Profile;
+  existingFriendship: Friendship | null;
+}
+
+export function AddFriendClient({ currentUserId, target, existingFriendship: initial }: Props) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [friendship, setFriendship] = useState<Friendship | null>(initial);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const initials = target.username.slice(0, 2).toUpperCase();
+
+  async function sendRequest() {
+    setLoading(true);
+    setError('');
+    const { data, error: err } = await supabase
+      .from('friendships')
+      .insert({ requester_id: currentUserId, addressee_id: target.id, status: 'pending' })
+      .select()
+      .single();
+    setLoading(false);
+    if (err) { setError('No se pudo enviar la solicitud'); return; }
+    setFriendship(data as Friendship);
+  }
+
+  async function cancelRequest() {
+    if (!friendship) return;
+    setLoading(true);
+    await supabase.from('friendships').delete().eq('id', friendship.id);
+    setLoading(false);
+    setFriendship(null);
+  }
+
+  const isSent = friendship?.requester_id === currentUserId && friendship?.status === 'pending';
+  const isReceived = friendship?.addressee_id === currentUserId && friendship?.status === 'pending';
+  const isAccepted = friendship?.status === 'accepted';
+
+  return (
+    <div className="animate-fade-in max-w-lg mx-auto px-4 py-6">
+
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors text-sm mb-8"
+      >
+        <ArrowLeft size={16} />
+        Volver
+      </button>
+
+      {/* Profile card */}
+      <div className="bg-surface-card border border-white/8 rounded-3xl p-8 flex flex-col items-center text-center gap-4">
+
+        {/* Avatar */}
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-black text-white text-2xl shadow-xl">
+          {target.avatar_url
+            ? <img src={target.avatar_url} alt={target.username} className="w-full h-full object-cover" />
+            : initials
+          }
+        </div>
+
+        <div>
+          <h1 className="text-2xl font-black text-white">@{target.username}</h1>
+          {target.full_name && (
+            <p className="text-gray-400 text-sm mt-0.5">{target.full_name}</p>
+          )}
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        {/* Action button */}
+        {isAccepted && (
+          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-field/15 text-field-light font-semibold text-sm">
+            <Users size={16} />
+            Ya sois amigos
+          </div>
+        )}
+
+        {isReceived && (
+          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-surface border border-white/10 text-gray-400 text-sm">
+            <Clock size={16} />
+            Te ha enviado una solicitud — revisa Amigos
+          </div>
+        )}
+
+        {isSent && (
+          <button
+            onClick={cancelRequest}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-white/15 text-gray-400 text-sm hover:border-red-400/30 hover:text-red-400 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Clock size={16} />}
+            Solicitud enviada · Cancelar
+          </button>
+        )}
+
+        {!friendship && (
+          <button
+            onClick={sendRequest}
+            disabled={loading}
+            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-field text-white font-semibold hover:bg-field-muted transition-colors disabled:opacity-50 text-sm"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+            Añadir amigo
+          </button>
+        )}
+
+      </div>
+    </div>
+  );
+}

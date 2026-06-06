@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus } from 'lucide-react';
+import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Share2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +51,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   const [searchResults, setSearchResults] = useState<FriendProfile[]>([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -135,6 +136,32 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
 
   return (
     <div className="animate-fade-in max-w-lg mx-auto px-4 py-4 space-y-6">
+
+      {/* Share link */}
+      <button
+        onClick={async () => {
+          const link = `${window.location.origin}/add/${currentUserId}`;
+          if (typeof navigator.share === 'function') {
+            try { await navigator.share({ title: 'VARkings', text: '¡Añádeme como amigo en VARkings!', url: link }); } catch { /* cancelled */ }
+          } else {
+            await navigator.clipboard.writeText(link);
+            setShareStatus('copied');
+            setTimeout(() => setShareStatus('idle'), 2500);
+          }
+        }}
+        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-field/20 text-field-light hover:bg-field/8 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-field/15 flex items-center justify-center group-hover:bg-field/25 transition-colors">
+            {shareStatus === 'copied' ? <Check size={15} className="text-field-light" /> : <Link2 size={15} className="text-field-light" />}
+          </div>
+          <div className="text-left">
+            <p className="font-medium text-sm">{shareStatus === 'copied' ? 'Enlace copiado' : 'Compartir mi enlace'}</p>
+            <p className="text-xs text-field/60">Cualquiera con el enlace puede añadirte</p>
+          </div>
+        </div>
+        {shareStatus === 'idle' && <Share2 size={15} className="text-field/40" />}
+      </button>
 
       {/* Search */}
       <div className="relative">
