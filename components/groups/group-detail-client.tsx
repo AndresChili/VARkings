@@ -190,7 +190,15 @@ export function GroupDetailClient({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invitee_id: friend.id }),
     });
-    if (!res.ok) setSharedFriendId(null);
+    if (!res.ok) { setSharedFriendId(null); return; }
+    const data = await res.json();
+    // Broadcast real-time from client (server-side WS not persistent)
+    const supabase = createClient();
+    await supabase.channel(`notify:${friend.id}`).send({
+      type: 'broadcast',
+      event: 'group_invite',
+      payload: { invite: { ...data, group_name: group.name } },
+    });
   }
 
   async function copyInviteCode() {
