@@ -38,7 +38,9 @@ export async function middleware(request: NextRequest) {
     pathname === '/sw.js';
 
   if (!user && !isAuthPage && !isPublicPath) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (user && isAuthPage) {
