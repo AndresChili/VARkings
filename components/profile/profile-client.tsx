@@ -497,11 +497,11 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
         {!showPasswordForm ? (
           <button
             onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSaved(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
-            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-white/8 text-gray-300 hover:border-white/15 hover:text-white transition-colors group mb-3"
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/8 transition-colors group mb-3"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/8 flex items-center justify-center group-hover:bg-white/12 transition-colors">
-                <Lock size={15} className="text-gray-400 group-hover:text-gray-300" />
+              <div className="w-8 h-8 rounded-xl bg-yellow-500/15 flex items-center justify-center group-hover:bg-yellow-500/25 transition-colors">
+                <Lock size={15} className="text-yellow-400" />
               </div>
               <span className="font-medium text-sm">
                 {passwordSaved ? (
@@ -509,7 +509,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
                 ) : 'Cambiar contraseña'}
               </span>
             </div>
-            <ChevronRight size={16} className="text-white/20" />
+            <ChevronRight size={16} className="text-yellow-500/40" />
           </button>
         ) : (
           <form onSubmit={handleChangePassword} className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up space-y-3">
