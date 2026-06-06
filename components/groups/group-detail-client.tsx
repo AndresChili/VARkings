@@ -972,7 +972,7 @@ export function GroupDetailClient({
 
     {/* Podio modal */}
     {showPodio && (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
         <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
           <div className="px-6 pt-6 pb-4 border-b border-white/5">
             <div className="flex items-center justify-between mb-4">
@@ -1094,7 +1094,7 @@ export function GroupDetailClient({
 
     {/* Grupos modal */}
     {showGroups && (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
         <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
           <div className="px-6 pt-6 pb-4 border-b border-white/5">
             <div className="flex items-center justify-between mb-3">
