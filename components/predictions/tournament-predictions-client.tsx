@@ -223,6 +223,11 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
                       <span className="text-xs text-gray-600">Incompleto</span>
                     )}
                   </div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[10px] text-field-light font-semibold">+5 pts si aciertas ambos</span>
+                    <span className="text-[10px] text-gray-500">·</span>
+                    <span className="text-[10px] text-blue-400 font-semibold">+2 pts si aciertas uno</span>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[0, 1].map((idx) => (
                       <div key={idx}>
