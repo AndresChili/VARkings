@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getCachedUserProfile } from '@/lib/data-cache';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { PushPermissionBanner } from '@/components/ui/push-permission';
 import { InstallPrompt } from '@/components/ui/install-prompt';
+import { recordDailyLogin } from '@/lib/xp-server';
 
 async function TopBarWithProfile({ userId }: { userId: string }) {
   const profile = await getCachedUserProfile(userId);
@@ -17,6 +18,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
+
+  const admin = createAdminClient();
+  recordDailyLogin(admin, user.id); // fire-and-forget, idempotent
 
   return (
     <div className="flex flex-col min-h-screen bg-surface pt-16">

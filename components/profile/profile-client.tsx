@@ -112,6 +112,9 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     totalXP: levelProgress.totalXP,
     totalMatches: achievementData.totalMatches,
     hasAvatar: !!avatarUrl,
+    currentStreak: 0,
+    maxStreak: 0,
+    totalDaysActive: 0,
   };
   const completedCount = getAchievements(achievementStats).filter((a) => a.current >= a.target).length;
 

@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { LogrosClient } from '@/components/profile/logros-client';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
-import { getUserXP, awardXP } from '@/lib/xp-server';
+import { getUserXP, awardXP, getUserStreakStats } from '@/lib/xp-server';
 import { XP_VALUES } from '@/lib/xp';
 
 const ACHIEVEMENT_XP: Record<string, number> = {
@@ -17,7 +17,7 @@ export default async function LogrosPage() {
 
   const admin = createAdminClient();
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, totalMatchCount] = await Promise.all([
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, totalMatchCount, streakStats] = await Promise.all([
     supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
@@ -43,6 +43,7 @@ export default async function LogrosPage() {
       .eq('user_id', user.id)
       .eq('points_total', 3),
     supabase.from('matches').select('id', { count: 'exact', head: true }),
+    getUserStreakStats(admin, user.id),
   ]);
 
   let maxGroupMembers = 0;
@@ -82,6 +83,9 @@ export default async function LogrosPage() {
     totalXP,
     totalMatches: totalMatchCount.count ?? 0,
     hasAvatar: !!(profileRes.data?.avatar_url),
+    currentStreak: streakStats.currentStreak,
+    maxStreak: streakStats.maxStreak,
+    totalDaysActive: streakStats.totalDaysActive,
   };
 
   // Award XP for each completed achievement (idempotent)

@@ -162,6 +162,75 @@ export async function awardGroupJoinXP(
   }
 }
 
+export async function recordDailyLogin(
+  adminClient: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  await awardXP(adminClient, userId, 'daily_login', today, XP_VALUES.DAILY_LOGIN);
+}
+
+export interface StreakStats {
+  currentStreak: number;
+  maxStreak: number;
+  totalDaysActive: number;
+}
+
+export async function getUserStreakStats(
+  adminClient: SupabaseClient,
+  userId: string
+): Promise<StreakStats> {
+  const { data } = await adminClient
+    .from('xp_events')
+    .select('source_id')
+    .eq('user_id', userId)
+    .eq('source_type', 'daily_login');
+
+  const dates = (data ?? [])
+    .map((e: { source_id: string }) => e.source_id)
+    .sort();
+
+  if (!dates.length) return { currentStreak: 0, maxStreak: 0, totalDaysActive: 0 };
+
+  const totalDaysActive = dates.length;
+
+  let maxStreak = 1;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1]);
+    const curr = new Date(dates[i]);
+    const diff = (curr.getTime() - prev.getTime()) / 86400000;
+    if (diff === 1) {
+      streak++;
+      if (streak > maxStreak) maxStreak = streak;
+    } else {
+      streak = 1;
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const datesDesc = [...dates].reverse();
+  let currentStreak = 0;
+
+  if (datesDesc[0] === today || datesDesc[0] === yesterday) {
+    currentStreak = 1;
+    let expected = datesDesc[0];
+    for (let i = 1; i < datesDesc.length; i++) {
+      const d = new Date(expected);
+      d.setDate(d.getDate() - 1);
+      expected = d.toISOString().slice(0, 10);
+      if (datesDesc[i] === expected) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  return { currentStreak, maxStreak, totalDaysActive };
+}
+
 export async function checkGroupMilestonesXP(
   adminClient: SupabaseClient,
   groupId: string,

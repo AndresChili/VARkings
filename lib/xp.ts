@@ -1,26 +1,26 @@
 // XP thresholds[i] = total XP needed to reach level i+1
-// Level 1 = 0 XP, Level 20 = 2830 XP (max theoretical ~3495)
+// Level 1 = 0 XP, Level 20 = 3820 XP (max theoretical ~4450)
 export const LEVEL_THRESHOLDS = [
   0,    // L1
-  30,   // L2
-  70,   // L3
-  120,  // L4
-  180,  // L5
-  250,  // L6
-  330,  // L7
-  420,  // L8
-  520,  // L9
-  630,  // L10
-  760,  // L11
-  910,  // L12
-  1080, // L13
-  1270, // L14
-  1480, // L15
-  1710, // L16
-  1960, // L17
-  2230, // L18
-  2520, // L19
-  2830, // L20
+  40,   // L2
+  95,   // L3
+  160,  // L4
+  245,  // L5
+  340,  // L6
+  450,  // L7
+  570,  // L8
+  700,  // L9
+  850,  // L10
+  1025, // L11
+  1230, // L12
+  1460, // L13
+  1720, // L14
+  2000, // L15
+  2310, // L16
+  2650, // L17
+  3010, // L18
+  3400, // L19
+  3820, // L20
 ] as const;
 
 export const XP_VALUES = {
@@ -39,6 +39,7 @@ export const XP_VALUES = {
   FRIEND_ADD: 10,
   APP_SHARE: 20,
   PROFILE_AVATAR: 15,
+  DAILY_LOGIN: 5,
   ACHIEVEMENT_EASY: 30,
   ACHIEVEMENT_MEDIUM: 75,
   ACHIEVEMENT_HARD: 150,
