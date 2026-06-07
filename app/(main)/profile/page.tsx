@@ -68,8 +68,44 @@ export default async function ProfilePage() {
   const teamGoalHits = calculated.reduce((sum, p) => {
     return sum + ((p.points_home_score ?? 0) > 0 ? 1 : 0) + ((p.points_away_score ?? 0) > 0 ? 1 : 0);
   }, 0);
-  const groupPts = tp?.group_predictions_points ?? 0;
   const tpCalc = tp?.is_calculated ?? false;
+
+  let groupTeamsCorrect = 0;
+  const userGroupPreds = tp?.group_predictions as Record<string, string[]> | null;
+  if (userGroupPreds && Object.keys(userGroupPreds).length > 0) {
+    const { data: groupMatches } = await supabase
+      .from('matches')
+      .select('home_team_name, away_team_name, home_score, away_score, group_name')
+      .not('group_name', 'is', null)
+      .not('home_score', 'is', null)
+      .not('away_score', 'is', null);
+
+    if (groupMatches?.length) {
+      const pts: Record<string, Record<string, number>> = {};
+      const gd: Record<string, Record<string, number>> = {};
+      for (const m of groupMatches) {
+        const g = m.group_name!;
+        const hs = m.home_score!, as_ = m.away_score!;
+        pts[g] ??= {}; gd[g] ??= {};
+        pts[g][m.home_team_name] ??= 0; gd[g][m.home_team_name] ??= 0;
+        pts[g][m.away_team_name] ??= 0; gd[g][m.away_team_name] ??= 0;
+        gd[g][m.home_team_name] += hs - as_;
+        gd[g][m.away_team_name] += as_ - hs;
+        if (hs > as_) pts[g][m.home_team_name] += 3;
+        else if (as_ > hs) pts[g][m.away_team_name] += 3;
+        else { pts[g][m.home_team_name] += 1; pts[g][m.away_team_name] += 1; }
+      }
+      for (const [group, predicted] of Object.entries(userGroupPreds)) {
+        const groupPts = pts[group];
+        if (!groupPts) continue;
+        const qualifiers = Object.entries(groupPts)
+          .sort((a, b) => b[1] - a[1] || (gd[group][b[0]] ?? 0) - (gd[group][a[0]] ?? 0))
+          .slice(0, 2)
+          .map(([t]) => t);
+        groupTeamsCorrect += predicted.filter((t) => qualifiers.includes(t)).length;
+      }
+    }
+  }
   const podioExactHits = tpCalc
     ? ((tp!.champion_points ?? 0) === 20 ? 1 : 0) + ((tp!.runner_up_points ?? 0) === 10 ? 1 : 0) + ((tp!.third_place_points ?? 0) === 5 ? 1 : 0)
     : 0;
@@ -84,7 +120,7 @@ export default async function ProfilePage() {
     winnerHits,
     exactHits,
     teamGoalHits,
-    groupPts,
+    groupTeamsCorrect,
     podioExactHits,
     podioAnyHits,
     tournamentPoints,

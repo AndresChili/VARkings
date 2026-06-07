@@ -16,7 +16,7 @@ interface ProfileClientProps {
     winnerHits: number;
     exactHits: number;
     teamGoalHits: number;
-    groupPts: number;
+    groupTeamsCorrect: number;
     podioExactHits: number;
     podioAnyHits: number;
     tournamentPoints: number;
@@ -512,7 +512,7 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
                   <span className="text-sm text-gray-300">Fase de grupos</span>
                 </div>
                 <span className="text-sm font-bold text-orange-400 tabular-nums">
-                  {stats.groupPts > 0 ? stats.groupPts : '—'}
+                  {stats.groupTeamsCorrect}
                 </span>
               </div>
 
