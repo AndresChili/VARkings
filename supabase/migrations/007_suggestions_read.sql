@@ -1,0 +1,1 @@
+ALTER TABLE public.suggestions ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT FALSE;

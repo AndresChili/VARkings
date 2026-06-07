@@ -171,6 +171,15 @@ export default async function ProfilePage() {
 
   const isSuperadmin = user.email === 'andrescabreroamieva@gmail.com';
 
+  let unreadSuggestions = 0;
+  if (isSuperadmin) {
+    const { count } = await admin
+      .from('suggestions')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_read', false);
+    unreadSuggestions = count ?? 0;
+  }
+
   return (
     <ProfileClient
       profile={profileRes.data}
@@ -179,6 +188,7 @@ export default async function ProfilePage() {
       levelProgress={levelProgress}
       email={user.email ?? ''}
       isSuperadmin={isSuperadmin}
+      unreadSuggestions={unreadSuggestions}
     />
   );
 }

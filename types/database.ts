@@ -418,6 +418,7 @@ export interface Database {
           user_id: string;
           subject: string;
           message: string;
+          is_read: boolean;
           created_at: string;
         };
         Insert: {
@@ -425,11 +426,13 @@ export interface Database {
           user_id: string;
           subject?: string;
           message: string;
+          is_read?: boolean;
           created_at?: string;
         };
         Update: {
           subject?: string;
           message?: string;
+          is_read?: boolean;
         };
         Relationships: [
           {
