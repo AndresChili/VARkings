@@ -1,5 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { ProfileClient } from '@/components/profile/profile-client';
+import { getUserXP, computeAndAwardBonuses } from '@/lib/xp-server';
+import { getLevelProgress } from '@/lib/xp';
 
 type PredRow = {
   points_total: number;
@@ -14,7 +16,9 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes] = await Promise.all([
+  const admin = createAdminClient();
+
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, groupStagePredCount] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
@@ -39,6 +43,11 @@ export default async function ProfilePage() {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('points_total', 3),
+    supabase
+      .from('match_predictions')
+      .select('id, matches!inner(group_name)', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .not('matches.group_name', 'is', null),
   ]);
 
   let maxGroupMembers = 0;
@@ -137,11 +146,30 @@ export default async function ProfilePage() {
       : 0,
   };
 
+  // Compute and award automatic XP bonuses, then get total XP
+  await computeAndAwardBonuses(admin, user.id, {
+    totalPredictions: preds.length,
+    groupStagePredictions: groupStagePredCount.count ?? 0,
+    hasAvatar: !!(profileRes.data?.avatar_url),
+    tournamentCalc: tp
+      ? {
+          is_calculated: tp.is_calculated ?? false,
+          champion_points: tp.champion_points ?? null,
+          runner_up_points: tp.runner_up_points ?? null,
+          third_place_points: tp.third_place_points ?? null,
+        }
+      : null,
+  });
+
+  const totalXP = await getUserXP(admin, user.id);
+  const levelProgress = getLevelProgress(totalXP);
+
   return (
     <ProfileClient
       profile={profileRes.data}
       stats={stats}
       achievementData={achievementData}
+      levelProgress={levelProgress}
       email={user.email ?? ''}
     />
   );

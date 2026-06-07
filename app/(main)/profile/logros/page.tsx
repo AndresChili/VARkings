@@ -1,11 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { LogrosClient } from '@/components/profile/logros-client';
-import type { AchievementStats } from '@/components/profile/achievements-tab';
+import { getAchievements, type AchievementStats } from '@/components/profile/achievements-tab';
+import { getUserXP, awardXP } from '@/lib/xp-server';
+import { XP_VALUES } from '@/lib/xp';
+
+const ACHIEVEMENT_XP: Record<string, number> = {
+  easy: XP_VALUES.ACHIEVEMENT_EASY,
+  medium: XP_VALUES.ACHIEVEMENT_MEDIUM,
+  hard: XP_VALUES.ACHIEVEMENT_HARD,
+};
 
 export default async function LogrosPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const admin = createAdminClient();
 
   const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes] = await Promise.all([
     supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
@@ -55,6 +65,8 @@ export default async function LogrosPage() {
     ? (tp.champion_points ?? 0) + (tp.runner_up_points ?? 0) + (tp.third_place_points ?? 0) + (tp.group_predictions_points ?? 0)
     : 0;
 
+  const totalXP = await getUserXP(admin, user.id);
+
   const stats: AchievementStats = {
     totalPredictions: preds.length,
     exactPredictions: exactPredsRes.count ?? 0,
@@ -66,8 +78,19 @@ export default async function LogrosPage() {
     groupsCreated: groupsRes.data?.length ?? 0,
     maxGroupMembers,
     totalPoints: calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints,
+    totalXP,
     hasAvatar: !!(profileRes.data?.avatar_url),
   };
+
+  // Award XP for each completed achievement (idempotent)
+  const achievements = getAchievements(stats);
+  await Promise.all(
+    achievements
+      .filter((a) => a.current >= a.target)
+      .map((a) =>
+        awardXP(admin, user.id, 'achievement', a.id, ACHIEVEMENT_XP[a.difficulty])
+      )
+  );
 
   return <LogrosClient stats={stats} />;
 }

@@ -6,6 +6,15 @@ import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camer
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 import { getAchievements, type AchievementStats } from './achievements-tab';
+import { LevelBadge } from '@/components/ui/level-badge';
+
+interface LevelProgress {
+  level: number;
+  xpInLevel: number;
+  xpNeeded: number;
+  percent: number;
+  totalXP: number;
+}
 
 interface ProfileClientProps {
   profile: Profile | null;
@@ -29,16 +38,10 @@ interface ProfileClientProps {
     hasTournamentPrediction: boolean;
     groupPredictionsCount: number;
   };
+  levelProgress: LevelProgress;
   email: string;
 }
 
-function getLevel(points: number) {
-  if (points >= 500) return { label: 'Leyenda', color: 'text-crown', bg: 'bg-crown/20', icon: '👑' };
-  if (points >= 300) return { label: 'Experto', color: 'text-purple-400', bg: 'bg-purple-400/20', icon: '⚡' };
-  if (points >= 150) return { label: 'Pro', color: 'text-blue-400', bg: 'bg-blue-400/20', icon: '🎯' };
-  if (points >= 50) return { label: 'Amateur', color: 'text-field-light', bg: 'bg-field/20', icon: '⚽' };
-  return { label: 'Novato', color: 'text-gray-400', bg: 'bg-gray-400/20', icon: '🌱' };
-}
 
 function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -64,7 +67,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, email }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +98,6 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
-  const level = getLevel(stats.matchPoints);
 
   const achievementStats: AchievementStats = {
     totalPredictions: stats.totalPredictions,
@@ -106,6 +108,7 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
     groupsCreated: achievementData.groupsCreated,
     maxGroupMembers: achievementData.maxGroupMembers,
     totalPoints: stats.matchPoints,
+    totalXP: levelProgress.totalXP,
     hasAvatar: !!avatarUrl,
   };
   const completedCount = getAchievements(achievementStats).filter((a) => a.current >= a.target).length;
@@ -143,6 +146,8 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
 
       setAvatarUrl(urlWithBust);
       await fetch('/api/profile/revalidate', { method: 'POST' });
+      // Award avatar XP (idempotent)
+      fetch('/api/xp/avatar', { method: 'POST' }).catch(() => {});
       router.refresh();
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Error subiendo imagen');
@@ -186,6 +191,8 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
       setShareStatus('copied');
       setTimeout(() => setShareStatus('idle'), 2500);
     }
+    // Award XP for sharing (max 3 times)
+    fetch('/api/xp/share', { method: 'POST' }).catch(() => {});
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -373,9 +380,32 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
           <p className="text-red-400 text-xs mb-2 -mt-2">{avatarError}</p>
         )}
 
+        {/* XP progress bar under avatar */}
+        <div className="mt-3 mb-1">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <LevelBadge level={levelProgress.level} />
+              <span className="text-xs text-gray-500">
+                {levelProgress.totalXP} XP
+              </span>
+            </div>
+            {levelProgress.level < 20 && (
+              <span className="text-xs text-gray-600">
+                {levelProgress.xpInLevel}/{levelProgress.xpNeeded} → Nv.{levelProgress.level + 1}
+              </span>
+            )}
+          </div>
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all"
+              style={{ width: `${levelProgress.percent}%` }}
+            />
+          </div>
+        </div>
+
         {/* Identity */}
         {editing ? (
-          <form onSubmit={handleSave} className="space-y-3 mb-6 bg-surface-card border border-white/10 rounded-2xl p-4">
+          <form onSubmit={handleSave} className="space-y-3 mb-6 bg-surface-card border border-white/10 rounded-2xl p-4 mt-3">
             <p className="text-sm font-semibold text-white mb-1">Editar perfil</p>
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Nombre de usuario</label>
@@ -417,12 +447,10 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
             </div>
           </form>
         ) : (
-          <div className="mb-6">
+          <div className="mb-6 mt-3">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-black text-white">@{profile?.username}</h1>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${level.bg} ${level.color}`}>
-                {level.label}
-              </span>
+              <LevelBadge level={levelProgress.level} />
               {saved && (
                 <span className="flex items-center gap-1 text-field-light text-xs">
                   <CheckCircle size={12} />
