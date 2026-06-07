@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare, User, ChevronLeft, ChevronDown } from 'lucide-react';
+import { MessageSquare, User, ChevronLeft, ChevronDown, Trash2, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 
 export type SuggestionRow = {
@@ -17,14 +17,24 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
   const [suggestions, setSuggestions] = useState<SuggestionRow[]>(initial);
   const [tab, setTab] = useState<'unread' | 'read'>('unread');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  async function handleOpen(s: SuggestionRow) {
-    if (expanded === s.id) { setExpanded(null); return; }
-    setExpanded(s.id);
-    if (!s.is_read) {
-      setSuggestions((prev) => prev.map((x) => x.id === s.id ? { ...x, is_read: true } : x));
-      await fetch(`/api/suggestions/${s.id}`, { method: 'PATCH' });
-    }
+  function toggleExpand(id: string) {
+    setExpanded((prev) => (prev === id ? null : id));
+  }
+
+  async function markRead(id: string) {
+    setSuggestions((prev) => prev.map((x) => x.id === id ? { ...x, is_read: true } : x));
+    setExpanded(null);
+    await fetch(`/api/suggestions/${id}`, { method: 'PATCH' });
+  }
+
+  async function deleteSuggestion(id: string) {
+    setDeleting(id);
+    setSuggestions((prev) => prev.filter((x) => x.id !== id));
+    setExpanded(null);
+    await fetch(`/api/suggestions/${id}`, { method: 'DELETE' });
+    setDeleting(null);
   }
 
   const unread = suggestions.filter((s) => !s.is_read);
@@ -87,8 +97,9 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
         <div className="space-y-2">
           {list.map((s) => (
             <div key={s.id} className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
+              {/* Header row — only expands/collapses */}
               <button
-                onClick={() => handleOpen(s)}
+                onClick={() => toggleExpand(s.id)}
                 className="w-full flex items-center gap-2 px-4 py-3.5 text-left"
               >
                 <div className="w-6 h-6 rounded-full bg-field/20 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -112,14 +123,35 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
                   className={`text-gray-600 flex-shrink-0 transition-transform ${expanded === s.id ? 'rotate-180' : ''}`}
                 />
               </button>
+
+              {/* Expanded body */}
               {expanded === s.id && (
-                <div className="px-4 pb-4 pt-1 border-t border-white/5">
+                <div className="px-4 pb-4 pt-2 border-t border-white/5 space-y-3">
                   <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{s.message}</p>
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-600">
                     {new Date(s.created_at).toLocaleDateString('es-ES', {
                       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </p>
+                  <div className="flex gap-2 pt-1">
+                    {!s.is_read && (
+                      <button
+                        onClick={() => markRead(s.id)}
+                        className="flex-1 py-2 rounded-xl bg-field/15 text-field-light text-sm font-semibold hover:bg-field/25 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCheck size={14} />
+                        Leída
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteSuggestion(s.id)}
+                      disabled={deleting === s.id}
+                      className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                      Borrar
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
