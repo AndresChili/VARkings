@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Target, Trophy, Users, Zap, UserPlus, Check, UserCheck, Loader2, Crown } from 'lucide-react';
+import { ArrowLeft, Target, Trophy, Users, Zap, UserPlus, Check, UserCheck, Loader2, CheckCircle } from 'lucide-react';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { cn } from '@/lib/utils';
+import type { Achievement } from '@/lib/achievements';
 
 interface LevelProgress {
   level: number;
@@ -29,23 +30,54 @@ interface UserProfileClientProps {
     totalPredictions: number;
     calculatedPredictions: number;
     winnerHits: number;
+    exactHits: number;
     friendsCount: number;
+    totalXP: number;
   };
-  podio: {
-    champion: string | null;
-    runner_up: string | null;
-    third_place: string | null;
-  } | null;
+  completedAchievements: Achievement[];
   currentUserId: string | null;
   targetUserId: string;
   initialFriendshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted';
+}
+
+const CAT_COLORS = {
+  predicciones: { bg: 'from-blue-500/30 via-cyan-500/20 to-blue-700/10', border: 'border-blue-500/35', icon: 'bg-blue-500/20', badge: 'bg-blue-500/20 text-blue-200 border-blue-400/30' },
+  social:       { bg: 'from-pink-500/30 via-rose-500/20 to-pink-700/10',  border: 'border-pink-500/35',  icon: 'bg-pink-500/20',  badge: 'bg-pink-500/20 text-pink-200 border-pink-400/30'  },
+  grupos:       { bg: 'from-field/40 via-field-dark/25 to-field/10',      border: 'border-field/40',     icon: 'bg-field/25',     badge: 'bg-field/25 text-field-light border-field/35'     },
+  puntos:       { bg: 'from-amber-500/30 via-yellow-500/20 to-amber-700/10', border: 'border-amber-500/35', icon: 'bg-amber-500/20', badge: 'bg-amber-500/20 text-amber-200 border-amber-400/30' },
+  perfil:       { bg: 'from-purple-500/30 via-violet-500/20 to-purple-700/10', border: 'border-purple-500/35', icon: 'bg-purple-500/20', badge: 'bg-purple-500/20 text-purple-200 border-purple-400/30' },
+  rachas:       { bg: 'from-orange-500/30 via-red-500/20 to-orange-700/10', border: 'border-orange-500/35', icon: 'bg-orange-500/20', badge: 'bg-orange-500/20 text-orange-200 border-orange-400/30' },
+} as const;
+
+function AchievementCard({ a }: { a: Achievement }) {
+  const c = CAT_COLORS[a.category];
+  return (
+    <div className={`relative bg-gradient-to-br ${c.bg} border ${c.border} rounded-2xl p-4 overflow-hidden`}>
+      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+      <div className="relative flex items-center gap-3">
+        <div className={`w-12 h-12 rounded-2xl ${c.icon} flex items-center justify-center text-2xl shrink-0`}>
+          {a.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-1 mb-0.5">
+            <p className="font-bold text-white text-xs leading-snug">{a.title}</p>
+            <CheckCircle size={14} className="text-white/70 shrink-0 mt-0.5" />
+          </div>
+          <p className="text-[10px] text-white/50 leading-snug">{a.description}</p>
+          <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.badge}`}>
+            ✓ Conseguido
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function UserProfileClient({
   profile,
   levelProgress,
   stats,
-  podio,
+  completedAchievements,
   currentUserId,
   targetUserId,
   initialFriendshipStatus,
@@ -83,10 +115,9 @@ export function UserProfileClient({
     const supabase = createClient();
     const { data: existing } = await supabase
       .from('friendships')
-      .select('id, requester_id')
-      .or(
-        `and(requester_id.eq.${targetUserId},addressee_id.eq.${currentUserId})`
-      )
+      .select('id')
+      .eq('requester_id', targetUserId)
+      .eq('addressee_id', currentUserId)
       .eq('status', 'pending')
       .maybeSingle();
     if (existing) {
@@ -99,7 +130,7 @@ export function UserProfileClient({
         supabase.channel(`notify:${targetUserId}`).send({
           type: 'broadcast',
           event: 'request_accepted',
-          payload: { friendship: { ...existing, status: 'accepted' } },
+          payload: { friendship: { id: existing.id, status: 'accepted' } },
         });
         fetch('/api/xp/friend-accepted', {
           method: 'POST',
@@ -111,8 +142,17 @@ export function UserProfileClient({
     setLoading(false);
   }
 
+  const statRows = [
+    { icon: <Trophy size={15} className="text-crown" />, label: 'Puntos totales', value: stats.matchPoints, color: 'text-crown' },
+    { icon: <Target size={15} className="text-field-light" />, label: 'Predicciones realizadas', value: stats.totalPredictions, color: 'text-field-light' },
+    { icon: <Check size={15} className="text-blue-400" />, label: 'Ganador o empate acertado', value: stats.winnerHits, color: 'text-blue-400' },
+    { icon: <span className="text-sm">🎯</span>, label: 'Resultado exacto', value: stats.exactHits, color: 'text-purple-400' },
+    { icon: <Zap size={15} className="text-amber-400" />, label: 'XP total', value: stats.totalXP, color: 'text-amber-400' },
+    { icon: <Users size={15} className="text-indigo-400" />, label: 'Amigos', value: stats.friendsCount, color: 'text-indigo-400' },
+  ];
+
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
+    <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in pb-10">
       {/* Back */}
       <button
         onClick={() => router.back()}
@@ -122,9 +162,12 @@ export function UserProfileClient({
         Volver
       </button>
 
-      {/* Profile card */}
+      {/* Profile hero card */}
       <div className="relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
-        <div className="h-20 bg-gradient-to-br from-field-dark/60 via-field/20 to-crown/10" />
+        <div className="h-24 bg-gradient-to-br from-field-dark/60 via-field/20 to-crown/10 relative overflow-hidden">
+          <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/5" />
+          <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-white/5" />
+        </div>
         <div className="px-5 pb-5">
           <div className="-mt-10 mb-4 flex items-end justify-between">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-surface-card bg-surface-hover flex items-center justify-center text-xl font-black text-gray-300 shrink-0">
@@ -142,14 +185,8 @@ export function UserProfileClient({
             </div>
             {isLoggedIn && (
               <button
-                onClick={
-                  friendStatus === 'pending_received' ? acceptRequest : sendRequest
-                }
-                disabled={
-                  loading ||
-                  friendStatus === 'accepted' ||
-                  friendStatus === 'pending_sent'
-                }
+                onClick={friendStatus === 'pending_received' ? acceptRequest : sendRequest}
+                disabled={loading || friendStatus === 'accepted' || friendStatus === 'pending_sent'}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors',
                   friendStatus === 'accepted'
@@ -188,12 +225,10 @@ export function UserProfileClient({
           <div className="bg-white/5 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <Zap size={13} className="text-amber-400" />
-                <span className="text-xs font-semibold text-amber-300">
-                  Nivel {levelProgress.level}
-                </span>
+                <Zap size={12} className="text-amber-400" />
+                <span className="text-xs font-semibold text-amber-300">Nivel {levelProgress.level}</span>
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 tabular-nums">
                 {levelProgress.xpInLevel} / {levelProgress.xpNeeded} XP
               </span>
             </div>
@@ -208,65 +243,44 @@ export function UserProfileClient({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Trophy size={14} className="text-crown" />
-            <span className="text-xs text-gray-500 font-medium">Puntos totales</span>
-          </div>
-          <p className="text-2xl font-black text-white">{stats.matchPoints}</p>
+      <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Estadísticas</p>
         </div>
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Target size={14} className="text-field-light" />
-            <span className="text-xs text-gray-500 font-medium">Predicciones</span>
-          </div>
-          <p className="text-2xl font-black text-white">{stats.totalPredictions}</p>
-          {stats.calculatedPredictions > 0 && (
-            <p className="text-xs text-gray-600 mt-0.5">{stats.calculatedPredictions} calculadas</p>
-          )}
-        </div>
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Check size={14} className="text-green-400" />
-            <span className="text-xs text-gray-500 font-medium">Ganadores acertados</span>
-          </div>
-          <p className="text-2xl font-black text-white">{stats.winnerHits}</p>
-        </div>
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Users size={14} className="text-indigo-400" />
-            <span className="text-xs text-gray-500 font-medium">Amigos</span>
-          </div>
-          <p className="text-2xl font-black text-white">{stats.friendsCount}</p>
+        <div className="divide-y divide-white/5">
+          {statRows.map((row, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3">
+              <div className="w-6 flex items-center justify-center shrink-0">{row.icon}</div>
+              <span className="flex-1 text-sm text-gray-300">{row.label}</span>
+              <span className={cn('text-sm font-bold tabular-nums', row.color)}>{row.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Podio */}
-      {podio?.champion && (
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Crown size={15} className="text-crown" />
-            <p className="text-sm font-bold text-white">Podio Mundial</p>
+      {/* Completed achievements */}
+      {completedAchievements.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Logros conseguidos
+            </p>
+            <span className="text-xs text-gray-600 tabular-nums">
+              {completedAchievements.length} desbloqueados
+            </span>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🥇</span>
-              <span className="text-white font-medium text-sm">{podio.champion}</span>
-            </div>
-            {podio.runner_up && (
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🥈</span>
-                <span className="text-gray-300 text-sm">{podio.runner_up}</span>
-              </div>
-            )}
-            {podio.third_place && (
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🥉</span>
-                <span className="text-gray-400 text-sm">{podio.third_place}</span>
-              </div>
-            )}
+          <div className="grid grid-cols-1 gap-2.5">
+            {completedAchievements.map((a) => (
+              <AchievementCard key={a.id} a={a} />
+            ))}
           </div>
+        </div>
+      )}
+
+      {completedAchievements.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-8 text-center bg-surface-card border border-white/8 rounded-2xl">
+          <span className="text-3xl opacity-30">🏆</span>
+          <p className="text-gray-600 text-sm">Aún no tiene logros desbloqueados</p>
         </div>
       )}
     </div>
