@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { awardXP } from '@/lib/xp-server';
+import { XP_VALUES } from '@/lib/xp';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -53,6 +55,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Award first-prediction XP (idempotent — ignored if already awarded)
+  const admin = createAdminClient();
+  await awardXP(admin, user.id, 'first_prediction', 'once', XP_VALUES.FIRST_PREDICTION);
+
   return NextResponse.json({ success: true, action: 'created' }, { status: 201 });
 }
 

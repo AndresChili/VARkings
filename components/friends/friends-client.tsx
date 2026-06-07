@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Plus, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { LevelBadge } from '@/components/ui/level-badge';
+import { getLevel } from '@/lib/xp';
 
 interface FriendProfile {
   id: string;
@@ -24,6 +26,7 @@ interface Props {
   currentUserId: string;
   friendships: Friendship[];
   profiles: FriendProfile[];
+  xpMap: Record<string, number>;
 }
 
 function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number }) {
@@ -39,7 +42,7 @@ function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number 
   );
 }
 
-export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles }: Props) {
+export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap }: Props) {
   const supabase = createClient();
 
   const [friendships, setFriendships] = useState<Friendship[]>(initial);
@@ -193,6 +196,13 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       event: 'request_accepted',
       payload: { friendship: { ...friendship, status: 'accepted' } },
     });
+
+    // Award XP to both users
+    fetch('/api/xp/friend-accepted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendship_id: friendship.id }),
+    }).catch(() => {});
   }
 
   async function deleteFriendship(friendshipId: string, otherUserId: string) {
@@ -480,11 +490,15 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                 const friendId = f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
                 const profile = getProfile(friendId);
                 const isLoading = loading[f.id];
+                const friendLevel = getLevel(xpMap[friendId] ?? 0);
                 return (
                   <div key={f.id} className="flex items-center gap-3 bg-surface-card border border-white/8 rounded-2xl p-3">
                     <Avatar profile={profile} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold truncate">@{profile.username}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-white text-sm font-semibold truncate">@{profile.username}</p>
+                        <LevelBadge level={friendLevel} size="xs" />
+                      </div>
                       {profile.full_name && (
                         <p className="text-gray-500 text-xs truncate">{profile.full_name}</p>
                       )}

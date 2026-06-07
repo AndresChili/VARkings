@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { generateInviteCode } from '@/lib/utils';
+import { awardXP } from '@/lib/xp-server';
+import { XP_VALUES } from '@/lib/xp';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -31,6 +33,10 @@ export async function POST(req: NextRequest) {
 
   // Auto-join creator to the group
   await supabase.from('group_members').insert({ group_id: group.id, user_id: user.id });
+
+  // Award XP for creating a group (1x per user)
+  const admin = createAdminClient();
+  await awardXP(admin, user.id, 'group_create', 'once', XP_VALUES.GROUP_CREATE);
 
   return NextResponse.json({ group }, { status: 201 });
 }

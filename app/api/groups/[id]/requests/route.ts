@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { awardGroupJoinXP, checkGroupMilestonesXP } from '@/lib/xp-server';
 
 export async function GET(
   _req: NextRequest,
@@ -79,6 +80,13 @@ export async function POST(
     if (memberError && !memberError.message.includes('duplicate')) {
       return NextResponse.json({ error: memberError.message }, { status: 500 });
     }
+
+    // Award XP to joining user + check 5-member milestone for creator
+    const admin = createAdminClient();
+    await Promise.all([
+      awardGroupJoinXP(admin, user_id, id),
+      checkGroupMilestonesXP(admin, id, user.id),
+    ]);
   }
 
   const { error } = await supabase

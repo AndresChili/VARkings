@@ -390,6 +390,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      xp_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_type: string;
+          source_id: string;
+          points: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_type: string;
+          source_id?: string;
+          points: number;
+          created_at?: string;
+        };
+        Update: {
+          points?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       group_leaderboard: {
