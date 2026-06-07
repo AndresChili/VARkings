@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2 } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2, User } from 'lucide-react';
+import { LevelBadge } from '@/components/ui/level-badge';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 import { TEAM_NAME_ES } from '@/lib/teams';
@@ -48,6 +49,7 @@ interface GroupDetailClientProps {
   teams: Team[];
   memberGroupPicks: Record<string, Record<string, string[]>>;
   groupQualifiers: Record<string, string[]>;
+  memberLevels: Record<string, number>;
 }
 
 const PODIO_STEPS = [
@@ -89,6 +91,7 @@ export function GroupDetailClient({
   teams,
   memberGroupPicks,
   groupQualifiers,
+  memberLevels,
 }: GroupDetailClientProps) {
   const router = useRouter();
 
@@ -125,6 +128,10 @@ export function GroupDetailClient({
   const [thirdPlace, setThirdPlace] = useState('');
   const [savingPodio, setSavingPodio] = useState(false);
   const [podioError, setPodioError] = useState('');
+
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [modalFriendStatus, setModalFriendStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'accepted' | 'loading'>('loading');
+  const [addingFriend, setAddingFriend] = useState(false);
 
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(userId);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
@@ -270,6 +277,41 @@ export function GroupDetailClient({
       setShowTransferModal(false);
       router.refresh();
     }
+  }
+
+  async function openMemberModal(targetId: string) {
+    setSelectedMemberId(targetId);
+    if (targetId === userId) { setModalFriendStatus('none'); return; }
+    setModalFriendStatus('loading');
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('friendships')
+      .select('requester_id, status')
+      .or(`and(requester_id.eq.${userId},addressee_id.eq.${targetId}),and(requester_id.eq.${targetId},addressee_id.eq.${userId})`)
+      .maybeSingle();
+    if (!data) setModalFriendStatus('none');
+    else if (data.status === 'accepted') setModalFriendStatus('accepted');
+    else if (data.requester_id === userId) setModalFriendStatus('pending_sent');
+    else setModalFriendStatus('pending_received');
+  }
+
+  async function sendFriendRequestFromModal(targetId: string) {
+    setAddingFriend(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('friendships')
+      .insert({ requester_id: userId, addressee_id: targetId, status: 'pending' })
+      .select()
+      .single();
+    if (!error && data) {
+      setModalFriendStatus('pending_sent');
+      supabase.channel(`notify:${targetId}`).send({
+        type: 'broadcast',
+        event: 'new_request',
+        payload: { friendship: data },
+      });
+    }
+    setAddingFriend(false);
   }
 
   function getStepValue(step: number) {
@@ -675,15 +717,16 @@ export function GroupDetailClient({
               const picks = championPicks[entry.user_id];
               const rankStyle = rank <= 3 ? RANK_STYLES[rank - 1] : null;
               return (
-                <div
+                <button
                   key={entry.user_id}
+                  onClick={() => openMemberModal(entry.user_id)}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0',
+                    'w-full flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0 text-left hover:bg-white/3 transition-colors',
                     rankStyle?.row,
                     isMe && !rankStyle && 'bg-field/10'
                   )}
                 >
-                  <div className="w-8 text-center">
+                  <div className="w-8 text-center shrink-0">
                     {rank <= 3 ? (
                       <span className="text-base">{getRankEmoji(rank)}</span>
                     ) : (
@@ -691,7 +734,7 @@ export function GroupDetailClient({
                     )}
                   </div>
 
-                  <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden ring-2 ring-transparent" style={rank === 1 ? { '--tw-ring-color': 'rgba(212,175,55,0.4)' } as React.CSSProperties : {}}>
+                  <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden" style={rank === 1 ? { outline: '2px solid rgba(212,175,55,0.4)', outlineOffset: '1px' } : {}}>
                     {entry.avatar_url ? (
                       <Image src={entry.avatar_url} alt={entry.username} width={36} height={36} className="w-full h-full object-cover" />
                     ) : (
@@ -702,36 +745,22 @@ export function GroupDetailClient({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={cn('font-semibold text-sm', isMe ? 'text-crown' : rank === 1 ? 'text-crown' : 'text-white')}>
                         {entry.username}
                       </span>
                       {isMe && <span className="text-[10px] text-crown">(tú)</span>}
-                      {isCreator && entry.user_id === userId && <span className="text-[10px] bg-crown/15 text-crown px-1.5 py-0.5 rounded">Admin</span>}
-                    </div>
-                    {picks?.champion ? (
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[10px] text-crown font-medium">🥇 {picks.champion}</span>
-                        {picks.runner_up && <span className="text-[10px] text-gray-400">🥈 {picks.runner_up}</span>}
-                        {picks.third_place && <span className="text-[10px] text-gray-500">🥉 {picks.third_place}</span>}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-gray-600 mt-0.5">Sin predicción de podio</p>
-                    )}
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-gray-500 flex items-center gap-1"><Crown size={10} />{entry.podio_points}</span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1"><Trophy size={10} />{entry.groups_points}</span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1"><Target size={10} />{entry.matches_points}</span>
+                      <LevelBadge level={memberLevels[entry.user_id] ?? 1} size="xs" />
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className={cn('text-lg font-black', rankStyle?.points ?? (isMe ? 'text-crown' : 'text-white'))}>
                       {entry.total_points}
                     </div>
                     <div className="text-xs text-gray-500">pts</div>
                   </div>
-                </div>
+                </button>
               );
             })
           )}
@@ -1097,6 +1126,113 @@ export function GroupDetailClient({
         </div>
       </div>
     )}
+
+    {/* Member profile modal */}
+    {selectedMemberId && (() => {
+      const entry = localLeaderboard.find((e) => e.user_id === selectedMemberId);
+      if (!entry) return null;
+      const picks = championPicks[selectedMemberId];
+      const memberLevel = memberLevels[selectedMemberId] ?? 1;
+      const isOwnProfile = selectedMemberId === userId;
+      return (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedMemberId(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-surface-card border border-white/10 rounded-3xl p-6 shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className={cn('w-12 h-12 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold', isOwnProfile ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
+                  {entry.avatar_url ? (
+                    <Image src={entry.avatar_url} alt={entry.username} width={48} height={48} className="w-full h-full object-cover" />
+                  ) : (
+                    entry.username.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white font-bold">@{entry.username}</p>
+                    <LevelBadge level={memberLevel} size="xs" />
+                  </div>
+                  <p className="text-gray-500 text-xs mt-0.5">{entry.total_points} puntos en el grupo</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedMemberId(null)} className="text-gray-500 hover:text-gray-300 transition-colors ml-2 shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Podio */}
+            <div className="bg-white/5 rounded-2xl p-4 mb-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">Podio Mundial</p>
+              {picks?.champion ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🥇</span>
+                    <span className="text-white text-sm font-medium">{picks.champion}</span>
+                  </div>
+                  {picks.runner_up && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🥈</span>
+                      <span className="text-gray-300 text-sm">{picks.runner_up}</span>
+                    </div>
+                  )}
+                  {picks.third_place && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🥉</span>
+                      <span className="text-gray-400 text-sm">{picks.third_place}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-sm">Sin predicción de podio</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2">
+              {!isOwnProfile && (
+                <button
+                  onClick={() => sendFriendRequestFromModal(selectedMemberId)}
+                  disabled={addingFriend || modalFriendStatus === 'accepted' || modalFriendStatus === 'pending_sent' || modalFriendStatus === 'loading'}
+                  className={cn(
+                    'w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors',
+                    modalFriendStatus === 'accepted'
+                      ? 'bg-field/20 text-field-light border border-field/30 cursor-default'
+                      : modalFriendStatus === 'pending_sent'
+                      ? 'bg-white/5 text-gray-400 border border-white/10 cursor-default'
+                      : 'bg-field text-white hover:bg-field-muted disabled:opacity-50'
+                  )}
+                >
+                  {addingFriend || modalFriendStatus === 'loading' ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : modalFriendStatus === 'accepted' ? (
+                    <><UserCheck size={15} /> Amigos</>
+                  ) : modalFriendStatus === 'pending_sent' ? (
+                    <><Check size={15} /> Solicitud enviada</>
+                  ) : modalFriendStatus === 'pending_received' ? (
+                    <><UserCheck size={15} /> Aceptar solicitud</>
+                  ) : (
+                    <><UserPlus size={15} /> Añadir amigo</>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => router.push(`/users/${selectedMemberId}`)}
+                className="w-full py-3 rounded-2xl border border-white/10 text-white text-sm font-semibold hover:bg-white/5 transition-colors flex items-center justify-center gap-2"
+              >
+                <User size={15} />
+                Ver perfil
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
 
     {/* Podio modal */}
     {showPodio && (

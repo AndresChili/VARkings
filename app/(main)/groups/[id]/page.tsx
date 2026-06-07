@@ -1,8 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getCachedTeams, getCachedGroupStageMatches, getCachedAllMatches } from '@/lib/data-cache';
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
 import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
+import { getBulkXP } from '@/lib/xp-server';
+import { getLevel } from '@/lib/xp';
 import type { Match, Team, MatchPrediction } from '@/types';
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +63,12 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     : (STATIC_WC2026_TEAMS as unknown as Team[]);
 
   const memberIds = (leaderboardRes.data ?? []).map((e) => e.user_id);
+  const admin = createAdminClient();
+  const xpMapRaw = await getBulkXP(admin, memberIds);
+  const memberLevels: Record<string, number> = {};
+  for (const [uid, xp] of xpMapRaw) {
+    memberLevels[uid] = getLevel(xp);
+  }
   const pendingUserIds = (requestsRes.data ?? []).map((r) => r.user_id);
 
   const [{ data: groupPreds }, { data: pendingProfiles }, { data: memberGroupPredsRaw }, { data: memberMatchPredsRaw }] = await Promise.all([
@@ -146,6 +154,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       teams={teams}
       memberGroupPicks={memberGroupPicks}
       groupQualifiers={groupQualifiers}
+      memberLevels={memberLevels}
     />
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Plus, ArrowRight } from 'lucide-react';
+import { Search, UserPlus, Check, X, Loader2, Users, Clock, UserMinus, Link2, Plus, ArrowRight, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { LevelBadge } from '@/components/ui/level-badge';
@@ -44,6 +45,7 @@ function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number 
 
 export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap }: Props) {
   const supabase = createClient();
+  const router = useRouter();
 
   const [friendships, setFriendships] = useState<Friendship[]>(initial);
   const [profileMap, setProfileMap] = useState<Map<string, FriendProfile>>(
@@ -503,6 +505,13 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                         <p className="text-gray-500 text-xs truncate">{profile.full_name}</p>
                       )}
                     </div>
+                    <button
+                      onClick={() => router.push(`/users/${friendId}`)}
+                      className="w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:border-white/30 transition-colors"
+                      aria-label="Ver perfil"
+                    >
+                      <User size={13} />
+                    </button>
                     <button
                       onClick={() => setConfirmDelete({ friendshipId: f.id, username: profile.username, otherUserId: friendId })}
                       disabled={isLoading}
