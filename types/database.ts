@@ -416,16 +416,19 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          subject: string;
           message: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
+          subject?: string;
           message: string;
           created_at?: string;
         };
         Update: {
+          subject?: string;
           message?: string;
         };
         Relationships: [

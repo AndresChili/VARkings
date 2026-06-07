@@ -99,6 +99,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [showSuggestionForm, setShowSuggestionForm] = useState(false);
+  const [suggestionSubject, setSuggestionSubject] = useState('');
   const [suggestionText, setSuggestionText] = useState('');
   const [suggestionSending, setSuggestionSending] = useState(false);
   const [suggestionSent, setSuggestionSent] = useState(false);
@@ -255,12 +256,13 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   async function handleSendSuggestion(e: React.FormEvent) {
     e.preventDefault();
     setSuggestionError('');
-    if (!suggestionText.trim()) { setSuggestionError('Escribe algo primero'); return; }
+    if (!suggestionSubject.trim()) { setSuggestionError('El asunto es obligatorio'); return; }
+    if (!suggestionText.trim()) { setSuggestionError('El mensaje es obligatorio'); return; }
     setSuggestionSending(true);
     const res = await fetch('/api/suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: suggestionText.trim() }),
+      body: JSON.stringify({ subject: suggestionSubject.trim(), message: suggestionText.trim() }),
     });
     setSuggestionSending(false);
     if (!res.ok) {
@@ -269,6 +271,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
       return;
     }
     setSuggestionSent(true);
+    setSuggestionSubject('');
     setSuggestionText('');
     setShowSuggestionForm(false);
     setTimeout(() => setSuggestionSent(false), 3500);
@@ -744,27 +747,39 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           <form onSubmit={handleSendSuggestion} className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up space-y-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-semibold text-white">Sugerencias o errores</p>
-              <button type="button" onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionText(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <button type="button" onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionSubject(''); setSuggestionText(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
                 <X size={15} />
               </button>
             </div>
-            <textarea
-              value={suggestionText}
-              onChange={(e) => setSuggestionText(e.target.value)}
-              placeholder="Cuéntame qué mejorarías o qué error has visto..."
-              maxLength={1000}
-              rows={4}
-              className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500/50 text-sm placeholder-gray-600 resize-none"
-              autoFocus
-            />
-            <div className="flex items-center justify-between">
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Asunto</label>
+              <input
+                type="text"
+                value={suggestionSubject}
+                onChange={(e) => setSuggestionSubject(e.target.value)}
+                placeholder="Ej: Error en predicciones, Mejora de diseño..."
+                maxLength={100}
+                className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500/50 text-sm placeholder-gray-600"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Mensaje</label>
+              <textarea
+                value={suggestionText}
+                onChange={(e) => setSuggestionText(e.target.value)}
+                placeholder="Cuéntame qué mejorarías o qué error has visto..."
+                maxLength={1000}
+                rows={4}
+                className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500/50 text-sm placeholder-gray-600 resize-none"
+              />
               <span className="text-xs text-gray-600">{suggestionText.length}/1000</span>
             </div>
             {suggestionError && <p className="text-red-400 text-xs">{suggestionError}</p>}
             <div className="flex gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionText(''); }}
+                onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionSubject(''); setSuggestionText(''); }}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm flex items-center justify-center gap-1.5 hover:border-white/20 transition-colors"
               >
                 <X size={13} />
