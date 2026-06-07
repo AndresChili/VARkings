@@ -15,9 +15,10 @@ interface ProfileClientProps {
     matchPoints: number;
     winnerHits: number;
     exactHits: number;
-    oneTeamHits: number;
-    podioHits: number | null;
-    groupTeamsHits: number;
+    teamGoalHits: number;
+    groupPts: number;
+    podioExactHits: number;
+    podioAnyHits: number;
     tournamentPoints: number;
   };
   achievementData: {
@@ -95,8 +96,6 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = getLevel(stats.matchPoints);
-
-  const n = stats.calculatedPredictions;
 
   const achievementStats: AchievementStats = {
     totalPredictions: stats.totalPredictions,
@@ -479,26 +478,13 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
                 <span className="text-sm font-bold text-crown tabular-nums">{stats.matchPoints}</span>
               </div>
 
-              {/* Partidos calculados */}
-              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <Target size={14} className="text-gray-400" />
-                  <span className="text-sm text-gray-300">Partidos calculados</span>
-                </div>
-                <span className="text-sm font-bold text-gray-300 tabular-nums">
-                  {n} de {stats.totalPredictions}
-                </span>
-              </div>
-
-              {/* Ganador / empate */}
+              {/* Ganador o empate */}
               <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <Target size={14} className="text-field-light" />
                   <span className="text-sm text-gray-300">Ganador o empate</span>
                 </div>
-                <span className="text-sm font-bold text-field-light tabular-nums">
-                  {n > 0 ? `${stats.winnerHits} de ${n}` : '—'}
-                </span>
+                <span className="text-sm font-bold text-field-light tabular-nums">{stats.winnerHits}</span>
               </div>
 
               {/* Resultado exacto */}
@@ -507,31 +493,45 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
                   <CheckCircle size={14} className="text-blue-400" />
                   <span className="text-sm text-gray-300">Resultado exacto</span>
                 </div>
-                <span className="text-sm font-bold text-blue-400 tabular-nums">
-                  {n > 0 ? `${stats.exactHits} de ${n}` : '—'}
-                </span>
+                <span className="text-sm font-bold text-blue-400 tabular-nums">{stats.exactHits}</span>
               </div>
 
-              {/* Un equipo acertado */}
+              {/* Goles de equipo */}
               <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <Zap size={14} className="text-yellow-400" />
-                  <span className="text-sm text-gray-300">Un equipo acertado</span>
+                  <span className="text-sm text-gray-300">Goles de equipo</span>
                 </div>
-                <span className="text-sm font-bold text-yellow-400 tabular-nums">
-                  {n > 0 ? `${stats.oneTeamHits} de ${n}` : '—'}
-                </span>
+                <span className="text-sm font-bold text-yellow-400 tabular-nums">{stats.teamGoalHits}</span>
               </div>
 
               {/* Fase de grupos */}
-              <div className="flex items-center justify-between py-2.5">
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <Target size={14} className="text-orange-400" />
                   <span className="text-sm text-gray-300">Fase de grupos</span>
                 </div>
                 <span className="text-sm font-bold text-orange-400 tabular-nums">
-                  {stats.groupTeamsHits > 0 ? `${stats.groupTeamsHits} / 60 pts` : '—'}
+                  {stats.groupPts > 0 ? stats.groupPts : '—'}
                 </span>
+              </div>
+
+              {/* Podio exacto */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} className="text-crown" />
+                  <span className="text-sm text-gray-300">Podio acertado exacto</span>
+                </div>
+                <span className="text-sm font-bold text-crown tabular-nums">{stats.podioExactHits}</span>
+              </div>
+
+              {/* Podio any */}
+              <div className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} className="text-purple-400" />
+                  <span className="text-sm text-gray-300">Podio acertado</span>
+                </div>
+                <span className="text-sm font-bold text-purple-400 tabular-nums">{stats.podioAnyHits}</span>
               </div>
             </div>
           </div>

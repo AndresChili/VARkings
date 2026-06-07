@@ -22,7 +22,7 @@ export default async function ProfilePage() {
       .eq('user_id', user.id),
     supabase
       .from('tournament_predictions')
-      .select('champion_points, runner_up_points, third_place_points, group_predictions_points, champion, group_predictions')
+      .select('champion_points, runner_up_points, third_place_points, group_predictions_points, champion, group_predictions, is_calculated')
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase
@@ -65,15 +65,17 @@ export default async function ProfilePage() {
   const matchPoints = calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints;
   const winnerHits = calculated.filter((p) => (p.points_winner ?? 0) > 0).length;
   const exactHits = exactPredsRes.count ?? 0;
-  const oneTeamHits = calculated.filter((p) => {
-    const h = (p.points_home_score ?? 0) > 0;
-    const a = (p.points_away_score ?? 0) > 0;
-    return (h || a) && (p.points_total ?? 0) < 3;
-  }).length;
-  const podioHits = tp
-    ? [(tp.champion_points ?? 0) > 0, (tp.runner_up_points ?? 0) > 0, (tp.third_place_points ?? 0) > 0].filter(Boolean).length
-    : null;
-  const groupTeamsHits = tp?.group_predictions_points ?? 0;
+  const teamGoalHits = calculated.reduce((sum, p) => {
+    return sum + ((p.points_home_score ?? 0) > 0 ? 1 : 0) + ((p.points_away_score ?? 0) > 0 ? 1 : 0);
+  }, 0);
+  const groupPts = tp?.group_predictions_points ?? 0;
+  const tpCalc = tp?.is_calculated ?? false;
+  const podioExactHits = tpCalc
+    ? ((tp!.champion_points ?? 0) === 20 ? 1 : 0) + ((tp!.runner_up_points ?? 0) === 10 ? 1 : 0) + ((tp!.third_place_points ?? 0) === 5 ? 1 : 0)
+    : 0;
+  const podioAnyHits = tpCalc
+    ? ((tp!.champion_points ?? 0) === 3 ? 1 : 0) + ((tp!.runner_up_points ?? 0) === 3 ? 1 : 0) + ((tp!.third_place_points ?? 0) === 3 ? 1 : 0)
+    : 0;
 
   const stats = {
     totalPredictions: preds.length,
@@ -81,9 +83,10 @@ export default async function ProfilePage() {
     matchPoints,
     winnerHits,
     exactHits,
-    oneTeamHits,
-    podioHits,
-    groupTeamsHits,
+    teamGoalHits,
+    groupPts,
+    podioExactHits,
+    podioAnyHits,
     tournamentPoints,
   };
 
