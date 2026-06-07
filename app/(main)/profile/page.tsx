@@ -169,6 +169,8 @@ export default async function ProfilePage() {
   const totalXP = await getUserXP(admin, user.id);
   const levelProgress = getLevelProgress(totalXP);
 
+  const isSuperadmin = user.email === 'andrescabreroamieva@gmail.com';
+
   return (
     <ProfileClient
       profile={profileRes.data}
@@ -176,6 +178,7 @@ export default async function ProfilePage() {
       achievementData={achievementData}
       levelProgress={levelProgress}
       email={user.email ?? ''}
+      isSuperadmin={isSuperadmin}
     />
   );
 }

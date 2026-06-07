@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
@@ -41,6 +41,7 @@ interface ProfileClientProps {
   };
   levelProgress: LevelProgress;
   email: string;
+  isSuperadmin: boolean;
 }
 
 
@@ -68,7 +69,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, levelProgress, email }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +98,11 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [showSuggestionForm, setShowSuggestionForm] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+  const [suggestionSending, setSuggestionSending] = useState(false);
+  const [suggestionSent, setSuggestionSent] = useState(false);
+  const [suggestionError, setSuggestionError] = useState('');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -244,6 +250,28 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
+  }
+
+  async function handleSendSuggestion(e: React.FormEvent) {
+    e.preventDefault();
+    setSuggestionError('');
+    if (!suggestionText.trim()) { setSuggestionError('Escribe algo primero'); return; }
+    setSuggestionSending(true);
+    const res = await fetch('/api/suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: suggestionText.trim() }),
+    });
+    setSuggestionSending(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setSuggestionError(data.error ?? 'Error al enviar');
+      return;
+    }
+    setSuggestionSent(true);
+    setSuggestionText('');
+    setShowSuggestionForm(false);
+    setTimeout(() => setSuggestionSent(false), 3500);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -676,6 +704,78 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
                 className="flex-1 py-2.5 rounded-xl bg-field text-white text-sm font-semibold disabled:opacity-50 hover:bg-field-muted transition-colors"
               >
                 {passwordSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Sugerencias */}
+        {isSuperadmin ? (
+          <button
+            onClick={() => router.push('/admin/sugerencias')}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-orange-500/20 text-orange-400 hover:bg-orange-500/8 transition-colors group mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/15 flex items-center justify-center group-hover:bg-orange-500/25 transition-colors">
+                <MessageSquare size={15} className="text-orange-400" />
+              </div>
+              <span className="font-medium text-sm">Ver sugerencias</span>
+            </div>
+            <ChevronRight size={16} className="text-orange-500/40" />
+          </button>
+        ) : !showSuggestionForm ? (
+          <button
+            onClick={() => { setShowSuggestionForm(true); setSuggestionError(''); }}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-orange-500/20 text-orange-400 hover:bg-orange-500/8 transition-colors group mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/15 flex items-center justify-center group-hover:bg-orange-500/25 transition-colors">
+                <MessageSquare size={15} className="text-orange-400" />
+              </div>
+              <span className="font-medium text-sm">
+                {suggestionSent ? (
+                  <span className="flex items-center gap-1 text-field-light"><CheckCircle size={13} /> Enviado, gracias</span>
+                ) : 'Sugerencias'}
+              </span>
+            </div>
+            <ChevronRight size={16} className="text-orange-500/40" />
+          </button>
+        ) : (
+          <form onSubmit={handleSendSuggestion} className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-white">Sugerencias o errores</p>
+              <button type="button" onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionText(''); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+                <X size={15} />
+              </button>
+            </div>
+            <textarea
+              value={suggestionText}
+              onChange={(e) => setSuggestionText(e.target.value)}
+              placeholder="Cuéntame qué mejorarías o qué error has visto..."
+              maxLength={1000}
+              rows={4}
+              className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500/50 text-sm placeholder-gray-600 resize-none"
+              autoFocus
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600">{suggestionText.length}/1000</span>
+            </div>
+            {suggestionError && <p className="text-red-400 text-xs">{suggestionError}</p>}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowSuggestionForm(false); setSuggestionError(''); setSuggestionText(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm flex items-center justify-center gap-1.5 hover:border-white/20 transition-colors"
+              >
+                <X size={13} />
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={suggestionSending}
+                className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-50 hover:bg-orange-600 transition-colors"
+              >
+                {suggestionSending ? 'Enviando...' : 'Enviar'}
               </button>
             </div>
           </form>
