@@ -412,6 +412,32 @@ export interface Database {
         };
         Relationships: [];
       };
+      suggestions: {
+        Row: {
+          id: string;
+          user_id: string;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          message?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'suggestions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       group_leaderboard: {
