@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
+import { AchievementsTab, getAchievements, type AchievementStats } from './achievements-tab';
 
 interface ProfileClientProps {
   profile: Profile | null;
@@ -13,6 +14,14 @@ interface ProfileClientProps {
     calculatedPredictions: number;
     matchPoints: number;
     correctWinners: number;
+  };
+  achievementData: {
+    friendsCount: number;
+    groupsCreated: number;
+    maxGroupMembers: number;
+    exactPredictions: number;
+    hasTournamentPrediction: boolean;
+    groupPredictionsCount: number;
   };
   email: string;
 }
@@ -49,7 +58,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, email }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +85,7 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<'perfil' | 'logros'>('perfil');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -84,6 +94,19 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
   const accuracy = stats.calculatedPredictions > 0
     ? Math.round((stats.correctWinners / stats.calculatedPredictions) * 100)
     : 0;
+
+  const achievementStats: AchievementStats = {
+    totalPredictions: stats.totalPredictions,
+    exactPredictions: achievementData.exactPredictions,
+    hasTournamentPrediction: achievementData.hasTournamentPrediction,
+    groupPredictionsCount: achievementData.groupPredictionsCount,
+    friendsCount: achievementData.friendsCount,
+    groupsCreated: achievementData.groupsCreated,
+    maxGroupMembers: achievementData.maxGroupMembers,
+    totalPoints: stats.matchPoints,
+    hasAvatar: !!avatarUrl,
+  };
+  const completedCount = getAchievements(achievementStats).filter((a) => a.current >= a.target).length;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -477,9 +500,36 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
           </div>
         )}
 
-        {/* Share app */}
-        <button
-          onClick={handleShare}
+        {/* Tab navigation */}
+        <div className="flex bg-surface-card border border-white/8 rounded-2xl p-1 mb-4">
+          <button
+            onClick={() => setActiveTab('perfil')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'perfil' ? 'bg-field text-white' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Perfil
+          </button>
+          <button
+            onClick={() => setActiveTab('logros')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'logros' ? 'bg-field text-white' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Logros
+            <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
+              activeTab === 'logros' ? 'bg-white/20 text-white' : 'bg-white/8 text-gray-600'
+            }`}>
+              {completedCount}/20
+            </span>
+          </button>
+        </div>
+
+        {activeTab === 'perfil' && (
+          <>
+            {/* Share app */}
+            <button
+              onClick={handleShare}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-field/20 text-field-light hover:bg-field/8 transition-colors group mb-3"
         >
           <div className="flex items-center gap-3">
@@ -619,6 +669,13 @@ export function ProfileClient({ profile, stats, email }: ProfileClientProps) {
               </button>
             </div>
           </div>
+        )}
+
+          </>
+        )}
+
+        {activeTab === 'logros' && (
+          <AchievementsTab stats={achievementStats} />
         )}
 
       </div>
