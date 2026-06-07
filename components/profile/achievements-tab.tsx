@@ -42,6 +42,13 @@ const C = {
     bar:    'from-purple-500 to-violet-400',
     badge:  'bg-purple-500/20 text-purple-200 border-purple-400/30',
   },
+  rachas: {
+    bg:     'from-orange-500/30 via-red-500/20 to-orange-700/10',
+    border: 'border-orange-500/35',
+    icon:   'bg-orange-500/20',
+    bar:    'from-orange-500 to-red-400',
+    badge:  'bg-orange-500/20 text-orange-200 border-orange-400/30',
+  },
 } as const;
 
 function AchievementCard({ a }: { a: Achievement }) {
@@ -110,6 +117,23 @@ export function AchievementsTab({ stats }: { stats: AchievementStats }) {
 
   return (
     <div className="space-y-3 pb-6">
+      {/* Streak banner */}
+      <div className="bg-gradient-to-br from-orange-500/25 via-red-500/15 to-orange-700/10 border border-orange-500/30 rounded-2xl px-4 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-500/20 flex items-center justify-center text-xl">
+            🔥
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Racha actual</p>
+            <p className="text-xs text-white/50">{stats.totalDaysActive} días jugados en total</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black text-orange-300 tabular-nums">{stats.currentStreak}</p>
+          <p className="text-xs text-white/40">días seguidos</p>
+        </div>
+      </div>
+
       {/* Overall progress card */}
       <div className="bg-surface-card border border-white/8 rounded-2xl px-4 py-3.5 flex items-center justify-between">
         <div>

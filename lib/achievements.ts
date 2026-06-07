@@ -10,6 +10,9 @@ export interface AchievementStats {
   totalXP: number;
   totalMatches: number;
   hasAvatar: boolean;
+  currentStreak: number;
+  maxStreak: number;
+  totalDaysActive: number;
 }
 
 export type AchievementDifficulty = 'easy' | 'medium' | 'hard';
@@ -19,7 +22,7 @@ export interface Achievement {
   emoji: string;
   title: string;
   description: string;
-  category: 'social' | 'predicciones' | 'grupos' | 'puntos' | 'perfil';
+  category: 'social' | 'predicciones' | 'grupos' | 'puntos' | 'perfil' | 'rachas';
   current: number;
   target: number;
   difficulty: AchievementDifficulty;
@@ -47,5 +50,12 @@ export function getAchievements(s: AchievementStats): Achievement[] {
     { id: 'experto',           emoji: '⚡', title: 'Experto Mundial',        description: 'Acumula 1200 XP',                                       category: 'puntos',       current: s.totalXP,                        target: 1200, difficulty: 'hard'  },
     { id: 'leyenda',           emoji: '🔥', title: 'Leyenda Viviente',       description: 'Acumula 2200 XP',                                       category: 'puntos',       current: s.totalXP,                        target: 2200, difficulty: 'hard'  },
     { id: 'cara-conocida',     emoji: '📸', title: 'Cara Conocida',          description: 'Sube tu foto de perfil',                                category: 'perfil',       current: s.hasAvatar ? 1 : 0,              target: 1,   difficulty: 'easy'   },
+    { id: 'primer-dia',        emoji: '🗓️', title: 'Primer Día',             description: 'Entra a VARkings por primera vez',                      category: 'rachas',       current: s.totalDaysActive,                target: 1,   difficulty: 'easy'   },
+    { id: 'semana-total',      emoji: '📅', title: 'Primera Semana',         description: 'Juega durante 7 días en total',                         category: 'rachas',       current: s.totalDaysActive,                target: 7,   difficulty: 'medium' },
+    { id: 'veterano',          emoji: '🦅', title: 'Veterano del Mundial',   description: 'Juega durante 30 días en total',                        category: 'rachas',       current: s.totalDaysActive,                target: 30,  difficulty: 'hard'   },
+    { id: 'constante',         emoji: '🔥', title: 'Constante',              description: 'Entra 3 días seguidos',                                 category: 'rachas',       current: s.maxStreak,                      target: 3,   difficulty: 'easy'   },
+    { id: 'semana-fuego',      emoji: '💥', title: 'Semana de Fuego',        description: 'Mantén una racha de 7 días',                            category: 'rachas',       current: s.maxStreak,                      target: 7,   difficulty: 'medium' },
+    { id: 'quincenal',         emoji: '💪', title: 'Quincenal',              description: 'Mantén una racha de 14 días consecutivos',              category: 'rachas',       current: s.maxStreak,                      target: 14,  difficulty: 'hard'   },
+    { id: 'mes-mundial',       emoji: '🏅', title: 'Mes Mundial',            description: 'Entra cada día durante 30 días seguidos',               category: 'rachas',       current: s.maxStreak,                      target: 30,  difficulty: 'hard'   },
   ];
 }
