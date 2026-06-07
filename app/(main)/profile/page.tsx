@@ -4,6 +4,8 @@ import { ProfileClient } from '@/components/profile/profile-client';
 type PredRow = {
   points_total: number;
   points_winner: number;
+  points_home_score: number;
+  points_away_score: number;
   is_calculated: boolean;
 };
 
@@ -16,7 +18,7 @@ export default async function ProfilePage() {
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
-      .select('points_total, points_winner, is_calculated')
+      .select('points_total, points_winner, points_home_score, points_away_score, is_calculated')
       .eq('user_id', user.id),
     supabase
       .from('tournament_predictions')
@@ -60,11 +62,29 @@ export default async function ProfilePage() {
     ? (tp.champion_points ?? 0) + (tp.runner_up_points ?? 0) + (tp.third_place_points ?? 0) + (tp.group_predictions_points ?? 0)
     : 0;
 
+  const matchPoints = calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints;
+  const winnerHits = calculated.filter((p) => (p.points_winner ?? 0) > 0).length;
+  const exactHits = exactPredsRes.count ?? 0;
+  const oneTeamHits = calculated.filter((p) => {
+    const h = (p.points_home_score ?? 0) > 0;
+    const a = (p.points_away_score ?? 0) > 0;
+    return (h || a) && (p.points_total ?? 0) < 3;
+  }).length;
+  const podioHits = tp
+    ? [(tp.champion_points ?? 0) > 0, (tp.runner_up_points ?? 0) > 0, (tp.third_place_points ?? 0) > 0].filter(Boolean).length
+    : null;
+  const groupTeamsHits = tp?.group_predictions_points ?? 0;
+
   const stats = {
     totalPredictions: preds.length,
     calculatedPredictions: calculated.length,
-    matchPoints: calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints,
-    correctWinners: calculated.filter((p) => (p.points_winner ?? 0) > 0).length,
+    matchPoints,
+    winnerHits,
+    exactHits,
+    oneTeamHits,
+    podioHits,
+    groupTeamsHits,
+    tournamentPoints,
   };
 
   const achievementData = {

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check, Lock } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 import { getAchievements, type AchievementStats } from './achievements-tab';
@@ -13,7 +13,12 @@ interface ProfileClientProps {
     totalPredictions: number;
     calculatedPredictions: number;
     matchPoints: number;
-    correctWinners: number;
+    winnerHits: number;
+    exactHits: number;
+    oneTeamHits: number;
+    podioHits: number | null;
+    groupTeamsHits: number;
+    tournamentPoints: number;
   };
   achievementData: {
     friendsCount: number;
@@ -78,6 +83,7 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+  const [showStats, setShowStats] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -90,9 +96,18 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = getLevel(stats.matchPoints);
 
-  const accuracy = stats.calculatedPredictions > 0
-    ? Math.round((stats.correctWinners / stats.calculatedPredictions) * 100)
+  const winnerPct = stats.calculatedPredictions > 0
+    ? Math.round((stats.winnerHits / stats.calculatedPredictions) * 100)
     : 0;
+  const exactPct = stats.calculatedPredictions > 0
+    ? Math.round((stats.exactHits / stats.calculatedPredictions) * 100)
+    : 0;
+  const oneTeamPct = stats.calculatedPredictions > 0
+    ? Math.round((stats.oneTeamHits / stats.calculatedPredictions) * 100)
+    : 0;
+  const avgPts = stats.calculatedPredictions > 0
+    ? (stats.matchPoints / stats.calculatedPredictions).toFixed(1)
+    : '—';
 
   const achievementStats: AchievementStats = {
     totalPredictions: stats.totalPredictions,
@@ -434,68 +449,131 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
           </div>
         )}
 
-        {/* Stats grid */}
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Estadísticas</p>
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-surface-card border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-crown/15 flex items-center justify-center">
-                <Trophy size={15} className="text-crown" />
-              </div>
-              <span className="text-xs text-gray-400 font-medium">Puntos</span>
-            </div>
-            <div className="text-3xl font-black text-crown tabular-nums">{stats.matchPoints}</div>
-          </div>
-
-          <div className="bg-surface-card border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-field/20 flex items-center justify-center">
-                <Target size={15} className="text-field-light" />
-              </div>
-              <span className="text-xs text-gray-400 font-medium">Predicciones</span>
-            </div>
-            <div className="text-3xl font-black text-field-light tabular-nums">{stats.totalPredictions}</div>
-          </div>
-
-          <div className="bg-surface-card border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center">
-                <CheckCircle size={15} className="text-blue-400" />
-              </div>
-              <span className="text-xs text-gray-400 font-medium">Aciertos</span>
-            </div>
-            <div className="text-3xl font-black text-blue-400 tabular-nums">{stats.correctWinners}</div>
-          </div>
-
-          <div className="bg-surface-card border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center">
+        {/* Stats card */}
+        {!showStats ? (
+          <button
+            onClick={() => setShowStats(true)}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-purple-500/20 text-purple-400 hover:bg-purple-500/8 transition-colors group mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center group-hover:bg-purple-500/25 transition-colors">
                 <Zap size={15} className="text-purple-400" />
               </div>
-              <span className="text-xs text-gray-400 font-medium">Precisión</span>
+              <span className="font-medium text-sm">Estadísticas</span>
             </div>
-            <div className="text-3xl font-black text-purple-400 tabular-nums">{accuracy}%</div>
-          </div>
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-purple-400/60 tabular-nums">{stats.matchPoints} pts</span>
+              <ChevronRight size={16} className="text-purple-500/40" />
+            </div>
+          </button>
+        ) : (
+          <div className="bg-surface-card border border-white/10 rounded-2xl p-4 mb-3 animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                  <Zap size={15} className="text-purple-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Estadísticas</span>
+              </div>
+              <button onClick={() => setShowStats(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
+                <X size={15} />
+              </button>
+            </div>
 
-        {/* Precision bar */}
-        {stats.calculatedPredictions > 0 && (
-          <div className="bg-surface-card border border-white/8 rounded-2xl p-4 mb-6">
-            <div className="flex justify-between items-center mb-2.5">
-              <span className="text-xs text-gray-400 font-medium">Aciertos totales</span>
-              <span className="text-xs font-bold text-white">{stats.correctWinners} / {stats.calculatedPredictions}</span>
+            <div className="space-y-0">
+              {/* Puntos + media */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} className="text-crown" />
+                  <span className="text-sm text-gray-300">Puntos totales</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-crown tabular-nums">{stats.matchPoints}</span>
+                  {stats.calculatedPredictions > 0 && (
+                    <span className="text-xs text-gray-500 tabular-nums">({avgPts}/partido)</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Ganador / empate */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Target size={14} className="text-field-light" />
+                  <span className="text-sm text-gray-300">Ganador o empate</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-field-light tabular-nums">{winnerPct}%</span>
+                  {stats.calculatedPredictions > 0 && (
+                    <span className="text-xs text-gray-500 tabular-nums">({stats.winnerHits}/{stats.calculatedPredictions})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Resultado exacto */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={14} className="text-blue-400" />
+                  <span className="text-sm text-gray-300">Resultado exacto</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-blue-400 tabular-nums">{exactPct}%</span>
+                  {stats.calculatedPredictions > 0 && (
+                    <span className="text-xs text-gray-500 tabular-nums">({stats.exactHits}/{stats.calculatedPredictions})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Un equipo */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Zap size={14} className="text-yellow-400" />
+                  <span className="text-sm text-gray-300">Un equipo acertado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-yellow-400 tabular-nums">{oneTeamPct}%</span>
+                  {stats.calculatedPredictions > 0 && (
+                    <span className="text-xs text-gray-500 tabular-nums">({stats.oneTeamHits}/{stats.calculatedPredictions})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Fase de grupos */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Target size={14} className="text-orange-400" />
+                  <span className="text-sm text-gray-300">Equipos de fase de grupos</span>
+                </div>
+                <span className="text-sm font-bold text-orange-400 tabular-nums">
+                  {stats.groupTeamsHits > 0 ? `${stats.groupTeamsHits} equipos` : '—'}
+                </span>
+              </div>
+
+              {/* Podio */}
+              <div className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-2">
+                  <Trophy size={14} className="text-crown" />
+                  <span className="text-sm text-gray-300">Podio acertado</span>
+                </div>
+                <span className="text-sm font-bold text-crown tabular-nums">
+                  {stats.podioHits !== null ? `${stats.podioHits}/3` : '—'}
+                </span>
+              </div>
             </div>
-            <div className="h-2 bg-surface rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-field to-field-light rounded-full transition-all duration-700"
-                style={{ width: `${accuracy}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-xs text-gray-600">0%</span>
-              <span className="text-xs font-semibold text-field-light">{accuracy}% precisión</span>
-              <span className="text-xs text-gray-600">100%</span>
-            </div>
+
+            {stats.calculatedPredictions > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Ganador/empate</span>
+                  <span className="text-xs font-bold text-white">{winnerPct}%</span>
+                </div>
+                <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-field to-field-light rounded-full transition-all duration-700"
+                    style={{ width: `${winnerPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
