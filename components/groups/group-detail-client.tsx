@@ -1136,7 +1136,7 @@ export function GroupDetailClient({
       const isOwnProfile = selectedMemberId === userId;
       return (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setSelectedMemberId(null)}
         >
           <div
