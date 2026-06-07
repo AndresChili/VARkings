@@ -84,6 +84,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [avatarError, setAvatarError] = useState('');
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -681,18 +682,39 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
         )}
 
         {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/8 transition-colors group mb-3"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center group-hover:bg-red-500/25 transition-colors">
-              <LogOut size={15} />
+        {!showLogoutConfirm ? (
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/8 transition-colors group mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center group-hover:bg-red-500/25 transition-colors">
+                <LogOut size={15} />
+              </div>
+              <span className="font-medium text-sm">Cerrar sesión</span>
             </div>
-            <span className="font-medium text-sm">Cerrar sesión</span>
+            <ChevronRight size={16} className="text-red-500/40" />
+          </button>
+        ) : (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-3 animate-slide-up">
+            <p className="text-white font-semibold mb-1">¿Cerrar sesión?</p>
+            <p className="text-gray-400 text-sm mb-4">Se cerrará tu sesión en este dispositivo.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </div>
-          <ChevronRight size={16} className="text-red-500/40" />
-        </button>
+        )}
 
         {/* Delete account */}
         {!showDeleteConfirm ? (
