@@ -42,6 +42,7 @@ interface ProfileClientProps {
   levelProgress: LevelProgress;
   email: string;
   isSuperadmin: boolean;
+  unreadSuggestions: number;
 }
 
 
@@ -69,7 +70,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -724,7 +725,14 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               </div>
               <span className="font-medium text-sm">Ver sugerencias</span>
             </div>
-            <ChevronRight size={16} className="text-orange-500/40" />
+            <div className="flex items-center gap-2">
+              {unreadSuggestions > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                  {unreadSuggestions > 99 ? '99+' : unreadSuggestions}
+                </span>
+              )}
+              <ChevronRight size={16} className="text-orange-500/40" />
+            </div>
           </button>
         ) : !showSuggestionForm ? (
           <button
