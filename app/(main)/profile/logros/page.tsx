@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { LogrosClient } from '@/components/profile/logros-client';
-import { getAchievements, type AchievementStats } from '@/components/profile/achievements-tab';
+import { getAchievements, type AchievementStats } from '@/lib/achievements';
 import { getUserXP, awardXP } from '@/lib/xp-server';
 import { XP_VALUES } from '@/lib/xp';
 
