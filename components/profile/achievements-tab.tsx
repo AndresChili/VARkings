@@ -12,6 +12,7 @@ export interface AchievementStats {
   maxGroupMembers: number;
   totalPoints: number;
   totalXP: number;
+  totalMatches: number;
   hasAvatar: boolean;
 }
 
@@ -33,7 +34,7 @@ export function getAchievements(s: AchievementStats): Achievement[] {
     { id: 'primer-vaticinio',  emoji: '⚽', title: 'Primer Vaticinio',      description: 'Haz tu primera predicción de partido',                  category: 'predicciones', current: s.totalPredictions,               target: 1,   difficulty: 'easy'   },
     { id: 'adivino',           emoji: '🔮', title: 'Adivino',                description: 'Realiza 10 predicciones de partido',                    category: 'predicciones', current: s.totalPredictions,               target: 10,  difficulty: 'medium' },
     { id: 'maquina',           emoji: '🤖', title: 'Máquina Predictora',     description: 'Realiza 50 predicciones de partido',                    category: 'predicciones', current: s.totalPredictions,               target: 50,  difficulty: 'hard'   },
-    { id: 'completista',       emoji: '🌍', title: 'Completista',            description: 'Predice los 64 partidos del Mundial',                   category: 'predicciones', current: s.totalPredictions,               target: 64,  difficulty: 'hard'   },
+    { id: 'completista',       emoji: '🌍', title: 'Completista',            description: 'Predice todos los partidos del Mundial',                category: 'predicciones', current: s.totalPredictions,               target: s.totalMatches || 104, difficulty: 'hard'   },
     { id: 'ojo-halcon',        emoji: '🎯', title: 'Ojo de Halcón',          description: 'Acierta el marcador exacto de un partido (3 puntos)',   category: 'predicciones', current: s.exactPredictions,               target: 1,   difficulty: 'medium' },
     { id: 'hat-trick',         emoji: '💥', title: 'Hat-Trick de Aciertos',  description: 'Acierta 3 marcadores exactos',                          category: 'predicciones', current: s.exactPredictions,               target: 3,   difficulty: 'medium' },
     { id: 'gran-podio',        emoji: '🏆', title: 'El Gran Podio',          description: 'Completa tus predicciones del podio del torneo',        category: 'predicciones', current: s.hasTournamentPrediction ? 1 : 0, target: 1,   difficulty: 'easy'   },
