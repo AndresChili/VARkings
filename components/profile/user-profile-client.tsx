@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Target, Trophy, Users, Zap, UserPlus, Check, UserCheck, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Target, Trophy, Zap, UserPlus, Check, UserCheck, Loader2, CheckCircle } from 'lucide-react';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/lib/achievements';
@@ -27,12 +27,12 @@ interface UserProfileClientProps {
   levelProgress: LevelProgress;
   stats: {
     matchPoints: number;
-    totalPredictions: number;
-    calculatedPredictions: number;
     winnerHits: number;
     exactHits: number;
-    friendsCount: number;
-    totalXP: number;
+    teamGoalHits: number;
+    groupTeamsCorrect: number;
+    podioExactHits: number;
+    podioAnyHits: number;
   };
   completedAchievements: Achievement[];
   currentUserId: string | null;
@@ -41,12 +41,12 @@ interface UserProfileClientProps {
 }
 
 const CAT_COLORS = {
-  predicciones: { bg: 'from-blue-500/30 via-cyan-500/20 to-blue-700/10', border: 'border-blue-500/35', icon: 'bg-blue-500/20', badge: 'bg-blue-500/20 text-blue-200 border-blue-400/30' },
-  social:       { bg: 'from-pink-500/30 via-rose-500/20 to-pink-700/10',  border: 'border-pink-500/35',  icon: 'bg-pink-500/20',  badge: 'bg-pink-500/20 text-pink-200 border-pink-400/30'  },
-  grupos:       { bg: 'from-field/40 via-field-dark/25 to-field/10',      border: 'border-field/40',     icon: 'bg-field/25',     badge: 'bg-field/25 text-field-light border-field/35'     },
-  puntos:       { bg: 'from-amber-500/30 via-yellow-500/20 to-amber-700/10', border: 'border-amber-500/35', icon: 'bg-amber-500/20', badge: 'bg-amber-500/20 text-amber-200 border-amber-400/30' },
-  perfil:       { bg: 'from-purple-500/30 via-violet-500/20 to-purple-700/10', border: 'border-purple-500/35', icon: 'bg-purple-500/20', badge: 'bg-purple-500/20 text-purple-200 border-purple-400/30' },
-  rachas:       { bg: 'from-orange-500/30 via-red-500/20 to-orange-700/10', border: 'border-orange-500/35', icon: 'bg-orange-500/20', badge: 'bg-orange-500/20 text-orange-200 border-orange-400/30' },
+  predicciones: { bg: 'from-blue-500/30 via-cyan-500/20 to-blue-700/10',       border: 'border-blue-500/35',   icon: 'bg-blue-500/20',   badge: 'bg-blue-500/20 text-blue-200 border-blue-400/30'    },
+  social:       { bg: 'from-pink-500/30 via-rose-500/20 to-pink-700/10',        border: 'border-pink-500/35',   icon: 'bg-pink-500/20',   badge: 'bg-pink-500/20 text-pink-200 border-pink-400/30'    },
+  grupos:       { bg: 'from-field/40 via-field-dark/25 to-field/10',            border: 'border-field/40',      icon: 'bg-field/25',      badge: 'bg-field/25 text-field-light border-field/35'       },
+  puntos:       { bg: 'from-amber-500/30 via-yellow-500/20 to-amber-700/10',    border: 'border-amber-500/35',  icon: 'bg-amber-500/20',  badge: 'bg-amber-500/20 text-amber-200 border-amber-400/30'  },
+  perfil:       { bg: 'from-purple-500/30 via-violet-500/20 to-purple-700/10',  border: 'border-purple-500/35', icon: 'bg-purple-500/20', badge: 'bg-purple-500/20 text-purple-200 border-purple-400/30' },
+  rachas:       { bg: 'from-orange-500/30 via-red-500/20 to-orange-700/10',     border: 'border-orange-500/35', icon: 'bg-orange-500/20', badge: 'bg-orange-500/20 text-orange-200 border-orange-400/30' },
 } as const;
 
 function AchievementCard({ a }: { a: Achievement }) {
@@ -87,7 +87,6 @@ export function UserProfileClient({
   const [loading, setLoading] = useState(false);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
-  const isLoggedIn = !!currentUserId;
 
   async function sendRequest() {
     if (!currentUserId) return;
@@ -143,12 +142,13 @@ export function UserProfileClient({
   }
 
   const statRows = [
-    { icon: <Trophy size={15} className="text-crown" />, label: 'Puntos totales', value: stats.matchPoints, color: 'text-crown' },
-    { icon: <Target size={15} className="text-field-light" />, label: 'Predicciones realizadas', value: stats.totalPredictions, color: 'text-field-light' },
-    { icon: <Check size={15} className="text-blue-400" />, label: 'Ganador o empate acertado', value: stats.winnerHits, color: 'text-blue-400' },
-    { icon: <span className="text-sm">🎯</span>, label: 'Resultado exacto', value: stats.exactHits, color: 'text-purple-400' },
-    { icon: <Zap size={15} className="text-amber-400" />, label: 'XP total', value: stats.totalXP, color: 'text-amber-400' },
-    { icon: <Users size={15} className="text-indigo-400" />, label: 'Amigos', value: stats.friendsCount, color: 'text-indigo-400' },
+    { icon: <Trophy size={14} className="text-crown" />,       label: 'Puntos totales',        value: stats.matchPoints,       color: 'text-crown'      },
+    { icon: <Target size={14} className="text-field-light" />, label: 'Ganador o empate',      value: stats.winnerHits,        color: 'text-field-light'},
+    { icon: <CheckCircle size={14} className="text-blue-400" />, label: 'Resultado exacto',    value: stats.exactHits,         color: 'text-blue-400'   },
+    { icon: <Zap size={14} className="text-yellow-400" />,     label: 'Goles de equipo',       value: stats.teamGoalHits,      color: 'text-yellow-400' },
+    { icon: <Target size={14} className="text-orange-400" />,  label: 'Fase de grupos',        value: stats.groupTeamsCorrect, color: 'text-orange-400' },
+    { icon: <Trophy size={14} className="text-crown" />,       label: 'Podio acertado exacto', value: stats.podioExactHits,    color: 'text-crown'      },
+    { icon: <Trophy size={14} className="text-purple-400" />,  label: 'Podio acertado',        value: stats.podioAnyHits,      color: 'text-purple-400' },
   ];
 
   return (
@@ -172,18 +172,12 @@ export function UserProfileClient({
           <div className="-mt-10 mb-4 flex items-end justify-between">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-surface-card bg-surface-hover flex items-center justify-center text-xl font-black text-gray-300 shrink-0">
               {profile.avatar_url ? (
-                <Image
-                  src={profile.avatar_url}
-                  alt={profile.username}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                />
+                <Image src={profile.avatar_url} alt={profile.username} width={80} height={80} className="w-full h-full object-cover" />
               ) : (
                 initials
               )}
             </div>
-            {isLoggedIn && (
+            {currentUserId && (
               <button
                 onClick={friendStatus === 'pending_received' ? acceptRequest : sendRequest}
                 disabled={loading || friendStatus === 'accepted' || friendStatus === 'pending_sent'}
@@ -250,7 +244,7 @@ export function UserProfileClient({
         <div className="divide-y divide-white/5">
           {statRows.map((row, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-6 flex items-center justify-center shrink-0">{row.icon}</div>
+              <div className="w-5 flex items-center justify-center shrink-0">{row.icon}</div>
               <span className="flex-1 text-sm text-gray-300">{row.label}</span>
               <span className={cn('text-sm font-bold tabular-nums', row.color)}>{row.value}</span>
             </div>
@@ -259,25 +253,19 @@ export function UserProfileClient({
       </div>
 
       {/* Completed achievements */}
-      {completedAchievements.length > 0 && (
+      {completedAchievements.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Logros conseguidos
-            </p>
-            <span className="text-xs text-gray-600 tabular-nums">
-              {completedAchievements.length} desbloqueados
-            </span>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Logros conseguidos</p>
+            <span className="text-xs text-gray-600 tabular-nums">{completedAchievements.length} desbloqueados</span>
           </div>
-          <div className="grid grid-cols-1 gap-2.5">
+          <div className="space-y-2.5">
             {completedAchievements.map((a) => (
               <AchievementCard key={a.id} a={a} />
             ))}
           </div>
         </div>
-      )}
-
-      {completedAchievements.length === 0 && (
+      ) : (
         <div className="flex flex-col items-center gap-3 py-8 text-center bg-surface-card border border-white/8 rounded-2xl">
           <span className="text-3xl opacity-30">🏆</span>
           <p className="text-gray-600 text-sm">Aún no tiene logros desbloqueados</p>
