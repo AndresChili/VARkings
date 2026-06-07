@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
-import { getAchievements, type AchievementStats } from './achievements-tab';
+import { getAchievements, type AchievementStats } from '@/lib/achievements';
 import { LevelBadge } from '@/components/ui/level-badge';
 
 interface LevelProgress {
