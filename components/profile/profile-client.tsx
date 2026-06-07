@@ -96,18 +96,7 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = getLevel(stats.matchPoints);
 
-  const winnerPct = stats.calculatedPredictions > 0
-    ? Math.round((stats.winnerHits / stats.calculatedPredictions) * 100)
-    : 0;
-  const exactPct = stats.calculatedPredictions > 0
-    ? Math.round((stats.exactHits / stats.calculatedPredictions) * 100)
-    : 0;
-  const oneTeamPct = stats.calculatedPredictions > 0
-    ? Math.round((stats.oneTeamHits / stats.calculatedPredictions) * 100)
-    : 0;
-  const avgPts = stats.calculatedPredictions > 0
-    ? (stats.matchPoints / stats.calculatedPredictions).toFixed(1)
-    : '—';
+  const n = stats.calculatedPredictions;
 
   const achievementStats: AchievementStats = {
     totalPredictions: stats.totalPredictions,
@@ -481,18 +470,24 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
             </div>
 
             <div className="space-y-0">
-              {/* Puntos + media */}
+              {/* Puntos totales */}
               <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <Trophy size={14} className="text-crown" />
                   <span className="text-sm text-gray-300">Puntos totales</span>
                 </div>
+                <span className="text-sm font-bold text-crown tabular-nums">{stats.matchPoints}</span>
+              </div>
+
+              {/* Partidos calculados */}
+              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-crown tabular-nums">{stats.matchPoints}</span>
-                  {stats.calculatedPredictions > 0 && (
-                    <span className="text-xs text-gray-500 tabular-nums">({avgPts}/partido)</span>
-                  )}
+                  <Target size={14} className="text-gray-400" />
+                  <span className="text-sm text-gray-300">Partidos calculados</span>
                 </div>
+                <span className="text-sm font-bold text-gray-300 tabular-nums">
+                  {n} de {stats.totalPredictions}
+                </span>
               </div>
 
               {/* Ganador / empate */}
@@ -501,12 +496,9 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
                   <Target size={14} className="text-field-light" />
                   <span className="text-sm text-gray-300">Ganador o empate</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-field-light tabular-nums">{winnerPct}%</span>
-                  {stats.calculatedPredictions > 0 && (
-                    <span className="text-xs text-gray-500 tabular-nums">({stats.winnerHits}/{stats.calculatedPredictions})</span>
-                  )}
-                </div>
+                <span className="text-sm font-bold text-field-light tabular-nums">
+                  {n > 0 ? `${stats.winnerHits} de ${n}` : '—'}
+                </span>
               </div>
 
               {/* Resultado exacto */}
@@ -515,65 +507,33 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
                   <CheckCircle size={14} className="text-blue-400" />
                   <span className="text-sm text-gray-300">Resultado exacto</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-blue-400 tabular-nums">{exactPct}%</span>
-                  {stats.calculatedPredictions > 0 && (
-                    <span className="text-xs text-gray-500 tabular-nums">({stats.exactHits}/{stats.calculatedPredictions})</span>
-                  )}
-                </div>
+                <span className="text-sm font-bold text-blue-400 tabular-nums">
+                  {n > 0 ? `${stats.exactHits} de ${n}` : '—'}
+                </span>
               </div>
 
-              {/* Un equipo */}
+              {/* Un equipo acertado */}
               <div className="flex items-center justify-between py-2.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <Zap size={14} className="text-yellow-400" />
                   <span className="text-sm text-gray-300">Un equipo acertado</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-yellow-400 tabular-nums">{oneTeamPct}%</span>
-                  {stats.calculatedPredictions > 0 && (
-                    <span className="text-xs text-gray-500 tabular-nums">({stats.oneTeamHits}/{stats.calculatedPredictions})</span>
-                  )}
-                </div>
+                <span className="text-sm font-bold text-yellow-400 tabular-nums">
+                  {n > 0 ? `${stats.oneTeamHits} de ${n}` : '—'}
+                </span>
               </div>
 
               {/* Fase de grupos */}
-              <div className="flex items-center justify-between py-2.5 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <Target size={14} className="text-orange-400" />
-                  <span className="text-sm text-gray-300">Equipos de fase de grupos</span>
-                </div>
-                <span className="text-sm font-bold text-orange-400 tabular-nums">
-                  {stats.groupTeamsHits > 0 ? `${stats.groupTeamsHits} equipos` : '—'}
-                </span>
-              </div>
-
-              {/* Podio */}
               <div className="flex items-center justify-between py-2.5">
                 <div className="flex items-center gap-2">
-                  <Trophy size={14} className="text-crown" />
-                  <span className="text-sm text-gray-300">Podio acertado</span>
+                  <Target size={14} className="text-orange-400" />
+                  <span className="text-sm text-gray-300">Fase de grupos</span>
                 </div>
-                <span className="text-sm font-bold text-crown tabular-nums">
-                  {stats.podioHits !== null ? `${stats.podioHits}/3` : '—'}
+                <span className="text-sm font-bold text-orange-400 tabular-nums">
+                  {stats.groupTeamsHits > 0 ? `${stats.groupTeamsHits} / 60 pts` : '—'}
                 </span>
               </div>
             </div>
-
-            {stats.calculatedPredictions > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/5">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-500">Ganador/empate</span>
-                  <span className="text-xs font-bold text-white">{winnerPct}%</span>
-                </div>
-                <div className="h-1.5 bg-surface rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-field to-field-light rounded-full transition-all duration-700"
-                    style={{ width: `${winnerPct}%` }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
 
