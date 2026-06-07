@@ -109,7 +109,13 @@ export function GroupDetailClient({
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferringTo, setTransferringTo] = useState<string | null>(null);
   const [localLeaderboard, setLocalLeaderboard] = useState(leaderboard);
+
+  useEffect(() => {
+    setLocalLeaderboard(leaderboard);
+  }, [leaderboard]);
 
   const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isTournamentLocked());
   const [podioStep, setPodioStep] = useState(0);
@@ -250,6 +256,20 @@ export function GroupDetailClient({
       if (action === 'accept') router.refresh();
     }
     setProcessingUserId(null);
+  }
+
+  async function handleTransferAdmin(targetUserId: string) {
+    setTransferringTo(targetUserId);
+    const res = await fetch(`/api/groups/${group.id}/transfer-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_admin_id: targetUserId }),
+    });
+    setTransferringTo(null);
+    if (res.ok) {
+      setShowTransferModal(false);
+      router.refresh();
+    }
   }
 
   function getStepValue(step: number) {
@@ -407,10 +427,28 @@ export function GroupDetailClient({
                     <>
                       <div className="border-t border-white/10 mt-1 pt-1">
                         <button
+                          onClick={() => { setShowTransferModal(true); setShowMenu(false); }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                        >
+                          <Crown size={14} />
+                          Transferir admin
+                        </button>
+                      </div>
+                      <div className="border-t border-white/10 mt-1 pt-1">
+                        <button
                           onClick={() => { setShowRemoveModal(true); setShowMenu(false); }}
                           className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
                         >
                           Eliminar miembro
+                        </button>
+                      </div>
+                      <div className="border-t border-white/10 mt-1 pt-1">
+                        <button
+                          onClick={() => { setShowLeaveConfirm(true); setShowMenu(false); }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+                        >
+                          <LogOut size={14} />
+                          Salir del grupo
                         </button>
                       </div>
                       <div className="border-t border-white/10 mt-1 pt-1">
@@ -527,7 +565,11 @@ export function GroupDetailClient({
       {showLeaveConfirm && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 animate-slide-up">
           <p className="text-white font-semibold mb-1">¿Salir del grupo?</p>
-          <p className="text-gray-400 text-sm mb-4">Perderás tu acceso y posición en la clasificación.</p>
+          <p className="text-gray-400 text-sm mb-4">
+            {isCreator
+              ? 'Eres el admin. El rol pasará automáticamente al miembro más antiguo. Perderás tu acceso y posición.'
+              : 'Perderás tu acceso y posición en la clasificación.'}
+          </p>
           <div className="flex gap-2">
             <button onClick={() => setShowLeaveConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm">Cancelar</button>
             <button onClick={leaveGroup} disabled={leaving} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50">
@@ -1007,6 +1049,54 @@ export function GroupDetailClient({
         );
       })()}
     </div>
+
+    {/* Transfer admin modal */}
+    {showTransferModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={() => setShowTransferModal(false)}
+      >
+        <div
+          className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+            <div>
+              <p className="font-bold text-white text-base flex items-center gap-2">
+                <Crown size={15} className="text-crown" />
+                Transferir administrador
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">El nuevo admin tendrá control total del grupo</p>
+            </div>
+            <button onClick={() => setShowTransferModal(false)} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="px-5 py-4 max-h-80 overflow-y-auto">
+            {localLeaderboard.filter((e) => e.user_id !== userId).length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-6">No hay otros miembros</p>
+            ) : (
+              <div className="space-y-2">
+                {localLeaderboard
+                  .filter((e) => e.user_id !== userId)
+                  .map((entry) => (
+                    <div key={entry.user_id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
+                      <span className="text-sm text-white font-medium">@{entry.username}</span>
+                      <button
+                        onClick={() => handleTransferAdmin(entry.user_id)}
+                        disabled={transferringTo === entry.user_id}
+                        className="text-xs text-crown hover:text-crown/80 disabled:opacity-50 transition-colors font-semibold"
+                      >
+                        {transferringTo === entry.user_id ? 'Transfiriendo...' : 'Hacer admin'}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Podio modal */}
     {showPodio && (
