@@ -76,6 +76,7 @@ export interface Database {
         Update: {
           name?: string;
           description?: string | null;
+          created_by?: string | null;
         };
         Relationships: [];
       };

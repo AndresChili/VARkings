@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function DELETE(
   _req: NextRequest,
@@ -18,11 +18,36 @@ export async function DELETE(
     .single();
 
   if (!group) return NextResponse.json({ error: 'Grupo no encontrado' }, { status: 404 });
+
+  const adminClient = createAdminClient();
+
   if (group.created_by === user.id) {
-    return NextResponse.json({ error: 'El creador no puede salir del grupo' }, { status: 400 });
+    // Find oldest other member to transfer admin to
+    const { data: nextAdmin } = await adminClient
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', id)
+      .neq('user_id', user.id)
+      .order('joined_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!nextAdmin) {
+      // No other members — delete the group entirely
+      const { error } = await adminClient.from('groups').delete().eq('id', id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true });
+    }
+
+    // Transfer admin
+    const { error: transferError } = await adminClient
+      .from('groups')
+      .update({ created_by: nextAdmin.user_id })
+      .eq('id', id);
+    if (transferError) return NextResponse.json({ error: transferError.message }, { status: 500 });
   }
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from('group_members')
     .delete()
     .eq('group_id', id)
