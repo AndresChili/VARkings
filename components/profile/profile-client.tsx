@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Copy, Check, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
-import { AchievementsTab, getAchievements, type AchievementStats } from './achievements-tab';
+import { getAchievements, type AchievementStats } from './achievements-tab';
 
 interface ProfileClientProps {
   profile: Profile | null;
@@ -85,7 +85,6 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'perfil' | 'logros'>('perfil');
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
@@ -500,36 +499,26 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
           </div>
         )}
 
-        {/* Tab navigation */}
-        <div className="flex bg-surface-card border border-white/8 rounded-2xl p-1 mb-4">
-          <button
-            onClick={() => setActiveTab('perfil')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === 'perfil' ? 'bg-field text-white' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Perfil
-          </button>
-          <button
-            onClick={() => setActiveTab('logros')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'logros' ? 'bg-field text-white' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Logros
-            <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
-              activeTab === 'logros' ? 'bg-white/20 text-white' : 'bg-white/8 text-gray-600'
-            }`}>
-              {completedCount}/20
-            </span>
-          </button>
-        </div>
+        {/* Logros */}
+        <button
+          onClick={() => router.push('/profile/logros')}
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-blue-500/20 text-blue-400 hover:bg-blue-500/8 transition-colors group mb-3"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center group-hover:bg-blue-500/25 transition-colors">
+              <Trophy size={15} className="text-blue-400" />
+            </div>
+            <span className="font-medium text-sm">Logros</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-blue-400/60 tabular-nums">{completedCount}/20</span>
+            <ChevronRight size={16} className="text-blue-500/40" />
+          </div>
+        </button>
 
-        {activeTab === 'perfil' && (
-          <>
-            {/* Share app */}
-            <button
-              onClick={handleShare}
+        {/* Share app */}
+        <button
+          onClick={handleShare}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-field/20 text-field-light hover:bg-field/8 transition-colors group mb-3"
         >
           <div className="flex items-center gap-3">
@@ -671,12 +660,6 @@ export function ProfileClient({ profile, stats, achievementData, email }: Profil
           </div>
         )}
 
-          </>
-        )}
-
-        {activeTab === 'logros' && (
-          <AchievementsTab stats={achievementStats} />
-        )}
 
       </div>
     </div>
