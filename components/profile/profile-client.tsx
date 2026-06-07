@@ -37,6 +37,7 @@ interface ProfileClientProps {
     exactPredictions: number;
     hasTournamentPrediction: boolean;
     groupPredictionsCount: number;
+    totalMatches: number;
   };
   levelProgress: LevelProgress;
   email: string;
@@ -109,6 +110,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     maxGroupMembers: achievementData.maxGroupMembers,
     totalPoints: stats.matchPoints,
     totalXP: levelProgress.totalXP,
+    totalMatches: achievementData.totalMatches,
     hasAvatar: !!avatarUrl,
   };
   const completedCount = getAchievements(achievementStats).filter((a) => a.current >= a.target).length;

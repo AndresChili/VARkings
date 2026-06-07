@@ -75,6 +75,8 @@ export async function awardXP(
 interface BonusInputs {
   totalPredictions: number;
   groupStagePredictions: number;
+  totalGroupStageMatches: number;
+  totalMatches: number;
   hasAvatar: boolean;
   tournamentCalc: {
     is_calculated: boolean;
@@ -94,10 +96,10 @@ export async function computeAndAwardBonuses(
   if (data.totalPredictions >= 1)
     awards.push({ type: 'first_prediction', id: 'once', pts: XP_VALUES.FIRST_PREDICTION });
 
-  if (data.groupStagePredictions >= 48)
+  if (data.totalGroupStageMatches > 0 && data.groupStagePredictions >= data.totalGroupStageMatches)
     awards.push({ type: 'all_group_stage', id: 'once', pts: XP_VALUES.ALL_GROUP_STAGE });
 
-  if (data.totalPredictions >= 64)
+  if (data.totalMatches > 0 && data.totalPredictions >= data.totalMatches)
     awards.push({ type: 'all_tournament', id: 'once', pts: XP_VALUES.ALL_TOURNAMENT });
 
   if (data.hasAvatar)

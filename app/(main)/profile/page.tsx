@@ -18,7 +18,7 @@ export default async function ProfilePage() {
 
   const admin = createAdminClient();
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, groupStagePredCount] = await Promise.all([
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, groupStagePredCount, totalMatchCount, groupStageMatchCount] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
@@ -48,6 +48,8 @@ export default async function ProfilePage() {
       .select('id, matches!inner(group_name)', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .not('matches.group_name', 'is', null),
+    supabase.from('matches').select('id', { count: 'exact', head: true }),
+    supabase.from('matches').select('id', { count: 'exact', head: true }).not('group_name', 'is', null),
   ]);
 
   let maxGroupMembers = 0;
@@ -144,12 +146,15 @@ export default async function ProfilePage() {
     groupPredictionsCount: tp?.group_predictions
       ? Object.keys(tp.group_predictions as Record<string, unknown>).length
       : 0,
+    totalMatches: totalMatchCount.count ?? 0,
   };
 
   // Compute and award automatic XP bonuses, then get total XP
   await computeAndAwardBonuses(admin, user.id, {
     totalPredictions: preds.length,
     groupStagePredictions: groupStagePredCount.count ?? 0,
+    totalGroupStageMatches: groupStageMatchCount.count ?? 0,
+    totalMatches: totalMatchCount.count ?? 0,
     hasAvatar: !!(profileRes.data?.avatar_url),
     tournamentCalc: tp
       ? {

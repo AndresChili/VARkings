@@ -17,7 +17,7 @@ export default async function LogrosPage() {
 
   const admin = createAdminClient();
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes] = await Promise.all([
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, totalMatchCount] = await Promise.all([
     supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
@@ -42,6 +42,7 @@ export default async function LogrosPage() {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('points_total', 3),
+    supabase.from('matches').select('id', { count: 'exact', head: true }),
   ]);
 
   let maxGroupMembers = 0;
@@ -79,6 +80,7 @@ export default async function LogrosPage() {
     maxGroupMembers,
     totalPoints: calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints,
     totalXP,
+    totalMatches: totalMatchCount.count ?? 0,
     hasAvatar: !!(profileRes.data?.avatar_url),
   };
 
