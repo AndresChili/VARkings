@@ -43,6 +43,7 @@ interface ProfileClientProps {
   email: string;
   isSuperadmin: boolean;
   unreadSuggestions: number;
+  isOAuthUser: boolean;
 }
 
 
@@ -70,7 +71,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions, isOAuthUser }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -243,13 +244,13 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   }
 
   async function handleDeleteAccount() {
-    if (!deletePassword) { setDeleteError('Introduce tu contraseña para confirmar'); return; }
+    if (!isOAuthUser && !deletePassword) { setDeleteError('Introduce tu contraseña para confirmar'); return; }
     setDeletingAccount(true);
     setDeleteError('');
     const res = await fetch('/api/account', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: deletePassword }),
+      body: JSON.stringify({ password: isOAuthUser ? undefined : deletePassword }),
     });
     if (!res.ok) {
       const data = await res.json();
@@ -878,14 +879,16 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-4 animate-slide-up">
             <p className="text-white font-semibold mb-1">¿Eliminar tu cuenta?</p>
             <p className="text-gray-400 text-sm mb-4">Se borrarán todos tus datos, predicciones y grupos. Esta acción no se puede deshacer.</p>
-            <input
-              type="password"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              placeholder="Introduce tu contraseña"
-              className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm mb-3 focus:outline-none focus:border-red-400/50"
-              disabled={deletingAccount}
-            />
+            {!isOAuthUser && (
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Introduce tu contraseña"
+                className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm mb-3 focus:outline-none focus:border-red-400/50"
+                disabled={deletingAccount}
+              />
+            )}
             {deleteError && <p className="text-red-400 text-xs mb-3">{deleteError}</p>}
             <div className="flex gap-2">
               <button
@@ -897,7 +900,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deletingAccount || !deletePassword}
+                disabled={deletingAccount || (!isOAuthUser && !deletePassword)}
                 className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50 hover:bg-red-600 transition-colors"
               >
                 {deletingAccount ? 'Eliminando...' : 'Sí, eliminar'}
