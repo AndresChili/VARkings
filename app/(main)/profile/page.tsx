@@ -170,6 +170,7 @@ export default async function ProfilePage() {
   const levelProgress = getLevelProgress(totalXP);
 
   const isSuperadmin = !!process.env.SUPERADMIN_EMAIL && user.email === process.env.SUPERADMIN_EMAIL;
+  const isOAuthUser = (user.identities ?? []).every((id) => id.provider !== 'email');
 
   let unreadSuggestions = 0;
   if (isSuperadmin) {
@@ -189,6 +190,7 @@ export default async function ProfilePage() {
       email={user.email ?? ''}
       isSuperadmin={isSuperadmin}
       unreadSuggestions={unreadSuggestions}
+      isOAuthUser={isOAuthUser}
     />
   );
 }

@@ -14,17 +14,20 @@ export async function DELETE(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const password = body?.password ? String(body.password) : '';
-  if (!password) {
-    return NextResponse.json({ error: 'Se requiere la contraseña para eliminar la cuenta' }, { status: 400 });
-  }
 
-  // Re-verify password before irreversible deletion
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
-    password,
-  });
-  if (authError) {
-    return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 403 });
+  const isOAuthOnly = (user.identities ?? []).every((id) => id.provider !== 'email');
+
+  if (!isOAuthOnly) {
+    if (!password) {
+      return NextResponse.json({ error: 'Se requiere la contraseña para eliminar la cuenta' }, { status: 400 });
+    }
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password,
+    });
+    if (authError) {
+      return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 403 });
+    }
   }
 
   const adminClient = createAdminClient();
