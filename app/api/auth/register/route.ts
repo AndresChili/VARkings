@@ -55,7 +55,18 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: 'Error al crear la cuenta. Inténtalo de nuevo.' }, { status: 400 });
+    console.error('[register] supabase error:', error.message, error.status);
+    const msg = error.message?.toLowerCase() ?? '';
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already exists')) {
+      return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 400 });
+    }
+    if (msg.includes('password')) {
+      return NextResponse.json({ error: 'La contraseña no cumple los requisitos' }, { status: 400 });
+    }
+    if (msg.includes('signup is disabled') || msg.includes('signups not allowed')) {
+      return NextResponse.json({ error: 'El registro está desactivado temporalmente' }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message ?? 'Error al crear la cuenta' }, { status: 400 });
   }
 
   return NextResponse.json({ message: 'Revisa tu email para confirmar tu cuenta.' }, {
