@@ -144,7 +144,7 @@ export default function RegisterPage() {
             <div className="text-4xl mb-3">📧</div>
             <h2 className="text-xl font-semibold text-white mb-1">Introduce tu código</h2>
             <p className="text-gray-400 text-sm">
-              Enviamos un código de 6 dígitos a{' '}
+              Enviamos un código de 8 dígitos a{' '}
               <span className="text-white font-medium">{form.email}</span>
             </p>
           </div>
