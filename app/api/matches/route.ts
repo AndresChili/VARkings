@@ -37,7 +37,6 @@ export async function GET() {
 
       if (unnamedKnockout && unnamedKnockout.length > 0) {
         const allFixtures = await getWCMatches();
-        const syncNow = new Date().toISOString();
         const knockoutUpserts = allFixtures
           .filter((f) => f.homeTeam?.name && f.awayTeam?.name)
           .map((f) => ({
@@ -52,7 +51,6 @@ export async function GET() {
             home_score: f.score.fullTime.home,
             away_score: f.score.fullTime.away,
             status: mapFDStatus(f.status, f.score.duration),
-            updated_at: syncNow,
           }));
         if (knockoutUpserts.length > 0) {
           await supabase.from('matches').upsert(knockoutUpserts, { onConflict: 'api_id' });
