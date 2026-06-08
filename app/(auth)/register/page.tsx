@@ -30,6 +30,14 @@ export default function RegisterPage() {
       setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
+    if (!/[A-Z]/.test(form.password)) {
+      setError('La contraseña debe contener al menos una mayúscula');
+      return;
+    }
+    if (!/[0-9]/.test(form.password)) {
+      setError('La contraseña debe contener al menos un número');
+      return;
+    }
 
     setLoading(true);
 
