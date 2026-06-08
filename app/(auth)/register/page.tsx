@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -24,7 +24,7 @@ export default function RegisterPage() {
     const next = [...otp];
     next[index] = value.slice(-1);
     setOtp(next);
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
+    if (value && index < 7) inputRefs.current[index + 1]?.focus();
   }
 
   function handleOtpKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
@@ -34,10 +34,10 @@ export default function RegisterPage() {
   }
 
   function handleOtpPaste(e: React.ClipboardEvent) {
-    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (text.length === 6) {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8);
+    if (text.length === 8) {
       setOtp(text.split(''));
-      inputRefs.current[5]?.focus();
+      inputRefs.current[7]?.focus();
     }
   }
 
@@ -99,8 +99,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setOtpError('');
     const token = otp.join('');
-    if (token.length !== 6) {
-      setOtpError('Introduce los 6 dígitos del código');
+    if (token.length !== 8) {
+      setOtpError('Introduce los 8 dígitos del código');
       return;
     }
 
@@ -166,7 +166,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={otpLoading || otp.join('').length !== 6}
+              disabled={otpLoading || otp.join('').length !== 8}
               className="w-full bg-crown hover:bg-crown-muted disabled:opacity-50
                 text-surface font-bold py-3 rounded-xl transition-colors"
             >
@@ -178,7 +178,7 @@ export default function RegisterPage() {
         <p className="text-center text-gray-400 mt-6 text-sm">
           ¿No recibiste el código?{' '}
           <button
-            onClick={() => { setRegistered(false); setOtp(['', '', '', '', '', '']); setOtpError(''); }}
+            onClick={() => { setRegistered(false); setOtp(['', '', '', '', '', '', '', '']); setOtpError(''); }}
             className="text-crown hover:text-crown-light transition-colors font-medium"
           >
             Volver atrás
