@@ -50,7 +50,7 @@ export async function POST(
     .update({ created_by: new_admin_id })
     .eq('id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al transferir el rol' }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

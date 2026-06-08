@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isTournamentLocked } from '@/lib/utils';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: group_id } = await params;
+  if (!UUID_RE.test(group_id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,6 +23,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: group_id } = await params;
+  if (!UUID_RE.test(group_id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -60,6 +64,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .from('group_tournament_predictions')
     .insert({ user_id: user.id, group_id, champion, runner_up, third_place });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
   return NextResponse.json({ success: true });
 }

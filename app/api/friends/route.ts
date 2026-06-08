@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  if (!rateLimit(`friends-send:${ip}`, 20, 5 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const { addressee_id } = body ?? {};
+
+  if (!addressee_id || !UUID_RE.test(String(addressee_id))) {
+    return NextResponse.json({ error: 'ID de usuario inválido' }, { status: 400 });
+  }
+  if (String(addressee_id) === user.id) {
+    return NextResponse.json({ error: 'No puedes añadirte a ti mismo' }, { status: 400 });
+  }
+
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', addressee_id)
+    .maybeSingle();
+
+  if (!target) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+
+  const { data, error } = await supabase
+    .from('friendships')
+    .insert({ requester_id: user.id, addressee_id: String(addressee_id), status: 'pending' })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: 'No se pudo enviar la solicitud' }, { status: 400 });
+  return NextResponse.json(data, { status: 201 });
+}
+
+export async function DELETE(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const { friendship_id } = body ?? {};
+
+  if (!friendship_id || !UUID_RE.test(String(friendship_id))) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('id', String(friendship_id))
+    .eq('requester_id', user.id);
+
+  if (error) return NextResponse.json({ error: 'Error al cancelar solicitud' }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

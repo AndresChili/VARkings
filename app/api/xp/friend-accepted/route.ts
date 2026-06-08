@@ -8,7 +8,10 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { friendship_id } = await req.json();
-  if (!friendship_id) return NextResponse.json({ error: 'Missing friendship_id' }, { status: 400 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!friendship_id || !UUID_RE.test(String(friendship_id))) {
+    return NextResponse.json({ error: 'friendship_id inválido' }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 

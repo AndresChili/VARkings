@@ -38,7 +38,7 @@ export async function DELETE(
     if (!nextAdmin) {
       // No other members — delete the group entirely
       const { error } = await adminClient.from('groups').delete().eq('id', id);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) return NextResponse.json({ error: 'Error al eliminar el grupo' }, { status: 500 });
       return NextResponse.json({ success: true });
     }
 
@@ -47,7 +47,7 @@ export async function DELETE(
       .from('groups')
       .update({ created_by: nextAdmin.user_id })
       .eq('id', id);
-    if (transferError) return NextResponse.json({ error: transferError.message }, { status: 500 });
+    if (transferError) return NextResponse.json({ error: 'Error al transferir administración' }, { status: 500 });
   }
 
   const { error } = await adminClient
@@ -56,7 +56,7 @@ export async function DELETE(
     .eq('group_id', id)
     .eq('user_id', user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al salir del grupo' }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

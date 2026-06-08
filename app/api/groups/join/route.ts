@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
+
+const INVITE_CODE_RE = /^[A-Z0-9]{4,16}$/;
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  if (!rateLimit(`group-join:${ip}`, 10, 5 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { invite_code } = await req.json();
-  if (!invite_code?.trim()) {
-    return NextResponse.json({ error: 'Código de invitación requerido' }, { status: 400 });
+  const code = typeof invite_code === 'string' ? invite_code.trim().toUpperCase() : '';
+  if (!code || !INVITE_CODE_RE.test(code)) {
+    return NextResponse.json({ error: 'Código de invitación inválido' }, { status: 400 });
   }
 
   // Use admin client to bypass RLS — unauthenticated lookup by invite code
@@ -17,7 +26,7 @@ export async function POST(req: NextRequest) {
   const { data: group } = await adminClient
     .from('groups')
     .select('id, name, created_by')
-    .eq('invite_code', invite_code.trim().toUpperCase())
+    .eq('invite_code', code)
     .single();
 
   if (!group) {
@@ -41,7 +50,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase
       .from('group_members')
       .insert({ group_id: group.id, user_id: user.id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Error al unirse al grupo' }, { status: 500 });
     return NextResponse.json({ group, already_member: false, pending: false }, { status: 201 });
   }
 
@@ -66,7 +75,7 @@ export async function POST(req: NextRequest) {
     .from('join_requests')
     .insert({ group_id: group.id, user_id: user.id, status: 'pending' });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al enviar solicitud' }, { status: 500 });
 
   return NextResponse.json({ group, pending: true }, { status: 201 });
 }

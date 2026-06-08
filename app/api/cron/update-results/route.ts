@@ -1,8 +1,16 @@
+import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getLiveWCMatches, getRecentlyFinishedWCMatches, mapFDStatus } from '@/lib/football-data';
 import { calculateMatchPoints } from '@/lib/scoring';
+
+function verifyCronSecret(header: string | null, secret: string): boolean {
+  const expected = Buffer.from(`Bearer ${secret}`, 'utf8');
+  const received = Buffer.from(header ?? '', 'utf8');
+  if (received.length !== expected.length) return false;
+  return timingSafeEqual(received, expected);
+}
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -11,7 +19,7 @@ export async function GET(req: NextRequest) {
     console.error('CRON_SECRET not configured');
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   }
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyCronSecret(authHeader, cronSecret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

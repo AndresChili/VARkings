@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
   if (!password || String(password).length < 8) {
     return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 });
   }
+  const pwd = String(password);
+  if (!/[a-zA-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+    return NextResponse.json({ error: 'La contraseña debe contener al menos una letra y un número' }, { status: 400 });
+  }
   if (!username || !USERNAME_RE.test(String(username))) {
     return NextResponse.json({ error: 'Username: 3-20 caracteres, solo letras, números y _' }, { status: 400 });
   }
@@ -42,5 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ user: data.user });
+  return NextResponse.json({ user: data.user }, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }
