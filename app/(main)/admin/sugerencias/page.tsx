@@ -2,13 +2,11 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { SuggestionsList, type SuggestionRow } from './suggestions-list';
 
-const SUPERADMIN_EMAIL = 'andrescabreroamieva@gmail.com';
-
 export default async function SugerenciasAdminPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.email !== SUPERADMIN_EMAIL) {
+  if (!user || user.email !== process.env.SUPERADMIN_EMAIL) {
     redirect('/profile');
   }
 

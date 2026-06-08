@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     .from('suggestions')
     .insert({ user_id: user.id, subject: subject.trim(), message: message.trim() });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al enviar sugerencia' }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { awardGroupJoinXP, checkGroupMilestonesXP } from '@/lib/xp-server';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -68,7 +70,7 @@ export async function POST(
   }
 
   const { user_id, action } = await req.json();
-  if (!user_id || !['accept', 'reject'].includes(action)) {
+  if (!user_id || !UUID_RE.test(String(user_id)) || !['accept', 'reject'].includes(action)) {
     return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 });
   }
 
@@ -78,7 +80,7 @@ export async function POST(
       .insert({ group_id: id, user_id });
 
     if (memberError && !memberError.message.includes('duplicate')) {
-      return NextResponse.json({ error: memberError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Error al añadir miembro' }, { status: 500 });
     }
 
     // Award XP to joining user + check 5-member milestone for creator
@@ -95,7 +97,7 @@ export async function POST(
     .eq('group_id', id)
     .eq('user_id', user_id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al procesar solicitud' }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

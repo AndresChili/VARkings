@@ -169,7 +169,7 @@ export default async function ProfilePage() {
   const totalXP = await getUserXP(admin, user.id);
   const levelProgress = getLevelProgress(totalXP);
 
-  const isSuperadmin = user.email === 'andrescabreroamieva@gmail.com';
+  const isSuperadmin = !!process.env.SUPERADMIN_EMAIL && user.email === process.env.SUPERADMIN_EMAIL;
 
   let unreadSuggestions = 0;
   if (isSuperadmin) {

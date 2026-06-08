@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error al crear el grupo' }, { status: 500 });
   }
 
   // Auto-join creator to the group

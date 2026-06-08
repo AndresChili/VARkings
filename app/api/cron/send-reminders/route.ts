@@ -3,12 +3,16 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { sendBulkPushNotifications } from '@/lib/push-notifications';
 import { addHours } from 'date-fns';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  if (
-    process.env.NODE_ENV === 'production' &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('CRON_SECRET not configured');
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -37,7 +41,7 @@ export async function GET(req: NextRequest) {
         .select('user_id')
         .eq('match_id', match.id);
 
-      const predictedIds = predictedUsers?.map((p) => p.user_id) ?? [];
+      const predictedIds = (predictedUsers?.map((p) => p.user_id) ?? []).filter((id) => UUID_RE.test(id));
 
       let query = supabase.from('push_subscriptions').select('user_id, endpoint, p256dh, auth_key');
       if (predictedIds.length > 0) {

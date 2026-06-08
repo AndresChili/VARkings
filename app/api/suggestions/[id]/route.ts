@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 
-const SUPERADMIN_EMAIL = 'andrescabreroamieva@gmail.com';
-
 async function guard() {
+  const superadminEmail = process.env.SUPERADMIN_EMAIL;
+  if (!superadminEmail) {
+    console.error('SUPERADMIN_EMAIL not configured');
+    return null;
+  }
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.email !== SUPERADMIN_EMAIL) return null;
+  if (!user || user.email !== superadminEmail) return null;
   return createAdminClient();
 }
 
@@ -16,7 +19,7 @@ export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
   const { error } = await admin.from('suggestions').update({ is_read: true }).eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -26,6 +29,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   const { error } = await admin.from('suggestions').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
