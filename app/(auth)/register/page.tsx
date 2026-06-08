@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import { VarkingsLogo } from '@/components/ui/varkings-logo';
 
 export default function RegisterPage() {
@@ -9,9 +10,35 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleOtpChange(index: number, value: string) {
+    if (!/^\d*$/.test(value)) return;
+    const next = [...otp];
+    next[index] = value.slice(-1);
+    setOtp(next);
+    if (value && index < 5) inputRefs.current[index + 1]?.focus();
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent) {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (text.length === 6) {
+      setOtp(text.split(''));
+      inputRefs.current[5]?.focus();
+    }
   }
 
   async function handleRegister(e: React.FormEvent) {
@@ -68,26 +95,94 @@ export default function RegisterPage() {
     setLoading(false);
   }
 
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setOtpError('');
+    const token = otp.join('');
+    if (token.length !== 6) {
+      setOtpError('Introduce los 6 dígitos del código');
+      return;
+    }
+
+    setOtpLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email: form.email,
+      token,
+      type: 'signup',
+    });
+
+    if (error) {
+      setOtpError('Código incorrecto o expirado. Revisa tu email.');
+      setOtpLoading(false);
+      return;
+    }
+
+    window.location.href = '/dashboard';
+  }
+
   if (registered) {
     return (
       <div className="animate-fade-in">
         <div className="flex flex-col items-center mb-8">
           <VarkingsLogo size={80} />
           <h1 className="text-3xl font-bold text-white mt-4">VARkings</h1>
+          <p className="text-gray-400 text-sm mt-1">Verifica tu cuenta</p>
         </div>
-        <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
-          <div className="text-4xl mb-4">📧</div>
-          <h2 className="text-xl font-semibold text-white mb-2">Confirma tu email</h2>
-          <p className="text-gray-400 text-sm">
-            Te enviamos un enlace de confirmación a <span className="text-white font-medium">{form.email}</span>.
-            Revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.
-          </p>
+
+        <div className="bg-surface-card border border-white/10 rounded-2xl p-6">
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-3">📧</div>
+            <h2 className="text-xl font-semibold text-white mb-1">Introduce tu código</h2>
+            <p className="text-gray-400 text-sm">
+              Enviamos un código de 6 dígitos a{' '}
+              <span className="text-white font-medium">{form.email}</span>
+            </p>
+          </div>
+
+          <form onSubmit={handleVerifyOtp} className="space-y-5">
+            <div onPaste={handleOtpPaste} className="flex gap-2 justify-center">
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  className="w-11 h-14 text-center text-xl font-bold bg-surface border border-white/10
+                    rounded-xl text-white focus:outline-none focus:border-crown transition-colors"
+                />
+              ))}
+            </div>
+
+            {otpError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+                <p className="text-red-400 text-sm text-center">{otpError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={otpLoading || otp.join('').length !== 6}
+              className="w-full bg-crown hover:bg-crown-muted disabled:opacity-50
+                text-surface font-bold py-3 rounded-xl transition-colors"
+            >
+              {otpLoading ? 'Verificando...' : 'Verificar y entrar'}
+            </button>
+          </form>
         </div>
+
         <p className="text-center text-gray-400 mt-6 text-sm">
-          ¿Ya confirmaste?{' '}
-          <Link href="/login" className="text-crown hover:text-crown-light transition-colors font-medium">
-            Iniciar sesión
-          </Link>
+          ¿No recibiste el código?{' '}
+          <button
+            onClick={() => { setRegistered(false); setOtp(['', '', '', '', '', '']); setOtpError(''); }}
+            className="text-crown hover:text-crown-light transition-colors font-medium"
+          >
+            Volver atrás
+          </button>
         </p>
       </div>
     );
