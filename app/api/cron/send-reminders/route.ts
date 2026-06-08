@@ -51,11 +51,12 @@ export async function GET(req: NextRequest) {
 
       const predictedIds = (predictedUsers?.map((p) => p.user_id) ?? []).filter((id) => UUID_RE.test(id));
 
-      let query = supabase.from('push_subscriptions').select('user_id, endpoint, p256dh, auth_key');
-      if (predictedIds.length > 0) {
-        query = query.not('user_id', 'in', `(${predictedIds.join(',')})`);
-      }
-      const { data: subscriptions } = await query;
+      const { data: allSubscriptions } = await supabase
+        .from('push_subscriptions')
+        .select('user_id, endpoint, p256dh, auth_key');
+      const subscriptions = (allSubscriptions ?? []).filter(
+        (s) => !predictedIds.includes(s.user_id)
+      );
 
       if (!subscriptions?.length) continue;
 

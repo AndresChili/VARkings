@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  'https://ijfegixwnuogkqhcbagc.supabase.co',
-  'sb_secret_hDvAOnyZMfR2zYiShEZFgA_fOTZ3lQ2'
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const flag = (code: string) => `https://flagcdn.com/w80/${code}.png`;

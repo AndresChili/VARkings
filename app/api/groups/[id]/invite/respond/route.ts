@@ -42,7 +42,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const { error: joinError } = await supabase
         .from('group_members')
         .insert({ group_id: invite.group_id, user_id: user.id });
-      if (joinError && !joinError.message.includes('duplicate')) {
+      // code 23505 = unique_violation (already a member — idempotent, continue)
+      if (joinError && joinError.code !== '23505') {
         return NextResponse.json({ error: 'Error al unirse al grupo' }, { status: 400 });
       }
       await supabase

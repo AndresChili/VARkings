@@ -6,7 +6,7 @@ const INVITE_CODE_RE = /^[A-Z0-9]{4,16}$/;
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  if (!rateLimit(`group-join:${ip}`, 10, 5 * 60 * 1000)) {
+  if (!(await rateLimit(`group-join:${ip}`, 10, 5 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
   }
 

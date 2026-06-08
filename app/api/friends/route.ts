@@ -6,7 +6,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  if (!rateLimit(`friends-send:${ip}`, 20, 5 * 60 * 1000)) {
+  if (!(await rateLimit(`friends-send:${ip}`, 20, 5 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
   }
 

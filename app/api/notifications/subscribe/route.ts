@@ -28,7 +28,7 @@ function isValidPushEndpoint(url: string): boolean {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  if (!rateLimit(`push-subscribe:${ip}`, 10, 5 * 60 * 1000)) {
+  if (!(await rateLimit(`push-subscribe:${ip}`, 10, 5 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 });
   }
 
