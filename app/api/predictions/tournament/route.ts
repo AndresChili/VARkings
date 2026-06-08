@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isTournamentLocked } from '@/lib/utils';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!(await rateLimit(`tournament-pred:${user.id}`, 10, 60_000))) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera un momento.' }, { status: 429 });
+  }
+
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 20_000) {
+    return NextResponse.json({ error: 'Payload demasiado grande' }, { status: 413 });
+  }
 
   if (isTournamentLocked()) {
     return NextResponse.json(

@@ -58,7 +58,7 @@ export async function DELETE(req: NextRequest) {
     .from('friendships')
     .delete()
     .eq('id', String(friendship_id))
-    .eq('requester_id', user.id);
+    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
 
   if (error) return NextResponse.json({ error: 'Error al cancelar solicitud' }, { status: 500 });
   return NextResponse.json({ success: true });

@@ -63,9 +63,14 @@ async function getUpstashFn(): Promise<UpstashFn | null> {
 }
 
 // On Vercel, x-real-ip is set by the edge to the verified client IP (not spoofable).
-// x-forwarded-for first element is client-controlled — do NOT use for security.
+// x-forwarded-for is client-controlled — used only as fallback on non-Vercel deployments
+// to avoid all users sharing a single 'unknown' rate-limit bucket.
 export function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-real-ip') ?? 'unknown';
+  return (
+    req.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    'unknown'
+  );
 }
 
 export async function rateLimit(key: string, max: number, windowMs: number): Promise<boolean> {

@@ -1,106 +1,188 @@
 # Auditoría de Seguridad — VARkings
-Fecha: 2026-06-08 | Auditor: Claude Sonnet 4.6
+
+> Fecha: 2026-06-08 | Scope: 200 usuarios max (amigos) | Stack: Next.js 15 + Supabase
 
 ---
 
-## CRÍTICO
+## Resumen ejecutivo
 
-### [C-1] ✅ Clave de servicio de Supabase hardcodeada en el repositorio
-- **Archivo:** `scripts/seed-wc2026.ts`
-- **Fix aplicado:** Reemplazado con `process.env.NEXT_PUBLIC_SUPABASE_URL` y `process.env.SUPABASE_SERVICE_ROLE_KEY`
-- **ACCIÓN MANUAL PENDIENTE:**
-  1. **Rotar la clave YA** en Supabase Dashboard → Settings → API → Regenerate service_role key
-  2. Verificar si está en historial git: `git log --all -S "sb_secret"` — si aparece, la clave sigue comprometida aunque el código esté limpio
-  3. Si está en historial: usar `BFG Repo-Cleaner` o `git filter-repo --replace-text` para purgar
+La app tiene una base sólida: CSP con nonce, HSTS, headers de seguridad, validación de UUIDs en todos los endpoints, timingSafeEqual en crons, allowlist de dominios para push. Los problemas son principalmente **rate limiting inconsistente** y **un par de fallos de validación de input**.
 
 ---
 
-## ALTO
+## 🔴 ALTO
 
-### [A-1] ✅ Rate limiter en memoria — no funciona en entornos multi-instancia
-- **Archivo:** `lib/rate-limit.ts`
-- **Fix aplicado:**
-  - Instalado `@upstash/ratelimit` + `@upstash/redis`
-  - `rateLimit()` ahora es async y usa Upstash Redis si env vars están configuradas
-  - Fallback automático a in-memory si no están (desarrollo / instancia única)
-  - Añadida limpieza periódica del Map para evitar memory leaks
-  - Todos los callers actualizados con `await`
-- **ACCIÓN MANUAL PENDIENTE (para activar Upstash en producción):**
-  1. Crear cuenta en https://upstash.com (tier gratuito disponible)
-  2. Crear una base de datos Redis
-  3. Añadir a Vercel (o `.env.local`):
-     - `UPSTASH_REDIS_REST_URL`
-     - `UPSTASH_REDIS_REST_TOKEN`
+### A1 — `fullName` sin límite máximo de longitud
+**Archivo:** `app/api/auth/register/route.ts:36`
+```ts
+if (!fullName || String(fullName).trim().length < 2) { ... }
+```
+- Solo verifica mínimo de 2 caracteres, **sin máximo**.
+- Un atacante puede enviar un nombre de 1 MB que se almacena en Supabase Auth metadata y en `profiles`.
+- Con 200 usuarios es improbable pero es un fallo de validación básico.
 
-### [A-2] ✅ Acceso superadmin sin rate limit
-- **Archivo:** `app/api/suggestions/[id]/route.ts`
-- **Fix aplicado:** Añadido rate limit de 30 peticiones / 5 minutos por IP en la función `guard()`
-
-### [A-3] ✅ Patrón SQL inseguro en cron de recordatorios
-- **Archivo:** `app/api/cron/send-reminders/route.ts`
-- **Fix aplicado:** Eliminada la construcción manual de string SQL. Ahora se obtienen todas las suscripciones y se filtra en JavaScript con `.filter(s => !predictedIds.includes(s.user_id))`
+**Fix:** Añadir `|| String(fullName).trim().length > 100` a la misma condición.
 
 ---
 
-## MEDIO
+### A2 — Rate limit ausente en `/api/predictions/match`
+**Archivo:** `app/api/predictions/match/route.ts`
+- POST y DELETE sin throttling.
+- Un usuario autenticado puede spamear miles de peticiones por segundo.
+- Cada petición hace 2-3 queries a Supabase (verificar match, buscar existing, upsert).
+- Con 200 usuarios y el torneo en directo, un usuario enfadado puede saturar el plan de Supabase.
 
-### [M-1] ✅ Sin validación de tipo MIME en upload de avatares
-- **Archivo:** `components/profile/profile-client.tsx`
-- **Fix aplicado:** Añadida verificación de `file.type` contra lista blanca (`image/jpeg`, `image/png`, `image/webp`, `image/gif`) antes de procesar la imagen
-
-### [M-2] ✅ Error de clave duplicada identificado por string frágil
-- **Archivo:** `app/api/groups/[id]/invite/respond/route.ts`
-- **Fix aplicado:** Reemplazado `joinError.message.includes('duplicate')` por `joinError.code !== '23505'` (código PostgreSQL exacto para `unique_violation`)
-
-### [M-3] ✅ Desincronización de nombre de variable de entorno
-- **Archivo:** `.env.example`
-- **Fix aplicado:** Reemplazado `FOOTBALL_DATA_API_KEY` por `RAPIDAPI_KEY`, que es lo que el código realmente lee en `lib/api-football.ts`. Añadidas también `SUPERADMIN_EMAIL` y las vars de Upstash que faltaban.
-
-### [M-4] Sin protección CSRF explícita
-- **Estado:** Aceptado — mitigado por SameSite=Lax cookies (Supabase default). Riesgo bajo para PWA autenticada.
+**Fix:** Añadir `rateLimit(`pred-match:${user.id}`, 30, 60_000)` al inicio del handler.
 
 ---
 
-## BAJO
+## 🟡 MEDIO
 
-### [B-1] ✅ Sin límite de tamaño para payloads en sugerencias
-- **Archivo:** `app/api/suggestions/route.ts`
-- **Fix aplicado:** Añadida verificación de `Content-Length` header — rechaza payloads > 10 KB con HTTP 413
+### M1 — IP rate limit con fallback `unknown`
+**Archivo:** `lib/rate-limit.ts:68`
+```ts
+return req.headers.get('x-real-ip') ?? 'unknown';
+```
+- Si la app no corre en Vercel (o Vercel no inyecta `x-real-ip`), todos los usuarios comparten el bucket `register:unknown`.
+- El primero en registrarse agota el límite para todos durante 15 minutos.
+- Afecta a: registro, push subscribe, group-join, friends-send.
 
-### [B-2] ✅ URL de Supabase hardcodeada en seed script
-- **Archivo:** `scripts/seed-wc2026.ts`
-- **Fix aplicado:** Resuelto junto con C-1 — usa `process.env.NEXT_PUBLIC_SUPABASE_URL`
-
-### [B-3] Console.error expone stack traces
-- **Estado:** Aceptado — logs visibles solo en Vercel dashboard. Si se añade Sentry u otro servicio externo, revisar sanitización de datos de usuario.
-
----
-
-## VULNERABILIDADES DE DEPENDENCIAS
-
-### [D-1] postcss < 8.5.10 (Moderate — XSS en CSS stringify)
-- **Contexto:** Introducido por `next` (versión actual). Fix automático requeriría degradar a `next@9.3.3` (rompe la app).
-- **Mitigación:** PostCSS se ejecuta en build time, no en runtime de usuario — impacto real muy bajo.
-- **Acción:** Monitorear actualizaciones de Next.js que suban postcss a ≥ 8.5.10.
-
-### [D-2] serialize-javascript ≤ 7.0.4 (High — RCE via RegExp en workbox)
-- **Contexto:** Introducido por `@ducanh2912/next-pwa`. Fix automático requeriría `@ducanh2912/next-pwa@10.2.6` (breaking change según npm).
-- **Acción:** Probar manualmente si `npm install @ducanh2912/next-pwa@latest` rompe algo. Si no, actualizar.
+**Fix corto plazo:** Usar también `x-forwarded-for` como fallback de diagnóstico (no para seguridad) y loguearlo. Si la app corre siempre en Vercel, documentarlo y añadir alerta si `x-real-ip` falta.
+**Fix real:** Añadir `|| req.headers.get('x-forwarded-for')?.split(',')[0].trim()` solo como fallback cuando se sabe que el proxy es de confianza.
 
 ---
 
-## Resumen
+### M2 — Fuga de mensajes de error internos de Supabase
+**Archivo:** `app/api/auth/register/route.ts:69`
+```ts
+return NextResponse.json({ error: error.message ?? '...' }, { status: 400 });
+```
+- Si el error no matchea ningún patrón conocido, se devuelve el mensaje raw de Supabase.
+- Puede filtrar información sobre la estructura interna (tablas, constraints, versiones).
 
-| ID | Severidad | Estado |
-|----|-----------|--------|
-| C-1 | CRÍTICO | ✅ Código limpio — **ROTAR CLAVE EN SUPABASE + LIMPIAR GIT HISTORY** |
-| A-1 | ALTO | ✅ Código listo para Upstash — **AÑADIR ENV VARS EN VERCEL** |
-| A-2 | ALTO | ✅ Resuelto |
-| A-3 | ALTO | ✅ Resuelto |
-| M-1 | MEDIO | ✅ Resuelto |
-| M-2 | MEDIO | ✅ Resuelto |
-| M-3 | MEDIO | ✅ Resuelto |
-| B-1 | BAJO | ✅ Resuelto |
-| B-2 | BAJO | ✅ Resuelto junto con C-1 |
-| D-1 | Moderado | Pendiente — monitorear updates de Next.js |
-| D-2 | Alto | Pendiente — probar update de next-pwa |
+**Fix:** Cambiar el fallback a un mensaje genérico:
+```ts
+return NextResponse.json({ error: 'Error al crear la cuenta. Inténtalo más tarde.' }, { status: 400 });
+```
+
+---
+
+### M3 — Sin rate limit en `/api/profile/revalidate`
+**Archivo:** `app/api/profile/revalidate/route.ts`
+- Cualquier usuario autenticado puede llamar este endpoint en bucle.
+- Cada llamada ejecuta `revalidateTag()`, que invalida caché de Next.js y provoca re-renders SSR del perfil.
+- Coste bajo unitario pero acumulable.
+
+**Fix:** `rateLimit(`revalidate:${user.id}`, 10, 60_000)`.
+
+---
+
+### M4 — Sin rate limit en `/api/predictions/tournament` y `/api/groups/[id]/invite`
+- `predictions/tournament/route.ts`: sin throttling, hace 2 queries por petición.
+- `groups/[id]/invite/route.ts`: sin throttling, un miembro puede enviar invitaciones en masa a usuarios reales y saturar la tabla `group_invites`.
+
+**Fix:** `rateLimit(`tournament-pred:${user.id}`, 10, 60_000)` y `rateLimit(`group-invite:${user.id}`, 20, 60_000)`.
+
+---
+
+### M5 — Sin Content-Length guard en la mayoría de endpoints
+- Solo `/api/suggestions/route.ts:14` verifica `content-length`.
+- Endpoints como `/api/predictions/tournament` aceptan `group_predictions` (objeto anidado) sin límite de tamaño.
+- Next.js tiene límite de 4 MB por defecto, pero es mejor ser explícito en endpoints que procesan objetos complejos.
+
+**Fix:** Añadir validación de tamaño máximo en `predictions/tournament` y `groups` POST.
+
+---
+
+### M6 — TOCTOU (Time-of-Check Time-of-Use) en predicciones de partido
+**Archivo:** `app/api/predictions/match/route.ts:39`
+```ts
+if (match.status !== 'NS' || new Date(match.match_date) <= new Date()) {
+  return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
+}
+// ... luego insert/update
+```
+- Hay una ventana de ms entre el check y el insert.
+- Dos peticiones concurrentes del mismo usuario justo cuando empieza un partido podrían pasar ambas el check.
+- Impacto real: muy bajo con 200 usuarios, pero teóricamente permite predecir después del pitido inicial.
+
+**Fix real:** Añadir RLS en Supabase para `match_predictions` que verifique `match_date` y `status` en la propia DB. Esto hace la restricción atómica.
+
+---
+
+## 🟢 BAJO
+
+### B1 — Inconsistencia en comparación de SUPERADMIN_EMAIL
+- `app/(main)/profile/page.tsx:172`: comparación case-**sensitive** (`===`)
+- `app/(main)/admin/sugerencias/page.tsx:9`: comparación case-**insensitive** (`.toLowerCase()`)
+- Si el email tiene mayúsculas, el contador de sugerencias en el perfil no se muestra aunque el acceso al panel de admin sí funciona.
+
+**Fix:** Usar `.toLowerCase()` en ambos sitios, o centralizar la función `isSuperAdmin(user)`.
+
+---
+
+### B2 — DELETE `/api/friends` solo permite al requester eliminar
+**Archivo:** `app/api/friends/route.ts:61`
+```ts
+.eq('requester_id', user.id)
+```
+- El destinatario de una solicitud aceptada no puede eliminar la amistad por este endpoint.
+- No es una vulnerabilidad de seguridad pero sí un gap funcional que podría crear UX confusa.
+
+---
+
+### B3 — Push subscriptions sin paginación en cron
+**Archivo:** `app/api/cron/send-reminders/route.ts:53`
+```ts
+const { data: allSubscriptions } = await supabase.from('push_subscriptions').select(...)
+```
+- Carga todas las suscripciones en memoria sin `limit()`.
+- Con 200 usuarios es irrelevante, pero si la app crece podría causar timeouts en el cron.
+
+---
+
+### B4 — `configureVapid()` muta estado global en cada push
+**Archivo:** `lib/push-notifications.ts:4`
+- `webpush.setVapidDetails(...)` es una mutación de estado global del módulo.
+- Se llama dentro de `sendPushNotification()`, que se ejecuta una vez por usuario en bulk.
+- Con llamadas concurrentes (`Promise.allSettled`) en el cron, se está sobreescribiendo el mismo config global N veces en paralelo.
+- En la práctica no falla (siempre con los mismos valores), pero es código frágil.
+
+**Fix:** Llamar `configureVapid()` una sola vez al inicializar el módulo, fuera de la función.
+
+---
+
+### B5 — Nombres de equipo en predicciones de torneo no validados contra lista real
+**Archivo:** `app/api/predictions/tournament/route.ts:22`
+- `champion`, `runner_up`, `third_place` solo se validan como string <= 100 chars.
+- Un usuario puede predecir "Real Madrid" o "unicornio123" como campeón del Mundial.
+- No es un problema de seguridad, pero sí de integridad de datos del juego.
+
+---
+
+## ✅ Lo que está bien (no tocar)
+
+| Área | Implementación |
+|---|---|
+| Autenticación en APIs | `supabase.auth.getUser()` en todos los endpoints, nunca decodificando JWT manualmente |
+| Validación de UUIDs | UUID_RE regex consistente en todos los endpoints con params de URL |
+| Cron secret | `timingSafeEqual` correcto para evitar timing attacks |
+| CSP | Nonce por petición en middleware, `strict-dynamic`, `frame-ancestors 'none'` |
+| Security headers | HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy |
+| Push endpoint allowlist | Dominio validado contra lista de proveedores conocidos |
+| Invite code | Rejection sampling correcto para evitar modulo bias |
+| Idempotencia de XP | `upsert` con `ignoreDuplicates: true` — no se puede farmear XP haciendo spam |
+| Score bounds | Marcadores limitados 0-30 en predicciones de partido |
+| Límites de grupos | 10 creados, 20 membresías por usuario |
+| Admin client aislado | `createAdminClient()` solo se usa server-side, nunca expuesto al cliente |
+
+---
+
+## Prioridad de fixes para 200 usuarios
+
+1. **A1** — fix en 5 min, muy fácil, valida fullName
+2. **M2** — fix en 5 min, mensaje de error genérico
+3. **B1** — fix en 2 min, centralizar isSuperAdmin
+4. **B4** — fix en 5 min, mover configureVapid fuera del loop
+5. **A2 + M3 + M4** — añadir rate limits a los endpoints que faltan
+6. **M6** — añadir RLS en Supabase (requiere acceso al panel de Supabase)
