@@ -689,6 +689,20 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
                 className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
                 minLength={8}
               />
+              {newPassword.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {[
+                    { ok: newPassword.length >= 8, label: 'Mínimo 8 caracteres' },
+                    { ok: /[A-Z]/.test(newPassword), label: 'Una mayúscula' },
+                    { ok: /[0-9]/.test(newPassword), label: 'Un número' },
+                  ].map(({ ok, label }) => (
+                    <li key={label} className={`flex items-center gap-1.5 text-xs transition-colors ${ok ? 'text-green-400' : 'text-gray-500'}`}>
+                      <span className="text-base leading-none">{ok ? '✓' : '·'}</span>
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Confirmar contraseña</label>
