@@ -82,7 +82,8 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
+  const rawAvatar = profile?.avatar_url ?? null;
+  const [avatarUrl, setAvatarUrl] = useState(rawAvatar?.includes('.supabase.co') ? rawAvatar : null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
