@@ -60,6 +60,6 @@ export async function POST(req: NextRequest) {
     group_predictions: group_predictions ?? {},
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
   return NextResponse.json({ success: true, action: 'created' }, { status: 201 });
 }

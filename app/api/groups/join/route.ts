@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const INVITE_CODE_RE = /^[A-Z0-9]{4,16}$/;
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const ip = getClientIp(req);
   if (!rateLimit(`group-join:${ip}`, 10, 5 * 60 * 1000)) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
   }

@@ -64,9 +64,10 @@ export async function GET(req: NextRequest) {
         .filter((s) => s.p256dh && s.auth_key)
         .map((s) => ({ endpoint: s.endpoint, p256dh: s.p256dh!, auth_key: s.auth_key! }));
 
+      const sanitize = (s: string) => s.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 50);
       await sendBulkPushNotifications(validSubs, {
         title: '⚽ ¡Partido en 1 hora!',
-        body: `${match.home_team_name} vs ${match.away_team_name} - ¡Haz tu predicción!`,
+        body: `${sanitize(match.home_team_name)} vs ${sanitize(match.away_team_name)} - ¡Haz tu predicción!`,
         url: `/matches/${match.id}`,
       });
 

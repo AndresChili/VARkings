@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
     const supabase = createAdminClient();
     const fixtures = await getWCMatches();
 
-    // Remove previously seeded matches (no api_id) before inserting real ones
-    await supabase.from('matches').delete().is('api_id', null);
-
     const upserts = fixtures
       .filter((f) => f.homeTeam?.name && f.awayTeam?.name)
       .map((f) => ({
@@ -46,6 +43,13 @@ export async function POST(req: NextRequest) {
         status: mapFDStatus(f.status, f.score.duration),
         venue: null,
       }));
+
+    if (!upserts.length) {
+      return NextResponse.json({ error: 'API returned no valid fixtures' }, { status: 502 });
+    }
+
+    // Delete seeded matches only after confirming real data is available
+    await supabase.from('matches').delete().is('api_id', null);
 
     const { error } = await supabase
       .from('matches')
