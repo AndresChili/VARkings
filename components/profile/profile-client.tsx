@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface LevelProgress {
   level: number;
@@ -83,7 +84,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const rawAvatar = profile?.avatar_url ?? null;
-  const [avatarUrl, setAvatarUrl] = useState(rawAvatar?.includes('.supabase.co') ? rawAvatar : null);
+  const [avatarUrl, setAvatarUrl] = useState(isValidAvatarUrl(rawAvatar) ? rawAvatar : null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);

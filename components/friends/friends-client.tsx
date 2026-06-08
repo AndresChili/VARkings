@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { getLevel } from '@/lib/xp';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface FriendProfile {
   id: string;
@@ -35,8 +36,8 @@ function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number 
   const sizeClass = size === 11 ? 'w-11 h-11 text-sm' : 'w-10 h-10 text-xs';
   return (
     <div className={cn('rounded-full overflow-hidden shrink-0 bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-black text-white', sizeClass)}>
-      {profile.avatar_url
-        ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+      {isValidAvatarUrl(profile.avatar_url)
+        ? <img src={profile.avatar_url!} alt={profile.username} className="w-full h-full object-cover" />
         : initials
       }
     </div>

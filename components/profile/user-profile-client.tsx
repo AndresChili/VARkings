@@ -8,6 +8,7 @@ import { ArrowLeft, Target, Trophy, Zap, UserPlus, Check, UserCheck, Loader2, Ch
 import { LevelBadge } from '@/components/ui/level-badge';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/lib/achievements';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface LevelProgress {
   level: number;
@@ -171,8 +172,8 @@ export function UserProfileClient({
         <div className="px-5 pb-5">
           <div className="-mt-10 mb-4 flex items-end justify-between">
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-surface-card bg-surface-hover flex items-center justify-center text-xl font-black text-gray-300 shrink-0">
-              {profile.avatar_url ? (
-                <Image src={profile.avatar_url} alt={profile.username} width={80} height={80} className="w-full h-full object-cover" />
+              {isValidAvatarUrl(profile.avatar_url) ? (
+                <Image src={profile.avatar_url!} alt={profile.username} width={80} height={80} className="w-full h-full object-cover" />
               ) : (
                 initials
               )}

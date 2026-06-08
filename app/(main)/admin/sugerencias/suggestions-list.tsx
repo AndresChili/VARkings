@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MessageSquare, User, ChevronLeft, ChevronDown, Trash2, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 export type SuggestionRow = {
   id: string;
@@ -103,8 +104,8 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
                 className="w-full flex items-center gap-2 px-4 py-3.5 text-left"
               >
                 <div className="w-6 h-6 rounded-full bg-field/20 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {s.profiles?.avatar_url ? (
-                    <img src={s.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                  {isValidAvatarUrl(s.profiles?.avatar_url) ? (
+                    <img src={s.profiles!.avatar_url!} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <User size={12} className="text-gray-400" />
                   )}

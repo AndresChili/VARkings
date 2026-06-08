@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { LogrosClient } from '@/components/profile/logros-client';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
 import { getUserXP, awardXP, getUserStreakStats } from '@/lib/xp-server';
+import { isValidAvatarUrl } from '@/lib/avatar';
 import { XP_VALUES } from '@/lib/xp';
 
 const ACHIEVEMENT_XP: Record<string, number> = {
@@ -82,7 +83,7 @@ export default async function LogrosPage() {
     totalPoints: calculated.reduce((sum, p) => sum + (p.points_total ?? 0), 0) + tournamentPoints,
     totalXP,
     totalMatches: totalMatchCount.count ?? 0,
-    hasAvatar: !!(profileRes.data?.avatar_url),
+    hasAvatar: isValidAvatarUrl(profileRes.data?.avatar_url),
     currentStreak: streakStats.currentStreak,
     maxStreak: streakStats.maxStreak,
     totalDaysActive: streakStats.totalDaysActive,

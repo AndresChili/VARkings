@@ -11,6 +11,7 @@ import { LevelBadge } from '@/components/ui/level-badge';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 import { TEAM_NAME_ES } from '@/lib/teams';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface ChampionPick {
   champion: string | null;
@@ -735,8 +736,8 @@ export function GroupDetailClient({
                   </div>
 
                   <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden" style={rank === 1 ? { outline: '2px solid rgba(212,175,55,0.4)', outlineOffset: '1px' } : {}}>
-                    {entry.avatar_url ? (
-                      <Image src={entry.avatar_url} alt={entry.username} width={36} height={36} className="w-full h-full object-cover" />
+                    {isValidAvatarUrl(entry.avatar_url) ? (
+                      <Image src={entry.avatar_url!} alt={entry.username} width={36} height={36} className="w-full h-full object-cover" />
                     ) : (
                       <div className={cn('w-full h-full flex items-center justify-center text-sm font-bold', isMe ? 'bg-field text-white' : rank === 1 ? 'bg-crown/20 text-crown' : 'bg-surface-hover text-gray-300')}>
                         {entry.username.slice(0, 2).toUpperCase()}
@@ -1147,8 +1148,8 @@ export function GroupDetailClient({
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className={cn('w-12 h-12 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold', isOwnProfile ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
-                  {entry.avatar_url ? (
-                    <Image src={entry.avatar_url} alt={entry.username} width={48} height={48} className="w-full h-full object-cover" />
+                  {isValidAvatarUrl(entry.avatar_url) ? (
+                    <Image src={entry.avatar_url!} alt={entry.username} width={48} height={48} className="w-full h-full object-cover" />
                   ) : (
                     entry.username.slice(0, 2).toUpperCase()
                   )}
@@ -1453,8 +1454,8 @@ export function GroupDetailClient({
                 return (
                   <div key={friend.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5 last:border-0">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-bold text-white text-xs shrink-0">
-                      {friend.avatar_url
-                        ? <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover rounded-full" />
+                      {isValidAvatarUrl(friend.avatar_url)
+                        ? <img src={friend.avatar_url!} alt={friend.username} className="w-full h-full object-cover rounded-full" />
                         : friend.username.slice(0, 2).toUpperCase()
                       }
                     </div>

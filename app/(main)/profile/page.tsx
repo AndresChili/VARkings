@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { ProfileClient } from '@/components/profile/profile-client';
 import { getUserXP, computeAndAwardBonuses } from '@/lib/xp-server';
+import { isValidAvatarUrl } from '@/lib/avatar';
 import { getLevelProgress } from '@/lib/xp';
 
 type PredRow = {
@@ -155,7 +156,7 @@ export default async function ProfilePage() {
     groupStagePredictions: groupStagePredCount.count ?? 0,
     totalGroupStageMatches: groupStageMatchCount.count ?? 0,
     totalMatches: totalMatchCount.count ?? 0,
-    hasAvatar: !!(profileRes.data?.avatar_url),
+    hasAvatar: isValidAvatarUrl(profileRes.data?.avatar_url),
     tournamentCalc: tp
       ? {
           is_calculated: tp.is_calculated ?? false,
