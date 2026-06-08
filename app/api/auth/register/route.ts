@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,14 +37,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nombre completo requerido (mínimo 2 caracteres)' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.createUser({
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  const { error } = await supabase.auth.signUp({
     email: String(email).toLowerCase().trim(),
     password: String(password),
-    email_confirm: true,
-    user_metadata: {
-      username: String(username).toLowerCase(),
-      full_name: String(fullName).trim(),
+    options: {
+      data: {
+        username: String(username).toLowerCase(),
+        full_name: String(fullName).trim(),
+      },
     },
   });
 
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear la cuenta. Inténtalo de nuevo.' }, { status: 400 });
   }
 
-  return NextResponse.json({ id: data.user?.id }, {
+  return NextResponse.json({ message: 'Revisa tu email para confirmar tu cuenta.' }, {
     headers: { 'Cache-Control': 'no-store' },
   });
 }
