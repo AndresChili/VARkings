@@ -17,11 +17,18 @@ export interface FDMatch {
 }
 
 async function fdRequest<T>(path: string): Promise<T> {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
+  if (!apiKey) throw new Error('FOOTBALL_DATA_API_KEY not configured');
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'X-Auth-Token': process.env.FOOTBALL_DATA_API_KEY! },
+    headers: { 'X-Auth-Token': apiKey },
     next: { revalidate: 60 },
   });
-  if (!res.ok) throw new Error(`football-data.org ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`football-data.org ${res.status}:`, body);
+    throw new Error(`football-data.org error: ${res.status}`);
+  }
   return res.json() as Promise<T>;
 }
 

@@ -6,7 +6,7 @@ export default async function SugerenciasAdminPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.email !== process.env.SUPERADMIN_EMAIL) {
+  if (!user || user.email?.toLowerCase() !== process.env.SUPERADMIN_EMAIL?.toLowerCase()) {
     redirect('/profile');
   }
 

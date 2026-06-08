@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
@@ -32,7 +33,10 @@ export const viewport: Viewport = {
   themeColor: '#2D6A4F',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce is injected by middleware per-request for CSP enforcement
+  const nonce = (await headers()).get('x-nonce') ?? '';
+
   return (
     <html lang="es" className={geist.variable}>
       <head>
@@ -41,12 +45,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         {/* Capture beforeinstallprompt before React hydrates to avoid race condition */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            window.__pwaPrompt = e;
-          });
-        `}} />
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: `
+            window.addEventListener('beforeinstallprompt', function(e) {
+              e.preventDefault();
+              window.__pwaPrompt = e;
+            });
+          `}}
+        />
       </head>
       <body className="antialiased bg-surface min-h-screen">{children}</body>
     </html>

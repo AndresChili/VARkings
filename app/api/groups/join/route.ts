@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Código de invitación inválido' }, { status: 404 });
   }
 
-  // Already a member
+  // Already a member — return early before limit check
   const { data: existing } = await supabase
     .from('group_members')
     .select('id')
@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
 
   if (existing) {
     return NextResponse.json({ group, already_member: true });
+  }
+
+  // Enforce membership limit only for new joins
+  const { count: membershipCount } = await supabase
+    .from('group_members')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  if ((membershipCount ?? 0) >= 20) {
+    return NextResponse.json({ error: 'Límite alcanzado: máximo 20 grupos por usuario' }, { status: 400 });
   }
 
   // Creator joins directly (no approval needed)

@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
       let query = supabase.from('push_subscriptions').select('user_id, endpoint, p256dh, auth_key');
       if (predictedIds.length > 0) {
-        query = query.not('user_id', 'in', `(${predictedIds.map((id) => `"${id}"`).join(',')})`);
+        query = query.not('user_id', 'in', `(${predictedIds.join(',')})`);
       }
       const { data: subscriptions } = await query;
 

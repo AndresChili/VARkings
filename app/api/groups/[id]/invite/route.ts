@@ -5,6 +5,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: group_id } = await params;
+  if (!UUID_RE.test(group_id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
