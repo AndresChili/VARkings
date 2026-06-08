@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, description } = body;
 
+  // Limit groups created per user
+  const { count: createdCount } = await supabase
+    .from('groups')
+    .select('id', { count: 'exact', head: true })
+    .eq('created_by', user.id);
+  if ((createdCount ?? 0) >= 10) {
+    return NextResponse.json({ error: 'Límite alcanzado: máximo 10 grupos creados por usuario' }, { status: 400 });
+  }
+
   if (!name?.trim()) {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
   }

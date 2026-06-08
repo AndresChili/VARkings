@@ -4,13 +4,12 @@ const BASE_URL = 'https://v3.football.api-sports.io';
 const WC_LEAGUE_ID = 1;
 const WC_SEASON = 2026;
 
-const headers = {
-  'x-apisports-key': process.env.RAPIDAPI_KEY!,
-};
-
 async function apiRequest<T>(endpoint: string): Promise<T> {
+  const apiKey = process.env.RAPIDAPI_KEY;
+  if (!apiKey) throw new Error('RAPIDAPI_KEY not configured');
+
   const res = await fetch(`${BASE_URL}${endpoint}`, {
-    headers,
+    headers: { 'x-apisports-key': apiKey },
     next: { revalidate: 300 },
   });
 

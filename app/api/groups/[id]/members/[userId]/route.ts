@@ -37,7 +37,7 @@ export async function DELETE(
     .eq('group_id', id)
     .eq('user_id', userId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

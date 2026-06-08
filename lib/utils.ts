@@ -65,10 +65,18 @@ export function getWinner(homeScore: number, awayScore: number): 'home' | 'away'
 }
 
 export function generateInviteCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; // 36 chars
+  const result: string[] = [];
+  // Rejection sampling: discard bytes >= 252 (252 = 7×36) to avoid modulo bias
+  while (result.length < 8) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    for (const b of bytes) {
+      if (result.length >= 8) break;
+      if (b < 252) result.push(chars[b % 36]);
+    }
+  }
+  return result.join('');
 }
 
 export function getPointsColor(points: number): string {

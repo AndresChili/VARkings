@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!rateLimit(`account-delete:${user.id}`, 3, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera 15 minutos.' }, { status: 429 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const password = body?.password ? String(body.password) : '';
