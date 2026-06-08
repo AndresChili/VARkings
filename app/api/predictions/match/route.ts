@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
   }
 
+  const home = Number(predicted_home_score);
+  const away = Number(predicted_away_score);
+  if (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0 || home > 30 || away > 30) {
+    return NextResponse.json({ error: 'Marcador inválido' }, { status: 400 });
+  }
+
   // Verify match exists and hasn't started
   const { data: match } = await supabase
     .from('matches')
@@ -39,22 +45,22 @@ export async function POST(req: NextRequest) {
   if (existing) {
     const { error } = await supabase
       .from('match_predictions')
-      .update({ predicted_home_score, predicted_away_score })
+      .update({ predicted_home_score: home, predicted_away_score: away })
       .eq('match_id', match_id)
       .eq('user_id', user.id);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Error al actualizar predicción' }, { status: 500 });
     return NextResponse.json({ success: true, action: 'updated' });
   }
 
   const { error } = await supabase.from('match_predictions').insert({
     user_id: user.id,
     match_id,
-    predicted_home_score,
-    predicted_away_score,
+    predicted_home_score: home,
+    predicted_away_score: away,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
 
   // Award first-prediction XP (idempotent — ignored if already awarded)
   const admin = createAdminClient();
@@ -90,6 +96,6 @@ export async function DELETE(req: NextRequest) {
     .eq('match_id', match_id)
     .eq('user_id', user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al eliminar predicción' }, { status: 500 });
   return NextResponse.json({ success: true });
 }

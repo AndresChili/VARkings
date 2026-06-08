@@ -10,13 +10,16 @@
 8- [x] Revisar sistema de puntos
 9- [x] He encontrado un bug o no sé que es la verdad, pero al eliminar un grupo como que me salta otra página que no es la de inicio y no sé porque donde también se ven los grupos pero es diferente a la de inicio
 10- [x] Que te deje eliminar a usuarios de tu grupo si eres admin
-11- [x] En el dashboard o Inicio, que salga si eres admin del grupo algo para diferenciarlo.
-12- [] Ver perfil de la gente
+11- [x] En el dashboard o Inicio, que sal
+ga si eres admin del grupo algo para diferenciarlo.
+12- [x] Ver perfil de la gente
 13- [] Seguridad en las contraseñas y rate limit
 14- [x] No poder salirte a otra pantalla o que avise si lo vas a hacer al estar en el modal de elegir podio y quien pasa de fase de grupos.
 15- [x] Poner estadisticas dentro de un boton como lo de compartir app y cerrar sesión etc
 16- [x] Añadir un cambiar contraseña
-17- [] Añadir sistema de puntos para los usuarios, dependiendo de los puntos, los días que lleve jugando, rachas de entrar a la app, compartir la aplicación, amigos que tenga etc..
+17- [x] Añadir sistema de puntos para los usuarios, dependiendo de los puntos, los días que lleve jugando, rachas de entrar a la app, compartir la aplicación, amigos que tenga etc..
 18- [x] Filtro de busqueda en los partidos
 19- [] Iniciar sesión con google
 20- [] Comprobar que una vez que inicia el partido no se pueda cambiar la predicción.
+21- [x] Comfirmar cerrar sesión
+22- [x] Añadir sugerencias y superadmin que las vea

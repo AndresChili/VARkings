@@ -20,6 +20,11 @@ export async function POST(req: NextRequest) {
 
   if (!friendship) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // Verify current user is part of this friendship before awarding XP
+  if (friendship.requester_id !== user.id && friendship.addressee_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // Award XP to both sides (idempotent)
   await Promise.all([
     awardFriendXP(admin, friendship.requester_id, friendship.addressee_id),

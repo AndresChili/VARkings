@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: group_id } = await params;
   const supabase = await createClient();
@@ -8,7 +10,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { invitee_id } = await req.json();
-  if (!invitee_id) return NextResponse.json({ error: 'invitee_id required' }, { status: 400 });
+  if (!invitee_id || !UUID_RE.test(String(invitee_id))) {
+    return NextResponse.json({ error: 'invitee_id inválido' }, { status: 400 });
+  }
+
+  // Verify invitee exists
+  const { data: invitee } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', invitee_id)
+    .maybeSingle();
+  if (!invitee) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
 
   // Any member can invite
   const { data: membership } = await supabase
@@ -35,7 +47,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: 'Error al enviar invitación' }, { status: 400 });
 
   return NextResponse.json({ ...data, group_name: group?.name });
 }
