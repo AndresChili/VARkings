@@ -129,7 +129,9 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     maxStreak: 0,
     totalDaysActive: 0,
   };
-  const completedCount = getAchievements(achievementStats).filter((a) => a.current >= a.target).length;
+  const allAchievements = getAchievements(achievementStats);
+  const completedCount = allAchievements.filter((a) => a.current >= a.target).length;
+  const totalAchievements = allAchievements.length;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -631,7 +633,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
             <span className="font-medium text-sm">Logros</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-blue-400/60 tabular-nums">{completedCount}/20</span>
+            <span className="text-xs text-blue-400/60 tabular-nums">{completedCount}/{totalAchievements}</span>
             <ChevronRight size={16} className="text-blue-500/40" />
           </div>
         </button>
