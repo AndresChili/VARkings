@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getUserXP, getUserStreakStats } from '@/lib/xp-server';
 import { getLevelProgress } from '@/lib/xp';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
+import { isValidAvatarUrl } from '@/lib/avatar';
 import { UserProfileClient } from '@/components/profile/user-profile-client';
 
 export default async function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -131,7 +132,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ id
     totalPoints: matchPoints,
     totalXP,
     totalMatches: totalMatchCount.count ?? 0,
-    hasAvatar: !!(profileRes.data.avatar_url),
+    hasAvatar: isValidAvatarUrl(profileRes.data.avatar_url),
     currentStreak: streakStats.currentStreak,
     maxStreak: streakStats.maxStreak,
     totalDaysActive: streakStats.totalDaysActive,

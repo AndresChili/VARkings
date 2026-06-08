@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2, LogIn } from 'lucide-react';
+import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface Profile {
   id: string;
@@ -23,18 +24,6 @@ interface Props {
   currentUserId: string | null;
   target: Profile;
   existingFriendship: Friendship | null;
-}
-
-function isValidAvatarUrl(url: string | null): boolean {
-  if (!url) return false;
-  try {
-    const { protocol, hostname } = new URL(url);
-    if (protocol !== 'https:') return false;
-    return (
-      hostname.endsWith('.supabase.co') ||
-      hostname === 'upload.wikimedia.org'
-    );
-  } catch { return false; }
 }
 
 export function AddFriendClient({ currentUserId, target, existingFriendship: initial }: Props) {
