@@ -1,30 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+
+// Allowlist of known web push service domains (Chrome/FCM, Firefox, Safari, Edge)
+const PUSH_DOMAIN_ALLOWLIST = [
+  'fcm.googleapis.com',
+  'push.services.mozilla.com',
+  'updates.push.services.mozilla.com',
+  'web.push.apple.com',
+  'notify.windows.com',
+  'wns.notify.windows.com',
+  'sg2p.notify.windows.com',
+];
 
 function isValidPushEndpoint(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);
     if (protocol !== 'https:') return false;
-    // Block SSRF: private/internal IP ranges and localhost
-    if (
-      hostname === 'localhost' ||
-      /^127\./.test(hostname) ||
-      /^10\./.test(hostname) ||
-      /^192\.168\./.test(hostname) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
-      hostname === '0.0.0.0' ||
-      /^169\.254\./.test(hostname) ||
-      hostname === '::1' ||
-      /^fc00:/i.test(hostname) ||
-      /^fe80:/i.test(hostname)
-    ) return false;
-    return true;
+    // Reject raw IP addresses (decimal, IPv6) — real push services use hostnames
+    if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) return false;
+    // Require hostname matches a known push provider
+    return PUSH_DOMAIN_ALLOWLIST.some(
+      (d) => hostname === d || hostname.endsWith('.' + d)
+    );
   } catch { return false; }
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const ip = getClientIp(req);
   if (!rateLimit(`push-subscribe:${ip}`, 10, 5 * 60 * 1000)) {
     return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 });
   }

@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .from('group_members')
         .insert({ group_id: invite.group_id, user_id: user.id });
       if (joinError && !joinError.message.includes('duplicate')) {
-        return NextResponse.json({ error: joinError.message }, { status: 400 });
+        return NextResponse.json({ error: 'Error al unirse al grupo' }, { status: 400 });
       }
       await supabase
         .from('group_invites')
@@ -58,7 +58,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           { group_id: invite.group_id, user_id: user.id, status: 'pending' },
           { onConflict: 'group_id,user_id', ignoreDuplicates: true }
         );
-      if (reqError) return NextResponse.json({ error: reqError.message }, { status: 400 });
+      if (reqError) return NextResponse.json({ error: 'Error al procesar la solicitud' }, { status: 400 });
       await supabase
         .from('group_invites')
         .update({ status: 'accepted' })

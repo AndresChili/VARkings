@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://media.api-sports.io https://media-3.api-sports.io https://crests.football-data.org https://upload.wikimedia.org https://*.supabase.co",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
