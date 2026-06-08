@@ -150,6 +150,20 @@ export default function RegisterPage() {
                 text-white placeholder-gray-600 focus:outline-none focus:border-field
                 transition-colors"
             />
+            {form.password.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {[
+                  { ok: form.password.length >= 8, label: 'Mínimo 8 caracteres' },
+                  { ok: /[A-Z]/.test(form.password), label: 'Una mayúscula' },
+                  { ok: /[0-9]/.test(form.password), label: 'Un número' },
+                ].map(({ ok, label }) => (
+                  <li key={label} className={`flex items-center gap-1.5 text-xs transition-colors ${ok ? 'text-green-400' : 'text-gray-500'}`}>
+                    <span className="text-base leading-none">{ok ? '✓' : '·'}</span>
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {error && (
