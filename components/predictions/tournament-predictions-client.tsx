@@ -2,18 +2,26 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trophy, Shield, CheckCircle, Lock, Crown, Star } from 'lucide-react';
+import { Trophy, Shield, CheckCircle, Lock, Crown, Star, X } from 'lucide-react';
 import type { Team, TournamentPrediction } from '@/types';
 import { cn, WC_GROUPS, isTournamentLocked, getTournamentDeadlineText, TOURNAMENT_LOCK_DATE } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+interface ActualPodio {
+  champion: string | null;
+  runnerUp: string | null;
+  thirdPlace: string | null;
+}
+
 interface TournamentPredictionsClientProps {
   teams: Team[];
   existingPrediction: TournamentPrediction | null;
+  groupQualifiers: Record<string, string[]>;
+  actualPodio: ActualPodio | null;
 }
 
-export function TournamentPredictionsClient({ teams, existingPrediction }: TournamentPredictionsClientProps) {
+export function TournamentPredictionsClient({ teams, existingPrediction, groupQualifiers, actualPodio }: TournamentPredictionsClientProps) {
   const router = useRouter();
   const locked = isTournamentLocked();
 
@@ -170,37 +178,52 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
       {tab === 'podio' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl p-5 space-y-4">
           {[
-            { label: '🥇 Campeón del Mundo', value: champion, setter: setChampion, pts: 20 },
-            { label: '🥈 Segundo clasificado', value: runnerUp, setter: setRunnerUp, pts: 10 },
-            { label: '🥉 Tercer clasificado', value: thirdPlace, setter: setThirdPlace, pts: 5 },
-          ].map(({ label, value, setter, pts }) => (
-            <div key={label}>
-              <label className="flex items-center justify-between text-sm mb-2">
-                <span className="font-medium text-white">{label}</span>
-                <div className="text-right">
-                  <span className="text-xs text-crown font-bold">+{pts} pts exacto</span>
-                  <span className="text-xs text-orange-400 font-bold ml-2">+3 en podio</span>
-                </div>
-              </label>
-              {locked ? (
-                <div className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-gray-300 text-sm">
-                  {value || <span className="text-gray-600">Sin selección</span>}
-                </div>
-              ) : (
-                <select
-                  value={value}
-                  onChange={(e) => setter(e.target.value)}
-                  className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white
-                    focus:outline-none focus:border-field transition-colors text-sm appearance-none cursor-pointer"
-                >
-                  <option value="">Selecciona un equipo...</option>
-                  {teamOptions.map((t) => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          ))}
+            { label: '🥇 Campeón del Mundo', value: champion, setter: setChampion, pts: 20, actual: actualPodio?.champion ?? null },
+            { label: '🥈 Segundo clasificado', value: runnerUp, setter: setRunnerUp, pts: 10, actual: actualPodio?.runnerUp ?? null },
+            { label: '🥉 Tercer clasificado', value: thirdPlace, setter: setThirdPlace, pts: 5, actual: actualPodio?.thirdPlace ?? null },
+          ].map(({ label, value, setter, pts, actual }) => {
+            const allActual = actualPodio ? [actualPodio.champion, actualPodio.runnerUp, actualPodio.thirdPlace] : null;
+            const isExact = !!actualPodio && !!value && value === actual;
+            const isInPodio = !!actualPodio && !!value && !isExact && (allActual?.includes(value) ?? false);
+            const isWrong = !!actualPodio && !!value && !isExact && !isInPodio;
+            return (
+              <div key={label}>
+                <label className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-medium text-white">{label}</span>
+                  <div className="text-right">
+                    <span className="text-xs text-crown font-bold">+{pts} pts exacto</span>
+                    <span className="text-xs text-orange-400 font-bold ml-2">+3 en podio</span>
+                  </div>
+                </label>
+                {locked ? (
+                  <div className={cn(
+                    'w-full rounded-xl px-4 py-3 text-sm flex items-center gap-2',
+                    isExact   ? 'bg-green-500/15 border border-green-500/40 text-green-300'
+                    : isInPodio ? 'bg-yellow-500/15 border border-yellow-500/40 text-yellow-300'
+                    : isWrong   ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    : 'bg-surface border border-white/10 text-gray-300'
+                  )}>
+                    {isExact    && <CheckCircle size={14} className="text-green-400 shrink-0" />}
+                    {isInPodio  && <Trophy size={14} className="text-yellow-400 shrink-0" />}
+                    {isWrong    && <X size={14} className="text-red-400 shrink-0" />}
+                    {value || <span className="text-gray-600">Sin selección</span>}
+                  </div>
+                ) : (
+                  <select
+                    value={value}
+                    onChange={(e) => setter(e.target.value)}
+                    className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white
+                      focus:outline-none focus:border-field transition-colors text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecciona un equipo...</option>
+                    {teamOptions.map((t) => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -233,30 +256,46 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
                     <span className="text-[10px] text-blue-400 font-semibold">+2 pts si aciertas uno</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {[0, 1].map((idx) => (
-                      <div key={idx}>
-                        <label className="text-xs text-gray-500 mb-1 block">
-                          {idx === 0 ? '1º clasificado' : '2º clasificado'}
-                        </label>
-                        {locked ? (
-                          <div className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5 text-gray-300 text-xs">
-                            {pred[idx as 0 | 1] || <span className="text-gray-600">–</span>}
-                          </div>
-                        ) : (
-                          <select
-                            value={pred[idx as 0 | 1]}
-                            onChange={(e) => setGroupTeam(groupName, idx as 0 | 1, e.target.value)}
-                            className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5
-                              text-white focus:outline-none focus:border-field text-xs appearance-none cursor-pointer"
-                          >
-                            <option value="">Elegir...</option>
-                            {groupTeams.map((t) => (
-                              <option key={t.id} value={t.name}>{t.name}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    ))}
+                    {[0, 1].map((idx) => {
+                      const pickedName = pred[idx as 0 | 1];
+                      const qualifiers = groupQualifiers[groupName];
+                      const hasResults = qualifiers && qualifiers.length > 0;
+                      const isCorrect = hasResults && !!pickedName && qualifiers.includes(pickedName);
+                      const isWrong = hasResults && !!pickedName && !qualifiers.includes(pickedName);
+                      return (
+                        <div key={idx}>
+                          <label className="text-xs text-gray-500 mb-1 block">
+                            {idx === 0 ? '1º clasificado' : '2º clasificado'}
+                          </label>
+                          {locked ? (
+                            <div className={cn(
+                              'w-full rounded-xl px-3 py-2.5 text-xs flex items-center gap-1.5',
+                              isCorrect
+                                ? 'bg-green-500/15 border border-green-500/40 text-green-300'
+                                : isWrong
+                                ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                                : 'bg-surface border border-white/10 text-gray-300'
+                            )}>
+                              {isCorrect && <CheckCircle size={11} className="text-green-400 shrink-0" />}
+                              {isWrong && <X size={11} className="text-red-400 shrink-0" />}
+                              {pickedName || <span className="text-gray-600">–</span>}
+                            </div>
+                          ) : (
+                            <select
+                              value={pred[idx as 0 | 1]}
+                              onChange={(e) => setGroupTeam(groupName, idx as 0 | 1, e.target.value)}
+                              className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5
+                                text-white focus:outline-none focus:border-field text-xs appearance-none cursor-pointer"
+                            >
+                              <option value="">Elegir...</option>
+                              {groupTeams.map((t) => (
+                                <option key={t.id} value={t.name}>{t.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
