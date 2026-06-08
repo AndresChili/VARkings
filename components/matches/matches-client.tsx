@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CheckCircle, Circle, Search, X } from 'lucide-react';
@@ -21,27 +21,56 @@ interface MatchesClientProps {
 
 type FilterType = 'upcoming' | 'all' | 'finished';
 
-export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
+export function MatchesClient({ matches: initialMatches, predictionMap }: MatchesClientProps) {
+  const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [filter, setFilter] = useState<FilterType>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
+  const hasLive = matches.some((m) => isMatchLive(m.status));
+  const hasRecentlyStarted = matches.some(
+    (m) => m.status === 'NS' && new Date(m.match_date) <= new Date()
+  );
+  const shouldPoll = hasLive || hasRecentlyStarted;
+
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!shouldPoll) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch('/api/matches');
+        if (!res.ok) return;
+        const fresh: Match[] = await res.json();
+        setMatches(fresh);
+      } catch {}
+    }
+
+    pollRef.current = setInterval(refresh, 60_000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [shouldPoll]);
+
   const upcoming = matches.filter((m) => m.status === 'NS').slice(0, 4);
   const finished = matches.filter((m) => isMatchFinished(m.status));
+  const nonFinished = matches.filter((m) => !isMatchFinished(m.status));
 
   const availableGroups = useMemo(() => {
-    const base = filter === 'all' ? matches : finished;
+    const base = filter === 'all' ? nonFinished : finished;
     const groups = new Set<string>();
     base.forEach((m) => {
       if (m.group_name) groups.add(m.group_name);
     });
     return Array.from(groups).sort();
-  }, [filter, matches, finished]);
+  }, [filter, nonFinished, finished]);
 
   const filtered = useMemo(() => {
     if (filter === 'upcoming') return upcoming;
 
-    const base = filter === 'all' ? matches : finished;
+    const base = filter === 'all' ? nonFinished : finished;
     const sorted = [...base].sort((a, b) =>
       new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
     );
@@ -55,7 +84,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
       const matchesGroup = !selectedGroup || m.group_name === selectedGroup;
       return matchesSearch && matchesGroup;
     });
-  }, [filter, matches, finished, upcoming, searchQuery, selectedGroup]);
+  }, [filter, nonFinished, finished, upcoming, searchQuery, selectedGroup]);
 
   const groups = useMemo(() => {
     if (filter !== 'upcoming') return null;
@@ -77,7 +106,7 @@ export function MatchesClient({ matches, predictionMap }: MatchesClientProps) {
       <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
         {([
           ['upcoming', 'Próximos', upcoming.length],
-          ['all', 'Todos', matches.length],
+          ['all', 'Todos', nonFinished.length],
           ['finished', 'Finalizados', finished.length],
         ] as [FilterType, string, number][]).map(([key, label, count]) => (
           <button
