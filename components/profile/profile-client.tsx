@@ -214,7 +214,9 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     e.preventDefault();
     setPasswordError('');
     if (!currentPassword) { setPasswordError('Introduce tu contraseña actual'); return; }
-    if (newPassword.length < 6) { setPasswordError('Mínimo 6 caracteres'); return; }
+    if (newPassword.length < 8) { setPasswordError('Mínimo 8 caracteres'); return; }
+    if (!/[A-Z]/.test(newPassword)) { setPasswordError('Debe contener al menos una mayúscula'); return; }
+    if (!/[0-9]/.test(newPassword)) { setPasswordError('Debe contener al menos un número'); return; }
     if (newPassword !== confirmPassword) { setPasswordError('Las contraseñas no coinciden'); return; }
     setPasswordSaving(true);
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
@@ -685,7 +687,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
-                minLength={6}
+                minLength={8}
               />
             </div>
             <div>
@@ -695,7 +697,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-field text-sm"
-                minLength={6}
+                minLength={8}
               />
             </div>
             {passwordError && <p className="text-red-400 text-xs">{passwordError}</p>}
