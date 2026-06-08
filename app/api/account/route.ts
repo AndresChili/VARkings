@@ -8,7 +8,7 @@ export async function DELETE(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  if (!rateLimit(`account-delete:${user.id}`, 3, 15 * 60 * 1000)) {
+  if (!(await rateLimit(`account-delete:${user.id}`, 3, 15 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 15 minutos.' }, { status: 429 });
   }
 

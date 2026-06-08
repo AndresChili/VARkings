@@ -7,7 +7,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  if (!rateLimit(`register:${ip}`, 5, 15 * 60 * 1000)) {
+  if (!(await rateLimit(`register:${ip}`, 5, 15 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 15 minutos.' }, { status: 429 });
   }
 

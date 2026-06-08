@@ -135,6 +135,11 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     if (!file || !profile) return;
 
     setAvatarError('');
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!ALLOWED_MIME.includes(file.type)) {
+      setAvatarError('Solo se permiten imágenes JPG, PNG, WebP o GIF');
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       setAvatarError('Máx 5 MB');
       return;

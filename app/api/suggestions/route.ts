@@ -7,8 +7,13 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  if (!rateLimit(`suggestion:${user.id}`, 5, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`suggestion:${user.id}`, 5, 10 * 60 * 1000))) {
     return NextResponse.json({ error: 'Demasiadas sugerencias. Espera 10 minutos.' }, { status: 429 });
+  }
+
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 10_000) {
+    return NextResponse.json({ error: 'Payload demasiado grande' }, { status: 413 });
   }
 
   const body = await req.json();
