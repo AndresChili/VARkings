@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { VarkingsLogo } from '@/components/ui/varkings-logo';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ username: '', fullName: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -64,21 +64,33 @@ export default function RegisterPage() {
       return;
     }
 
-    // Auto-login after registration
-    const supabase = createClient();
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
-
-    if (loginError) {
-      setError('Cuenta creada. Inicia sesión manualmente.');
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = '/dashboard';
+    setRegistered(true);
     setLoading(false);
+  }
+
+  if (registered) {
+    return (
+      <div className="animate-fade-in">
+        <div className="flex flex-col items-center mb-8">
+          <VarkingsLogo size={80} />
+          <h1 className="text-3xl font-bold text-white mt-4">VARkings</h1>
+        </div>
+        <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
+          <div className="text-4xl mb-4">📧</div>
+          <h2 className="text-xl font-semibold text-white mb-2">Confirma tu email</h2>
+          <p className="text-gray-400 text-sm">
+            Te enviamos un enlace de confirmación a <span className="text-white font-medium">{form.email}</span>.
+            Revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.
+          </p>
+        </div>
+        <p className="text-center text-gray-400 mt-6 text-sm">
+          ¿Ya confirmaste?{' '}
+          <Link href="/login" className="text-crown hover:text-crown-light transition-colors font-medium">
+            Iniciar sesión
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (
