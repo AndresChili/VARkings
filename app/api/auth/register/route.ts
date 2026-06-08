@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
   if (!username || !USERNAME_RE.test(String(username))) {
     return NextResponse.json({ error: 'Username: 3-20 caracteres, solo letras, números y _' }, { status: 400 });
   }
-  if (!fullName || String(fullName).trim().length < 2) {
-    return NextResponse.json({ error: 'Nombre completo requerido (mínimo 2 caracteres)' }, { status: 400 });
+  if (!fullName || String(fullName).trim().length < 2 || String(fullName).trim().length > 100) {
+    return NextResponse.json({ error: 'Nombre completo: mínimo 2, máximo 100 caracteres' }, { status: 400 });
   }
 
   const supabase = createSupabaseClient(
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (msg.includes('signup is disabled') || msg.includes('signups not allowed')) {
       return NextResponse.json({ error: 'El registro está desactivado temporalmente' }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message ?? 'Error al crear la cuenta' }, { status: 400 });
+    return NextResponse.json({ error: 'Error al crear la cuenta. Inténtalo más tarde.' }, { status: 400 });
   }
 
   return NextResponse.json({ message: 'Revisa tu email para confirmar tu cuenta.' }, {

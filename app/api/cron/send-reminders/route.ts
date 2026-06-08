@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
 
       const { data: allSubscriptions } = await supabase
         .from('push_subscriptions')
-        .select('user_id, endpoint, p256dh, auth_key');
+        .select('user_id, endpoint, p256dh, auth_key')
+        .limit(1000);
       const subscriptions = (allSubscriptions ?? []).filter(
         (s) => !predictedIds.includes(s.user_id)
       );

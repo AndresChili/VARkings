@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { awardXP } from '@/lib/xp-server';
 import { XP_VALUES } from '@/lib/xp';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!(await rateLimit(`pred-match:${user.id}`, 30, 60_000))) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera un momento.' }, { status: 429 });
+  }
 
   const body = await req.json();
   const { match_id, predicted_home_score, predicted_away_score } = body;
@@ -78,6 +83,10 @@ export async function DELETE(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!(await rateLimit(`pred-match:${user.id}`, 30, 60_000))) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera un momento.' }, { status: 429 });
+  }
 
   const { match_id } = await req.json();
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

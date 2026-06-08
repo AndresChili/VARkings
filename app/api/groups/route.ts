@@ -12,6 +12,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 5_000) {
+    return NextResponse.json({ error: 'Payload demasiado grande' }, { status: 413 });
+  }
+
   const body = await req.json();
   const { name, description } = body;
 

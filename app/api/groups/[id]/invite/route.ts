@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -9,6 +10,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!(await rateLimit(`group-invite:${user.id}`, 20, 60_000))) {
+    return NextResponse.json({ error: 'Demasiados intentos. Espera un momento.' }, { status: 429 });
+  }
 
   const { invitee_id } = await req.json();
   if (!invitee_id || !UUID_RE.test(String(invitee_id))) {
