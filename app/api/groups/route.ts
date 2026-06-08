@@ -18,6 +18,12 @@ export async function POST(req: NextRequest) {
   if (!name?.trim()) {
     return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
   }
+  if (name.trim().length > 50) {
+    return NextResponse.json({ error: 'El nombre no puede superar 50 caracteres' }, { status: 400 });
+  }
+  if (description && description.trim().length > 300) {
+    return NextResponse.json({ error: 'La descripción no puede superar 300 caracteres' }, { status: 400 });
+  }
 
   const invite_code = generateInviteCode();
 

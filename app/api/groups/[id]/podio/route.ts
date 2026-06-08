@@ -50,6 +50,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { champion, runner_up, third_place } = await req.json();
 
+  const validateTeamName = (v: unknown) =>
+    typeof v === 'string' && v.trim().length > 0 && v.length <= 100;
+  if (!validateTeamName(champion) || !validateTeamName(runner_up) || !validateTeamName(third_place)) {
+    return NextResponse.json({ error: 'Nombre de equipo inválido' }, { status: 400 });
+  }
+
   const { error } = await supabase
     .from('group_tournament_predictions')
     .insert({ user_id: user.id, group_id, champion, runner_up, third_place });

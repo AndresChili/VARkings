@@ -94,6 +94,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, updated, live: live.length });
   } catch (error) {
     console.error('Cron update-results error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

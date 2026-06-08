@@ -66,7 +66,9 @@ export function getWinner(homeScore: number, awayScore: number): 'home' | 'away'
 
 export function generateInviteCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
 }
 
 export function getPointsColor(points: number): string {
