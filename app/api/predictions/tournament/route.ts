@@ -18,6 +18,24 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { champion, runner_up, third_place, group_predictions } = body;
 
+  const validateTeamName = (v: unknown) =>
+    v === undefined || v === null || (typeof v === 'string' && v.trim().length > 0 && v.length <= 100);
+  if (!validateTeamName(champion) || !validateTeamName(runner_up) || !validateTeamName(third_place)) {
+    return NextResponse.json({ error: 'Nombre de equipo inválido' }, { status: 400 });
+  }
+  if (group_predictions !== undefined && group_predictions !== null) {
+    if (typeof group_predictions !== 'object' || Array.isArray(group_predictions)) {
+      return NextResponse.json({ error: 'Predicciones de grupos inválidas' }, { status: 400 });
+    }
+    const validGroups = new Set(['A','B','C','D','E','F','G','H','I','J','K','L']);
+    for (const [key, val] of Object.entries(group_predictions as Record<string, unknown>)) {
+      if (!validGroups.has(key)) return NextResponse.json({ error: 'Grupo inválido' }, { status: 400 });
+      if (!Array.isArray(val) || val.length !== 2 || !val.every((v) => typeof v === 'string' && v.length > 0 && v.length <= 100)) {
+        return NextResponse.json({ error: 'Predicción de grupo inválida' }, { status: 400 });
+      }
+    }
+  }
+
   const { data: existing } = await supabase
     .from('tournament_predictions')
     .select('id')

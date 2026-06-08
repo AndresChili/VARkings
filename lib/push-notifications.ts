@@ -1,16 +1,13 @@
+import webpush from 'web-push';
 import type { PushNotificationPayload } from '@/types';
 
-function getWebPush() {
-  // Lazy import to avoid initialization at build time
-  const webpush = require('web-push');
+function configureVapid() {
   const email = process.env.VAPID_EMAIL;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-
   if (email && publicKey && privateKey) {
     webpush.setVapidDetails(email, publicKey, privateKey);
   }
-  return webpush;
 }
 
 export async function sendPushNotification(
@@ -18,7 +15,7 @@ export async function sendPushNotification(
   payload: PushNotificationPayload
 ) {
   try {
-    const webpush = getWebPush();
+    configureVapid();
     await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,

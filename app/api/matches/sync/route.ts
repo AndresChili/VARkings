@@ -48,6 +48,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, matches: upserts.length });
   } catch (error) {
     console.error('Match sync error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

@@ -6,9 +6,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
   const { new_admin_id } = await req.json();
 
-  if (!new_admin_id) return NextResponse.json({ error: 'new_admin_id requerido' }, { status: 400 });
+  if (!new_admin_id || !UUID_RE.test(String(new_admin_id))) {
+    return NextResponse.json({ error: 'new_admin_id inválido' }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

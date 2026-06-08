@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
   if (!subscription?.endpoint) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
   }
+  const endpoint: string = subscription.endpoint;
+  if (typeof endpoint !== 'string' || !endpoint.startsWith('https://') || endpoint.length > 2048) {
+    return NextResponse.json({ error: 'Invalid subscription endpoint' }, { status: 400 });
+  }
 
   const { error } = await supabase
     .from('push_subscriptions')

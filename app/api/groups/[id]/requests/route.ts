@@ -30,7 +30,8 @@ export async function GET(
     .select('id, user_id, created_at')
     .eq('group_id', id)
     .eq('status', 'pending')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(100);
 
   const userIds = (requests ?? []).map((r) => r.user_id);
   const { data: profiles } = userIds.length > 0
@@ -79,7 +80,7 @@ export async function POST(
       .from('group_members')
       .insert({ group_id: id, user_id });
 
-    if (memberError && !memberError.message.includes('duplicate')) {
+    if (memberError && memberError.code !== '23505') {
       return NextResponse.json({ error: 'Error al añadir miembro' }, { status: 500 });
     }
 

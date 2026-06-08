@@ -14,8 +14,9 @@ export async function POST(req: NextRequest) {
 
   const { data: friendship } = await admin
     .from('friendships')
-    .select('requester_id, addressee_id')
+    .select('requester_id, addressee_id, status')
     .eq('id', friendship_id)
+    .eq('status', 'accepted')
     .single();
 
   if (!friendship) return NextResponse.json({ error: 'Not found' }, { status: 404 });
