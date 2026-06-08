@@ -1,188 +1,165 @@
 # Auditoría de Seguridad — VARkings
 
-> Fecha: 2026-06-08 | Scope: 200 usuarios max (amigos) | Stack: Next.js 15 + Supabase
+**Fecha:** 2026-06-08  
+**Alcance:** Next.js 15 + Supabase PWA, ~200 usuarios, entorno de amigos  
+**Metodología:** Revisión estática de código fuente
 
 ---
 
 ## Resumen ejecutivo
 
-La app tiene una base sólida: CSP con nonce, HSTS, headers de seguridad, validación de UUIDs en todos los endpoints, timingSafeEqual en crons, allowlist de dominios para push. Los problemas son principalmente **rate limiting inconsistente** y **un par de fallos de validación de input**.
+La aplicación tiene una base de seguridad sólida: CSP con nonce, HSTS, headers de seguridad, validación UUID en todos los parámetros de ruta, rate limiting en la mayoría de endpoints, y verificación criptográfica de cron secrets. Los hallazgos son de bajo-medio impacto y adecuados para la escala del proyecto.
 
 ---
 
-## 🔴 ALTO
+## 🔴 MEDIA — Requieren acción
 
-### A1 — `fullName` sin límite máximo de longitud
-**Archivo:** `app/api/auth/register/route.ts:36`
+### AUD-01 · CSP permite `unsafe-inline` en script-src (fallback legacy)
+**Archivo:** `middleware.ts:9`  
+**Problema:** El script-src incluye `'unsafe-inline'` como fallback para navegadores que no soporten `strict-dynamic`. En esos navegadores (IE, algunos móviles viejos) cualquier XSS inyectado podría ejecutarse sin restricción de nonce.  
+**Fix:** Eliminar `'unsafe-inline'` — los usuarios de 2026 tienen navegadores modernos. Añadir un meta-comment explicando el comportamiento de strict-dynamic para no reintroducirlo.
+
 ```ts
-if (!fullName || String(fullName).trim().length < 2) { ... }
-```
-- Solo verifica mínimo de 2 caracteres, **sin máximo**.
-- Un atacante puede enviar un nombre de 1 MB que se almacena en Supabase Auth metadata y en `profiles`.
-- Con 200 usuarios es improbable pero es un fallo de validación básico.
-
-**Fix:** Añadir `|| String(fullName).trim().length > 100` a la misma condición.
-
----
-
-### A2 — Rate limit ausente en `/api/predictions/match`
-**Archivo:** `app/api/predictions/match/route.ts`
-- POST y DELETE sin throttling.
-- Un usuario autenticado puede spamear miles de peticiones por segundo.
-- Cada petición hace 2-3 queries a Supabase (verificar match, buscar existing, upsert).
-- Con 200 usuarios y el torneo en directo, un usuario enfadado puede saturar el plan de Supabase.
-
-**Fix:** Añadir `rateLimit(`pred-match:${user.id}`, 30, 60_000)` al inicio del handler.
-
----
-
-## 🟡 MEDIO
-
-### M1 — IP rate limit con fallback `unknown`
-**Archivo:** `lib/rate-limit.ts:68`
-```ts
-return req.headers.get('x-real-ip') ?? 'unknown';
-```
-- Si la app no corre en Vercel (o Vercel no inyecta `x-real-ip`), todos los usuarios comparten el bucket `register:unknown`.
-- El primero en registrarse agota el límite para todos durante 15 minutos.
-- Afecta a: registro, push subscribe, group-join, friends-send.
-
-**Fix corto plazo:** Usar también `x-forwarded-for` como fallback de diagnóstico (no para seguridad) y loguearlo. Si la app corre siempre en Vercel, documentarlo y añadir alerta si `x-real-ip` falta.
-**Fix real:** Añadir `|| req.headers.get('x-forwarded-for')?.split(',')[0].trim()` solo como fallback cuando se sabe que el proxy es de confianza.
-
----
-
-### M2 — Fuga de mensajes de error internos de Supabase
-**Archivo:** `app/api/auth/register/route.ts:69`
-```ts
-return NextResponse.json({ error: error.message ?? '...' }, { status: 400 });
-```
-- Si el error no matchea ningún patrón conocido, se devuelve el mensaje raw de Supabase.
-- Puede filtrar información sobre la estructura interna (tablas, constraints, versiones).
-
-**Fix:** Cambiar el fallback a un mensaje genérico:
-```ts
-return NextResponse.json({ error: 'Error al crear la cuenta. Inténtalo más tarde.' }, { status: 400 });
+// middleware.ts — quitar 'unsafe-inline':
+`script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
 ```
 
 ---
 
-### M3 — Sin rate limit en `/api/profile/revalidate`
-**Archivo:** `app/api/profile/revalidate/route.ts`
-- Cualquier usuario autenticado puede llamar este endpoint en bucle.
-- Cada llamada ejecuta `revalidateTag()`, que invalida caché de Next.js y provoca re-renders SSR del perfil.
-- Coste bajo unitario pero acumulable.
-
-**Fix:** `rateLimit(`revalidate:${user.id}`, 10, 60_000)`.
+### AUD-02 · Rate limiting en memoria no compartido entre instancias serverless
+**Archivo:** `lib/rate-limit.ts:4`  
+**Problema:** Sin Upstash Redis configurado, cada instancia serverless (cold start) tiene su propio contador de rate limit. Un atacante con múltiples IPs puede multiplicar el límite efectivo por el número de instancias activas (típicamente 3-10 en Vercel).  
+**Fix:** Configurar Upstash Redis (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`). El código ya lo soporta, solo falta aprovisionar la instancia.
 
 ---
 
-### M4 — Sin rate limit en `/api/predictions/tournament` y `/api/groups/[id]/invite`
-- `predictions/tournament/route.ts`: sin throttling, hace 2 queries por petición.
-- `groups/[id]/invite/route.ts`: sin throttling, un miembro puede enviar invitaciones en masa a usuarios reales y saturar la tabla `group_invites`.
+## 🟡 BAJA — Recomendado corregir
 
-**Fix:** `rateLimit(`tournament-pred:${user.id}`, 10, 60_000)` y `rateLimit(`group-invite:${user.id}`, 20, 60_000)`.
+### AUD-03 · Varios endpoints de mutación sin rate limit
+**Archivos afectados:**
+- `app/api/groups/route.ts` — POST crear grupo (solo tiene límite de conteo, no de tiempo)
+- `app/api/groups/[id]/route.ts` — DELETE eliminar grupo
+- `app/api/groups/[id]/transfer-admin/route.ts` — POST transferir admin
+- `app/api/groups/[id]/leave/route.ts` — DELETE salir de grupo
+- `app/api/groups/[id]/members/[userId]/route.ts` — DELETE expulsar miembro
 
----
+**Problema:** Un usuario autenticado puede llamar estos endpoints en bucle (scripts, Postman). El daño es limitado por lógica de negocio (solo puede eliminar sus propios grupos, etc.) pero genera logs y carga innecesaria.  
+**Fix:** Añadir `rateLimit('operation:${user.id}', N, windowMs)` al inicio de cada handler. Ejemplo:
 
-### M5 — Sin Content-Length guard en la mayoría de endpoints
-- Solo `/api/suggestions/route.ts:14` verifica `content-length`.
-- Endpoints como `/api/predictions/tournament` aceptan `group_predictions` (objeto anidado) sin límite de tamaño.
-- Next.js tiene límite de 4 MB por defecto, pero es mejor ser explícito en endpoints que procesan objetos complejos.
-
-**Fix:** Añadir validación de tamaño máximo en `predictions/tournament` y `groups` POST.
-
----
-
-### M6 — TOCTOU (Time-of-Check Time-of-Use) en predicciones de partido
-**Archivo:** `app/api/predictions/match/route.ts:39`
 ```ts
-if (match.status !== 'NS' || new Date(match.match_date) <= new Date()) {
-  return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
+if (!(await rateLimit(`group-create:${user.id}`, 10, 60_000))) {
+  return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 });
 }
-// ... luego insert/update
 ```
-- Hay una ventana de ms entre el check y el insert.
-- Dos peticiones concurrentes del mismo usuario justo cuando empieza un partido podrían pasar ambas el check.
-- Impacto real: muy bajo con 200 usuarios, pero teóricamente permite predecir después del pitido inicial.
-
-**Fix real:** Añadir RLS en Supabase para `match_predictions` que verifique `match_date` y `status` en la propia DB. Esto hace la restricción atómica.
 
 ---
 
-## 🟢 BAJO
-
-### B1 — Inconsistencia en comparación de SUPERADMIN_EMAIL
-- `app/(main)/profile/page.tsx:172`: comparación case-**sensitive** (`===`)
-- `app/(main)/admin/sugerencias/page.tsx:9`: comparación case-**insensitive** (`.toLowerCase()`)
-- Si el email tiene mayúsculas, el contador de sugerencias en el perfil no se muestra aunque el acceso al panel de admin sí funciona.
-
-**Fix:** Usar `.toLowerCase()` en ambos sitios, o centralizar la función `isSuperAdmin(user)`.
+### AUD-04 · Admin check por email en variable de entorno
+**Archivos:** `app/(main)/admin/sugerencias/page.tsx:9`, `app/api/suggestions/[id]/route.ts:17`  
+**Problema:** El acceso de superadmin se verifica comparando `user.email` con `SUPERADMIN_EMAIL`. Si el email admin cambia en Supabase sin re-verificación, o si se compromete esa cuenta de email, el acceso admin puede perderse o robarse.  
+**Fix recomendado:** Añadir columna `role` en la tabla `profiles` y verificar `profile.role === 'superadmin'` en lugar del email. El email puede cambiar; un campo de rol no.
 
 ---
 
-### B2 — DELETE `/api/friends` solo permite al requester eliminar
-**Archivo:** `app/api/friends/route.ts:61`
+### AUD-05 · Sin límite de miembros por grupo
+**Archivos:** `app/api/groups/join/route.ts`, `app/api/groups/[id]/invite/route.ts`  
+**Problema:** Un grupo puede acumular miembros indefinidamente. Existe límite de 20 grupos por usuario pero no de miembros por grupo. Un admin podría ser bombardeado con join requests (cada usuario puede pedir unirse si tiene el código).  
+**Fix:** Añadir verificación de miembros máximos por grupo (ej. 50-100) en el endpoint de join y en accept-request:
+
 ```ts
-.eq('requester_id', user.id)
+const { count: memberCount } = await supabase
+  .from('group_members')
+  .select('id', { count: 'exact', head: true })
+  .eq('group_id', group.id);
+if ((memberCount ?? 0) >= 100) {
+  return NextResponse.json({ error: 'Grupo lleno' }, { status: 400 });
+}
 ```
-- El destinatario de una solicitud aceptada no puede eliminar la amistad por este endpoint.
-- No es una vulnerabilidad de seguridad pero sí un gap funcional que podría crear UX confusa.
 
 ---
 
-### B3 — Push subscriptions sin paginación en cron
-**Archivo:** `app/api/cron/send-reminders/route.ts:53`
+### AUD-06 · Header `x-forwarded-for` usado como IP en entornos no-Vercel
+**Archivo:** `lib/rate-limit.ts:71`  
+**Problema:** El fallback usa `x-forwarded-for`, que es controlado por el cliente. Un atacante puede cambiar esta cabecera para evadir rate limits en despliegues no-Vercel (local, Railway, etc.). En Vercel el `x-real-ip` es fiable e infalsificable.  
+**Fix:** Documentar que en producción **debe** estar en Vercel para que el rate limiting sea efectivo. Añadir un warning en log si `x-real-ip` no está presente:
+
 ```ts
-const { data: allSubscriptions } = await supabase.from('push_subscriptions').select(...)
+if (!req.headers.get('x-real-ip')) {
+  console.warn('[rate-limit] x-real-ip not present — rate limit may be bypassable');
+}
 ```
-- Carga todas las suscripciones en memoria sin `limit()`.
-- Con 200 usuarios es irrelevante, pero si la app crece podría causar timeouts en el cron.
 
 ---
 
-### B4 — `configureVapid()` muta estado global en cada push
-**Archivo:** `lib/push-notifications.ts:4`
-- `webpush.setVapidDetails(...)` es una mutación de estado global del módulo.
-- Se llama dentro de `sendPushNotification()`, que se ejecuta una vez por usuario en bulk.
-- Con llamadas concurrentes (`Promise.allSettled`) en el cron, se está sobreescribiendo el mismo config global N veces en paralelo.
-- En la práctica no falla (siempre con los mismos valores), pero es código frágil.
+## 🔵 INFORMACIONAL — No urgente
 
-**Fix:** Llamar `configureVapid()` una sola vez al inicializar el módulo, fuera de la función.
+### AUD-07 · Sin CORS explícito — endpoints GET públicos accesibles cross-origin
+**Problema:** No hay configuración CORS explícita. Endpoints GET autenticados (ej. `/api/groups/[id]/podio`) devuelven datos si el navegador del usuario visita una página maliciosa — el navegador envía las cookies de sesión automáticamente. Los endpoints POST/PATCH/DELETE están protegidos de CSRF por el origen SameSite de las cookies de Supabase.  
+**Fix opcional:** Añadir cabecera `Access-Control-Allow-Origin: <tu-dominio>` en los endpoints GET sensibles, o verificar el header `Origin` antes de devolver datos.
 
 ---
 
-### B5 — Nombres de equipo en predicciones de torneo no validados contra lista real
-**Archivo:** `app/api/predictions/tournament/route.ts:22`
-- `champion`, `runner_up`, `third_place` solo se validan como string <= 100 chars.
-- Un usuario puede predecir "Real Madrid" o "unicornio123" como campeón del Mundial.
-- No es un problema de seguridad, pero sí de integridad de datos del juego.
+### AUD-08 · Headers de aislamiento de contexto ausentes
+**Archivo:** `next.config.ts`  
+**Problema:** Faltan `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp`. Permiten ataques de Spectre en navegadores con isolación de proceso si la app carga recursos cross-origin con credenciales.  
+**Impacto real para 200 usuarios:** Muy bajo.  
+**Fix:**
+```ts
+{ key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+{ key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+```
 
 ---
 
-## ✅ Lo que está bien (no tocar)
+### AUD-09 · `console.error` puede exponer información interna en logs
+**Archivos:** múltiples routes (`register/route.ts:58`, `cron/update-results/route.ts:104`, etc.)  
+**Problema:** `console.error('[register] supabase error:', error.message, error.status)` puede volcar mensajes internos de Supabase en logs de Vercel. Si los logs son accesibles por terceros (colaboradores del proyecto en Vercel), podrían ver emails, errores de DB, etc.  
+**Fix:** Usar un logger que enmascare PII (`email → user@***`) o asegurarse de que solo el owner tiene acceso a logs de Vercel.
 
-| Área | Implementación |
+---
+
+### AUD-10 · Predicciones de torneo sin validación contra equipos reales del Mundial
+**Archivo:** `app/api/predictions/tournament/route.ts:32`  
+**Problema:** `champion`, `runner_up`, `third_place` aceptan cualquier string hasta 100 chars. Un usuario puede almacenar "Rick Astley" como campeón.  
+**Impacto:** Integridad de datos, no seguridad. No es un vector de ataque.  
+**Fix opcional:** Validar contra lista de equipos del Mundial 2026 si se quiere integridad de datos.
+
+---
+
+### AUD-11 · Cron `send-reminders` carga todas las subscriptions push por cada partido
+**Archivo:** `app/api/cron/send-reminders/route.ts:56`  
+**Problema:** Para N partidos próximos, hace N queries de `.limit(1000)` a `push_subscriptions`. No es un vector de seguridad (endpoint protegido por CRON_SECRET), pero con muchos partidos simultáneos puede ser lento.  
+**Fix:** Sacar la query de subscriptions fuera del loop y reutilizarla.
+
+---
+
+## ✅ Bien implementado (no acción necesaria)
+
+| Aspecto | Detalle |
 |---|---|
-| Autenticación en APIs | `supabase.auth.getUser()` en todos los endpoints, nunca decodificando JWT manualmente |
-| Validación de UUIDs | UUID_RE regex consistente en todos los endpoints con params de URL |
-| Cron secret | `timingSafeEqual` correcto para evitar timing attacks |
-| CSP | Nonce por petición en middleware, `strict-dynamic`, `frame-ancestors 'none'` |
-| Security headers | HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy |
-| Push endpoint allowlist | Dominio validado contra lista de proveedores conocidos |
-| Invite code | Rejection sampling correcto para evitar modulo bias |
-| Idempotencia de XP | `upsert` con `ignoreDuplicates: true` — no se puede farmear XP haciendo spam |
-| Score bounds | Marcadores limitados 0-30 en predicciones de partido |
-| Límites de grupos | 10 creados, 20 membresías por usuario |
-| Admin client aislado | `createAdminClient()` solo se usa server-side, nunca expuesto al cliente |
+| Validación UUID en params | Todos los `[id]` y `[userId]` validados con regex antes de queries |
+| Auth check en todos los endpoints protegidos | `getUser()` + retorno 401 correcto |
+| Cron secrets con `timingSafeEqual` | Evita timing attacks en comparación de tokens |
+| Límites de payload con Content-Length | Groups, tournament, suggestions |
+| Rate limiting en endpoints críticos | Register, login, predictions, invites, friends |
+| Push endpoint allowlist | Solo acepta FCM, Mozilla, Apple, Windows push domains |
+| CSP con nonce por request | Generado en middleware, pasado a layout |
+| HSTS, X-Frame-Options, nosniff, Referrer-Policy | Configurados en next.config.ts |
+| Entropy en invite codes | `crypto.getRandomValues` + rejection sampling, 8 chars base36 |
+| Límites de negocio | Máx 10 grupos creados, máx 20 grupos por usuario |
+| Password check antes de delete account | Re-autenticación requerida para usuarios email |
+| Input sanitización en notificaciones push | `sanitize()` elimina control chars en nombres de equipos |
 
 ---
 
-## Prioridad de fixes para 200 usuarios
+## Roadmap de mitigación
 
-1. **A1** — fix en 5 min, muy fácil, valida fullName
-2. **M2** — fix en 5 min, mensaje de error genérico
-3. **B1** — fix en 2 min, centralizar isSuperAdmin
-4. **B4** — fix en 5 min, mover configureVapid fuera del loop
-5. **A2 + M3 + M4** — añadir rate limits a los endpoints que faltan
-6. **M6** — añadir RLS en Supabase (requiere acceso al panel de Supabase)
+| Prioridad | ID | Esfuerzo | Impacto |
+|---|---|---|---|
+| 1 | AUD-01 | 1 línea | Elimina vector XSS en browsers legacy |
+| 2 | AUD-02 | 30 min | Rate limit real en producción |
+| 3 | AUD-03 | 1h | Rate limit en 5 endpoints |
+| 4 | AUD-05 | 30 min | Cap de miembros por grupo |
+| 5 | AUD-04 | 2h | Role-based admin check |
+| 6 | AUD-06 | 10 min | Warning log en non-Vercel |
+| — | AUD-07 a 11 | Opcional | Mejoras incrementales |

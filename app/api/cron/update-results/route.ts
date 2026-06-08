@@ -41,20 +41,25 @@ export async function GET(req: NextRequest) {
         .eq('api_id', fixture.id)
         .maybeSingle();
 
-      if (!match || match.status === 'FT' || match.status === 'AET' || match.status === 'PEN') continue;
+      if (!match) continue;
+      const alreadyFinished = match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
 
       const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
 
-      await supabase
-        .from('matches')
-        .update({ home_score: homeScore, away_score: awayScore, status: newStatus })
-        .eq('id', match.id);
+      if (!alreadyFinished) {
+        await supabase
+          .from('matches')
+          .update({ home_score: homeScore, away_score: awayScore, status: newStatus })
+          .eq('id', match.id);
+      }
 
       const { data: predictions } = await supabase
         .from('match_predictions')
         .select('id, user_id, predicted_home_score, predicted_away_score')
         .eq('match_id', match.id)
         .eq('is_calculated', false);
+
+      if (!predictions?.length) continue;
 
       for (const pred of predictions ?? []) {
         const result = calculateMatchPoints(

@@ -61,24 +61,28 @@ export function TournamentPredictionsClient({ teams, existingPrediction }: Tourn
     if (!thirdPlace) { setError('Elige el tercero'); return; }
 
     setSaving(true);
-    const res = await fetch('/api/predictions/tournament', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        champion,
-        runner_up: runnerUp,
-        third_place: thirdPlace,
-        group_predictions: groupPreds,
-      }),
-    });
+    try {
+      const res = await fetch('/api/predictions/tournament', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          champion,
+          runner_up: runnerUp,
+          third_place: thirdPlace,
+          group_predictions: groupPreds,
+        }),
+      });
 
-    const data = await res.json();
-    setSaving(false);
-
-    if (!res.ok) { setError(data.error); return; }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-    router.refresh();
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); return; }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      router.refresh();
+    } catch {
+      setError('Error de red. Inténtalo de nuevo.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const teamOptions = teams.sort((a, b) => a.name.localeCompare(b.name));
