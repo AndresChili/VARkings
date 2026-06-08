@@ -256,6 +256,11 @@ export interface Database {
           runner_up?: string | null;
           third_place?: string | null;
           group_predictions?: Json;
+          champion_points?: number;
+          runner_up_points?: number;
+          third_place_points?: number;
+          group_predictions_points?: number;
+          is_calculated?: boolean;
           updated_at?: string;
         };
         Relationships: [];
