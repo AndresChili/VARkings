@@ -150,7 +150,7 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleVerifyOtp} className="space-y-5">
-            <div onPaste={handleOtpPaste} className="flex gap-2 justify-center">
+            <div onPaste={handleOtpPaste} className="flex gap-1.5 justify-center">
               {otp.map((digit, i) => (
                 <input
                   key={i}
@@ -161,8 +161,8 @@ export default function RegisterPage() {
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-11 h-14 text-center text-xl font-bold bg-surface border border-white/10
-                    rounded-xl text-white focus:outline-none focus:border-crown transition-colors"
+                  className="w-9 h-11 text-center text-lg font-bold bg-surface border border-white/10
+                    rounded-lg text-white focus:outline-none focus:border-crown transition-colors"
                 />
               ))}
             </div>
