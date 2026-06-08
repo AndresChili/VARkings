@@ -16,6 +16,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(String(match_id))) {
+    return NextResponse.json({ error: 'match_id inválido' }, { status: 400 });
+  }
+
   const home = Number(predicted_home_score);
   const away = Number(predicted_away_score);
   if (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0 || home > 30 || away > 30) {
@@ -75,7 +80,10 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { match_id } = await req.json();
-  if (!match_id) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!match_id || !UUID_RE.test(String(match_id))) {
+    return NextResponse.json({ error: 'match_id inválido' }, { status: 400 });
+  }
 
   const { data: match } = await supabase
     .from('matches')

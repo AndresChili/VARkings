@@ -37,12 +37,12 @@ export async function POST(req: NextRequest) {
       .from('tournament_predictions')
       .update({ group_predictions })
       .eq('user_id', user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
   } else {
     const { error } = await supabase
       .from('tournament_predictions')
       .insert({ user_id: user.id, group_predictions });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

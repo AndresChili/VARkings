@@ -90,6 +90,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showStats, setShowStats] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -240,9 +241,14 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   }
 
   async function handleDeleteAccount() {
+    if (!deletePassword) { setDeleteError('Introduce tu contraseña para confirmar'); return; }
     setDeletingAccount(true);
     setDeleteError('');
-    const res = await fetch('/api/account', { method: 'DELETE' });
+    const res = await fetch('/api/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: deletePassword }),
+    });
     if (!res.ok) {
       const data = await res.json();
       setDeleteError(data.error ?? 'Error al eliminar cuenta');
@@ -856,10 +862,18 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-4 animate-slide-up">
             <p className="text-white font-semibold mb-1">¿Eliminar tu cuenta?</p>
             <p className="text-gray-400 text-sm mb-4">Se borrarán todos tus datos, predicciones y grupos. Esta acción no se puede deshacer.</p>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Introduce tu contraseña"
+              className="w-full bg-surface border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm mb-3 focus:outline-none focus:border-red-400/50"
+              disabled={deletingAccount}
+            />
             {deleteError && <p className="text-red-400 text-xs mb-3">{deleteError}</p>}
             <div className="flex gap-2">
               <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); setDeletePassword(''); }}
                 disabled={deletingAccount}
                 className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm disabled:opacity-50"
               >
@@ -867,7 +881,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deletingAccount}
+                disabled={deletingAccount || !deletePassword}
                 className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50 hover:bg-red-600 transition-colors"
               >
                 {deletingAccount ? 'Eliminando...' : 'Sí, eliminar'}

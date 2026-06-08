@@ -23,7 +23,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const { error } = await supabase.from('groups').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Error al eliminar el grupo' }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       .update({ champion, runner_up, third_place, group_predictions })
       .eq('user_id', user.id);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
     return NextResponse.json({ success: true, action: 'updated' });
   }
 

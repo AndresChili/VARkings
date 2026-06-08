@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2, LogIn } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 interface Profile {
   id: string;
@@ -25,9 +25,20 @@ interface Props {
   existingFriendship: Friendship | null;
 }
 
+function isValidAvatarUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:') return false;
+    return (
+      hostname.endsWith('.supabase.co') ||
+      hostname === 'upload.wikimedia.org'
+    );
+  } catch { return false; }
+}
+
 export function AddFriendClient({ currentUserId, target, existingFriendship: initial }: Props) {
   const router = useRouter();
-  const supabase = createClient();
 
   const [friendship, setFriendship] = useState<Friendship | null>(initial);
   const [loading, setLoading] = useState(false);
@@ -39,20 +50,25 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
     if (!currentUserId) return;
     setLoading(true);
     setError('');
-    const { data, error: err } = await supabase
-      .from('friendships')
-      .insert({ requester_id: currentUserId, addressee_id: target.id, status: 'pending' })
-      .select()
-      .single();
+    const res = await fetch('/api/friends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addressee_id: target.id }),
+    });
     setLoading(false);
-    if (err) { setError('No se pudo enviar la solicitud'); return; }
+    if (!res.ok) { setError('No se pudo enviar la solicitud'); return; }
+    const data = await res.json();
     setFriendship(data as Friendship);
   }
 
   async function cancelRequest() {
     if (!friendship) return;
     setLoading(true);
-    await supabase.from('friendships').delete().eq('id', friendship.id);
+    await fetch('/api/friends', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendship_id: friendship.id }),
+    });
     setLoading(false);
     setFriendship(null);
   }
@@ -80,9 +96,9 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
       <div className="bg-surface-card border border-white/8 rounded-3xl p-8 flex flex-col items-center text-center gap-4">
 
         {/* Avatar */}
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-black text-white text-2xl shadow-xl">
-          {target.avatar_url
-            ? <img src={target.avatar_url} alt={target.username} className="w-full h-full object-cover" />
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-field to-field-dark flex items-center justify-center font-black text-white text-2xl shadow-xl relative">
+          {isValidAvatarUrl(target.avatar_url)
+            ? <Image src={target.avatar_url!} alt={target.username} fill className="object-cover" />
             : initials
           }
         </div>

@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { awardXP } from '@/lib/xp-server';
 import { XP_VALUES } from '@/lib/xp';
+import { rateLimit } from '@/lib/rate-limit';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  if (!rateLimit(`xp-share:${ip}`, 5, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 });
+  }
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
