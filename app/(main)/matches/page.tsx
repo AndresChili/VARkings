@@ -24,6 +24,7 @@ export default async function MatchesPage() {
       .eq('user_id', user.id),
   ]);
 
+  if (predsRes.error) console.error('[matches] failed to load predictions:', predsRes.error.message);
   const predictions = (predsRes.data ?? []) as PredictionRow[];
   const predictionMap = predictions.reduce((acc, p) => {
     acc[p.match_id] = p;

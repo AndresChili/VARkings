@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) console.error('[oauth] code exchange failed:', error.message);
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
