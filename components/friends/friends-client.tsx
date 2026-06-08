@@ -179,14 +179,13 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       prev.map((f) => (f.id === friendship.id ? { ...f, status: 'accepted' } : f))
     );
 
-    const { error } = await supabase
-      .from('friendships')
-      .update({ status: 'accepted' })
-      .eq('id', friendship.id)
-      .eq('addressee_id', currentUserId);
+    const res = await fetch('/api/friends', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendship_id: friendship.id }),
+    });
 
-    if (error) {
-      console.error('acceptRequest error:', error.message);
+    if (!res.ok) {
       setFriendships((prev) =>
         prev.map((f) => (f.id === friendship.id ? { ...f, status: 'pending' } : f))
       );
