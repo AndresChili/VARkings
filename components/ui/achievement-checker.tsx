@@ -44,7 +44,6 @@ async function runCheck(
       saveNotified(notified);
       localStorage.setItem(INIT_KEY, '1');
       if (currentLevel !== undefined) localStorage.setItem(LEVEL_KEY, String(currentLevel));
-      console.log('[achievements] initialized, existing count:', completed.length);
       return;
     }
 
@@ -64,7 +63,6 @@ async function runCheck(
     }
 
     const newOnes = completed.filter((a) => !notified.has(a.id));
-    console.log('[achievements] completed:', completed.length, 'new:', newOnes.length);
 
     if (newOnes.length > 0) {
       newOnes.forEach((a) => notified.add(a.id));
@@ -85,10 +83,8 @@ export function AchievementChecker() {
   const lastCheckRef = useRef(0);
 
   useEffect(() => {
-    console.log('[achievements] checker mounted');
     runCheck(lastCheckRef, false, setToShow);
     const handler = () => {
-      console.log('[achievements] triggered');
       runCheck(lastCheckRef, true, setToShow);
     };
     window.addEventListener('achievement-check', handler);
