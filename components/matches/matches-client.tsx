@@ -69,10 +69,16 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   const availableGroups = useMemo(() => {
     const base = filter === 'all' ? nonFinished : finished;
     const groups = new Set<string>();
-    base.forEach((m) => {
-      if (m.group_name) groups.add(m.group_name);
-    });
+    base.forEach((m) => { if (m.group_name) groups.add(m.group_name); });
     return Array.from(groups).sort();
+  }, [filter, nonFinished, finished]);
+
+  const availableStages = useMemo(() => {
+    const base = filter === 'all' ? nonFinished : finished;
+    const stageOrder = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third Place', 'Final'];
+    const stages = new Set<string>();
+    base.forEach((m) => { if (!m.group_name && m.stage !== 'Group Stage') stages.add(m.stage); });
+    return stageOrder.filter((s) => stages.has(s));
   }, [filter, nonFinished, finished]);
 
   const filtered = useMemo(() => {
@@ -89,7 +95,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
       const matchesSearch = !q ||
         (m.home_team_name ?? '').toLowerCase().includes(q) ||
         (m.away_team_name ?? '').toLowerCase().includes(q);
-      const matchesGroup = !selectedGroup || m.group_name === selectedGroup;
+      const matchesGroup = !selectedGroup || m.group_name === selectedGroup || m.stage === selectedGroup;
       return matchesSearch && matchesGroup;
     });
   }, [filter, nonFinished, finished, upcoming, searchQuery, selectedGroup]);
@@ -164,7 +170,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
             )}
           </div>
 
-          {availableGroups.length > 0 && (
+          {(availableGroups.length > 0 || availableStages.length > 0) && (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 onClick={() => setSelectedGroup(null)}
@@ -185,6 +191,21 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
                   )}
                 >
                   Grupo {g}
+                </button>
+              ))}
+              {availableGroups.length > 0 && availableStages.length > 0 && (
+                <div className="shrink-0 w-px bg-white/10 my-1" />
+              )}
+              {availableStages.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSelectedGroup(selectedGroup === s ? null : s)}
+                  className={cn(
+                    'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                    selectedGroup === s ? 'bg-field text-white' : 'bg-surface-card border border-white/10 text-gray-400'
+                  )}
+                >
+                  {STAGE_ES[s] ?? s}
                 </button>
               ))}
             </div>
