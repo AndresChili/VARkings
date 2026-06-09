@@ -16,15 +16,29 @@ export function calculateMatchPoints(
   predictedHome: number,
   predictedAway: number,
   actualHome: number,
-  actualAway: number
+  actualAway: number,
+  opts?: {
+    predictedKnockoutWinner?: string | null;
+    actualKnockoutWinner?: string | null;
+  }
 ): ScoreResult {
   const getWinner = (h: number, a: number) =>
     h > a ? 'home' : a > h ? 'away' : 'draw';
 
-  const predictedWinner = getWinner(predictedHome, predictedAway);
-  const actualWinner = getWinner(actualHome, actualAway);
+  const predictedResult = getWinner(predictedHome, predictedAway);
+  const actualResult = getWinner(actualHome, actualAway);
 
-  const points_winner = predictedWinner === actualWinner ? POINTS.MATCH_WINNER : 0;
+  // For knockout draws settled by penalties, award winner point based on who the user
+  // picked to advance, not on the draw result itself.
+  let points_winner: number;
+  if (actualResult === 'draw' && opts?.actualKnockoutWinner) {
+    points_winner = opts.predictedKnockoutWinner === opts.actualKnockoutWinner
+      ? POINTS.MATCH_WINNER
+      : 0;
+  } else {
+    points_winner = predictedResult === actualResult ? POINTS.MATCH_WINNER : 0;
+  }
+
   const points_home_score = predictedHome === actualHome ? POINTS.MATCH_HOME_GOALS : 0;
   const points_away_score = predictedAway === actualAway ? POINTS.MATCH_AWAY_GOALS : 0;
 

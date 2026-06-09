@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 
       const { data: predictions } = await supabase
         .from('match_predictions')
-        .select('id, user_id, predicted_home_score, predicted_away_score')
+        .select('id, user_id, predicted_home_score, predicted_away_score, predicted_winner')
         .eq('match_id', match.id)
         .eq('is_calculated', false);
 
@@ -76,7 +76,11 @@ export async function GET(req: NextRequest) {
           pred.predicted_home_score,
           pred.predicted_away_score,
           homeScore,
-          awayScore
+          awayScore,
+          {
+            predictedKnockoutWinner: pred.predicted_winner ?? null,
+            actualKnockoutWinner: winnerName,
+          }
         );
 
         await supabase

@@ -275,6 +275,7 @@ export interface Database {
           match_id: string;
           predicted_home_score: number;
           predicted_away_score: number;
+          predicted_winner: string | null;
           points_winner: number;
           points_home_score: number;
           points_away_score: number;
@@ -289,6 +290,7 @@ export interface Database {
           match_id: string;
           predicted_home_score: number;
           predicted_away_score: number;
+          predicted_winner?: string | null;
           points_winner?: number;
           points_home_score?: number;
           points_away_score?: number;
@@ -298,6 +300,7 @@ export interface Database {
         Update: {
           predicted_home_score?: number;
           predicted_away_score?: number;
+          predicted_winner?: string | null;
           points_winner?: number;
           points_home_score?: number;
           points_away_score?: number;
