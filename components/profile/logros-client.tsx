@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { AchievementsTab, type AchievementStats } from './achievements-tab';
 
-export function LogrosClient({ stats }: { stats: AchievementStats }) {
+export function LogrosClient({ stats, earnedIds }: { stats: AchievementStats; earnedIds: string[] }) {
   const router = useRouter();
 
   return (
@@ -35,7 +35,7 @@ export function LogrosClient({ stats }: { stats: AchievementStats }) {
       </div>
 
       <div className="px-4 pt-4">
-        <AchievementsTab stats={stats} />
+        <AchievementsTab stats={stats} earnedIds={earnedIds} />
       </div>
     </div>
   );

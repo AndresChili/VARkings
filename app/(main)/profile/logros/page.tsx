@@ -89,15 +89,25 @@ export default async function LogrosPage() {
     totalDaysActive: streakStats.totalDaysActive,
   };
 
-  // Award XP for each completed achievement (idempotent)
   const achievements = getAchievements(stats);
+
+  // Fetch previously earned achievements so they stay unlocked permanently
+  const { data: earnedRows } = await admin
+    .from('xp_events')
+    .select('source_id')
+    .eq('user_id', user.id)
+    .eq('source_type', 'achievement');
+  const earnedIds = (earnedRows ?? []).map((r: { source_id: string }) => r.source_id);
+  const earnedSet = new Set(earnedIds);
+
+  // Award XP for newly completed achievements (idempotent)
   await Promise.all(
     achievements
-      .filter((a) => a.current >= a.target)
+      .filter((a) => a.current >= a.target || earnedSet.has(a.id))
       .map((a) =>
         awardXP(admin, user.id, 'achievement', a.id, ACHIEVEMENT_XP[a.difficulty])
       )
   );
 
-  return <LogrosClient stats={stats} />;
+  return <LogrosClient stats={stats} earnedIds={earnedIds} />;
 }
