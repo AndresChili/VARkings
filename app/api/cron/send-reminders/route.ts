@@ -2,9 +2,6 @@ import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { sendBulkPushNotifications } from '@/lib/push-notifications';
-import { addHours } from 'date-fns';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function verifyCronSecret(header: string | null, secret: string): boolean {
   const expected = Buffer.from(`Bearer ${secret}`, 'utf8');
@@ -26,59 +23,72 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = createAdminClient();
+
+    // Find today's matches (Spain summer time = UTC+2, cron runs at 11:00 UTC = 13:00 Spain)
     const now = new Date();
-    const oneHourFromNow = addHours(now, 1);
-    const twoHoursFromNow = addHours(now, 2);
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
 
-    const { data: upcomingMatches } = await supabase
+    const { data: todayMatches } = await supabase
       .from('matches')
-      .select('id, home_team_name, away_team_name, match_date')
+      .select('id')
       .eq('status', 'NS')
-      .gte('match_date', oneHourFromNow.toISOString())
-      .lte('match_date', twoHoursFromNow.toISOString());
+      .gte('match_date', startOfDay.toISOString())
+      .lt('match_date', endOfDay.toISOString());
 
-    if (!upcomingMatches?.length) {
-      return NextResponse.json({ success: true, sent: 0 });
+    if (!todayMatches?.length) {
+      return NextResponse.json({ success: true, sent: 0, reason: 'no matches today' });
     }
 
-    // Fetch all push subscriptions once — reused across all upcoming matches.
+    const matchIds = todayMatches.map((m) => m.id);
+
+    // Get all push subscriptions
     const { data: allSubscriptions } = await supabase
       .from('push_subscriptions')
       .select('user_id, endpoint, p256dh, auth_key')
       .limit(5000);
 
-    let totalSent = 0;
-
-    for (const match of upcomingMatches) {
-      const { data: predictedUsers } = await supabase
-        .from('match_predictions')
-        .select('user_id')
-        .eq('match_id', match.id);
-
-      const predictedIds = (predictedUsers?.map((p) => p.user_id) ?? []).filter((id) => UUID_RE.test(id));
-
-      const subscriptions = (allSubscriptions ?? []).filter(
-        (s) => !predictedIds.includes(s.user_id)
-      );
-
-      if (!subscriptions?.length) continue;
-
-      type ValidSub = { endpoint: string; p256dh: string; auth_key: string };
-      const validSubs: ValidSub[] = subscriptions
-        .filter((s) => s.p256dh && s.auth_key)
-        .map((s) => ({ endpoint: s.endpoint, p256dh: s.p256dh!, auth_key: s.auth_key! }));
-
-      const sanitize = (s: string) => s.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 50);
-      await sendBulkPushNotifications(validSubs, {
-        title: '⚽ ¡Partido en 1 hora!',
-        body: `${sanitize(match.home_team_name ?? 'Local')} vs ${sanitize(match.away_team_name ?? 'Visitante')} - ¡Haz tu predicción!`,
-        url: `/matches/${match.id}`,
-      });
-
-      totalSent += validSubs.length;
+    if (!allSubscriptions?.length) {
+      return NextResponse.json({ success: true, sent: 0, reason: 'no subscriptions' });
     }
 
-    return NextResponse.json({ success: true, sent: totalSent });
+    // Get predictions already made for today's matches
+    const { data: predictions } = await supabase
+      .from('match_predictions')
+      .select('user_id, match_id')
+      .in('match_id', matchIds);
+
+    // Build map: user_id → set of predicted match ids
+    const predsByUser: Record<string, Set<string>> = {};
+    for (const p of predictions ?? []) {
+      predsByUser[p.user_id] ??= new Set();
+      predsByUser[p.user_id].add(p.match_id);
+    }
+
+    // Only notify users who are missing at least one prediction for today
+    type ValidSub = { endpoint: string; p256dh: string; auth_key: string };
+    const toNotify: ValidSub[] = allSubscriptions
+      .filter((s) => {
+        if (!s.p256dh || !s.auth_key) return false;
+        const userPreds = predsByUser[s.user_id];
+        return !userPreds || matchIds.some((id) => !userPreds.has(id));
+      })
+      .map((s) => ({ endpoint: s.endpoint, p256dh: s.p256dh!, auth_key: s.auth_key! }));
+
+    if (!toNotify.length) {
+      return NextResponse.json({ success: true, sent: 0, reason: 'all users predicted' });
+    }
+
+    const count = todayMatches.length;
+    await sendBulkPushNotifications(toNotify, {
+      title: '⚽ ¡Predice los partidos de hoy!',
+      body: count === 1
+        ? 'Hay 1 partido hoy. ¡No te quedes sin predecir!'
+        : `Hay ${count} partidos hoy. ¡No te quedes sin predecir!`,
+      url: '/matches',
+    });
+
+    return NextResponse.json({ success: true, sent: toNotify.length });
   } catch (error) {
     console.error('Reminder cron error:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
