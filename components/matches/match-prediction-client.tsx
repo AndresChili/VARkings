@@ -10,6 +10,7 @@ import {
   isMatchLive, isMatchFinished, getPointsColor
 } from '@/lib/utils';
 import { calculateMatchPoints } from '@/lib/scoring';
+import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 
 interface MatchPredictionClientProps {
   match: Match;
@@ -93,6 +94,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     }
 
     setSaved(true);
+    triggerAchievementCheck();
     startTransition(() => {
       router.push('/matches');
       router.refresh();
