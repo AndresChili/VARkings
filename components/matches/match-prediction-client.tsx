@@ -33,11 +33,16 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
   const live = isMatchLive(match.status);
   const done = isMatchFinished(match.status);
 
+  const isKnockout = match.stage !== 'Group Stage';
+
   const [homeScore, setHomeScore] = useState(
     existingPrediction?.predicted_home_score?.toString() ?? ''
   );
   const [awayScore, setAwayScore] = useState(
     existingPrediction?.predicted_away_score?.toString() ?? ''
+  );
+  const [knockoutWinner, setKnockoutWinner] = useState<string | null>(
+    existingPrediction?.predicted_winner ?? null
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -82,6 +87,12 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     e.preventDefault();
     if (started) return;
     setError('');
+
+    if (needsKnockoutWinner && !knockoutWinner) {
+      setError('Debes elegir qué equipo pasa de ronda');
+      return;
+    }
+
     setSaving(true);
 
     const res = await fetch('/api/predictions/match', {
@@ -91,6 +102,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         match_id: match.id,
         predicted_home_score: Number(homeScore),
         predicted_away_score: Number(awayScore),
+        predicted_winner: needsKnockoutWinner ? knockoutWinner : null,
       }),
     });
 
@@ -110,12 +122,18 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     });
   }
 
+  const scoresEntered = homeScore !== '' && awayScore !== '';
+  const isDraw = scoresEntered && +homeScore === +awayScore;
+  const needsKnockoutWinner = isKnockout && isDraw;
+
   const predictedWinner =
-    homeScore !== '' && awayScore !== ''
+    scoresEntered
       ? +homeScore > +awayScore
         ? (match.home_team_name ?? 'Local')
         : +awayScore > +homeScore
         ? (match.away_team_name ?? 'Visitante')
+        : needsKnockoutWinner
+        ? null
         : 'Empate'
       : null;
 
@@ -215,6 +233,9 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
             {existingPrediction ? (
               <p className="text-sm text-gray-500 mt-1">
                 Tu predicción: {existingPrediction.predicted_home_score} - {existingPrediction.predicted_away_score}
+                {existingPrediction.predicted_winner && (
+                  <span className="text-gray-400"> · pasa {existingPrediction.predicted_winner}</span>
+                )}
               </p>
             ) : (
               <p className="text-sm text-gray-600 mt-1">No hiciste ninguna predicción</p>
@@ -261,6 +282,41 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
                 <p className="text-sm text-field-light">
                   Predices: <strong>{predictedWinner}</strong>
                 </p>
+              </div>
+            )}
+
+            {/* Knockout draw: pick who advances via penalties */}
+            {needsKnockoutWinner && (
+              <div className="mb-4">
+                <p className="text-xs text-amber-400 text-center mb-2">
+                  Empate — ¿quién pasa de ronda?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setKnockoutWinner(match.home_team_name ?? 'Local')}
+                    className={cn(
+                      'flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors',
+                      knockoutWinner === (match.home_team_name ?? 'Local')
+                        ? 'bg-crown text-surface border-crown'
+                        : 'bg-surface border-white/10 text-gray-300 hover:border-white/30'
+                    )}
+                  >
+                    {match.home_team_name ?? 'Local'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setKnockoutWinner(match.away_team_name ?? 'Visitante')}
+                    className={cn(
+                      'flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors',
+                      knockoutWinner === (match.away_team_name ?? 'Visitante')
+                        ? 'bg-crown text-surface border-crown'
+                        : 'bg-surface border-white/10 text-gray-300 hover:border-white/30'
+                    )}
+                  >
+                    {match.away_team_name ?? 'Visitante'}
+                  </button>
+                </div>
               </div>
             )}
 

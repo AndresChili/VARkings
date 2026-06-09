@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { match_id, predicted_home_score, predicted_away_score } = body;
+  const { match_id, predicted_home_score, predicted_away_score, predicted_winner } = body;
 
   if (match_id == null || predicted_home_score == null || predicted_away_score == null) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   // Verify match exists and hasn't started
   const { data: match } = await supabase
     .from('matches')
-    .select('id, match_date, status')
+    .select('id, match_date, status, stage, home_team_name, away_team_name')
     .eq('id', match_id)
     .single();
 
@@ -44,6 +44,14 @@ export async function POST(req: NextRequest) {
   if (match.status !== 'NS' || new Date(match.match_date) <= new Date()) {
     return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
   }
+
+  const isKnockout = match.stage !== 'Group Stage';
+  const isDraw = home === away;
+  if (isKnockout && isDraw && !predicted_winner) {
+    return NextResponse.json({ error: 'Debes elegir qué equipo pasa de ronda' }, { status: 400 });
+  }
+  const sanitizedWinner: string | null =
+    isKnockout && isDraw ? (predicted_winner ?? null) : null;
 
   const { data: existing } = await supabase
     .from('match_predictions')
@@ -55,7 +63,7 @@ export async function POST(req: NextRequest) {
   if (existing) {
     const { error } = await supabase
       .from('match_predictions')
-      .update({ predicted_home_score: home, predicted_away_score: away })
+      .update({ predicted_home_score: home, predicted_away_score: away, predicted_winner: sanitizedWinner })
       .eq('match_id', match_id)
       .eq('user_id', user.id);
 
@@ -68,6 +76,7 @@ export async function POST(req: NextRequest) {
     match_id,
     predicted_home_score: home,
     predicted_away_score: away,
+    predicted_winner: sanitizedWinner,
   });
 
   if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
