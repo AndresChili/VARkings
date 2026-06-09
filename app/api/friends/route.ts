@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { sendPushNotification } from '@/lib/push-notifications';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,6 +45,23 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: 'No se pudo enviar la solicitud' }, { status: 400 });
+
+  // Fire-and-forget push to addressee
+  ;(async () => {
+    const [{ data: profile }, admin] = [
+      await supabase.from('profiles').select('username').eq('id', user.id).single(),
+      createAdminClient(),
+    ];
+    const { data: sub } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth_key').eq('user_id', String(addressee_id)).maybeSingle();
+    if (sub?.p256dh && sub?.auth_key) {
+      await sendPushNotification({ endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key }, {
+        title: '👤 Solicitud de amistad',
+        body: `@${profile?.username ?? 'Alguien'} quiere ser tu amigo`,
+        url: '/friends',
+      });
+    }
+  })().catch(() => {});
+
   return NextResponse.json(data, { status: 201 });
 }
 

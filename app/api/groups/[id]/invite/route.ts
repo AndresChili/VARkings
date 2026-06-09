@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { sendPushNotification } from '@/lib/push-notifications';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -54,6 +55,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .single();
 
   if (error) return NextResponse.json({ error: 'Error al enviar invitación' }, { status: 400 });
+
+  // Fire-and-forget push to invitee
+  ;(async () => {
+    const [{ data: profile }, admin] = [
+      await supabase.from('profiles').select('username').eq('id', user.id).single(),
+      createAdminClient(),
+    ];
+    const { data: sub } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth_key').eq('user_id', String(invitee_id)).maybeSingle();
+    if (sub?.p256dh && sub?.auth_key) {
+      await sendPushNotification({ endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key }, {
+        title: '👥 Invitación a grupo',
+        body: `@${profile?.username ?? 'Alguien'} te ha invitado al grupo "${group?.name ?? ''}"`,
+        url: '/dashboard',
+      });
+    }
+  })().catch(() => {});
 
   return NextResponse.json({ ...data, group_name: group?.name });
 }
