@@ -95,6 +95,7 @@ export function GroupDetailClient({
   memberLevels,
 }: GroupDetailClientProps) {
   const router = useRouter();
+  const supabase = createClient();
 
   const [copied, setCopied] = useState(false);
   const [showInviteCode, setShowInviteCode] = useState(false);
@@ -116,6 +117,7 @@ export function GroupDetailClient({
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferringTo, setTransferringTo] = useState<string | null>(null);
   const [localLeaderboard, setLocalLeaderboard] = useState(leaderboard);
+  const [localMemberCount, setLocalMemberCount] = useState(memberCount);
 
   useEffect(() => {
     setLocalLeaderboard(leaderboard);
@@ -149,10 +151,9 @@ export function GroupDetailClient({
   const isCreator = group.created_by === userId;
   const needsPodioSetup = !myPodio?.champion && !locked;
 
+  // Solicitudes de unión en tiempo real (solo admin)
   useEffect(() => {
     if (!isCreator) return;
-
-    const supabase = createClient();
     const channel = supabase
       .channel(`join-requests-${group.id}`)
       .on(
@@ -173,16 +174,54 @@ export function GroupDetailClient({
         }
       )
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
-  }, [group.id, isCreator]);
+  }, [group.id, isCreator, supabase]);
+
+  // Eventos del grupo: expulsión del usuario actual + actualización del leaderboard
+  useEffect(() => {
+    let leaderboardTimer: ReturnType<typeof setTimeout>;
+
+    // Mismo canal que usa dashboard-client + handleRemoveMember
+    const notifyChannel = supabase
+      .channel(`notify:${userId}`)
+      .on('broadcast', { event: 'member_removed' }, ({ payload }) => {
+        if ((payload as { group_id: string }).group_id === group.id) {
+          router.push('/dashboard');
+        }
+      })
+      .subscribe();
+
+    const lbChannel = supabase
+      .channel(`leaderboard-${group.id}`)
+      // Cuando se calculan puntos de predicciones, refrescar leaderboard
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'match_predictions',
+      }, () => {
+        clearTimeout(leaderboardTimer);
+        leaderboardTimer = setTimeout(async () => {
+          const res = await fetch(`/api/groups/${group.id}/leaderboard`);
+          if (res.ok) {
+            const data = await res.json();
+            setLocalLeaderboard(data.leaderboard);
+          }
+        }, 1500);
+      })
+      .subscribe();
+
+    return () => {
+      clearTimeout(leaderboardTimer);
+      supabase.removeChannel(notifyChannel);
+      supabase.removeChannel(lbChannel);
+    };
+  }, [group.id, userId, supabase, router]);
 
   async function openInviteFriends() {
     setShowMenu(false);
     setShowInviteFriends(true);
     if (friends.length > 0) return;
     setLoadingFriends(true);
-    const supabase = createClient();
     const { data: friendships } = await supabase
       .from('friendships')
       .select('requester_id, addressee_id')
@@ -207,8 +246,6 @@ export function GroupDetailClient({
     });
     if (!res.ok) { setSharedFriendId(null); return; }
     const data = await res.json();
-    // Broadcast real-time from client (server-side WS not persistent)
-    const supabase = createClient();
     await supabase.channel(`notify:${friend.id}`).send({
       type: 'broadcast',
       event: 'group_invite',
@@ -244,16 +281,26 @@ export function GroupDetailClient({
 
   async function handleRemoveMember(targetUserId: string) {
     setLocalLeaderboard((prev) => prev.filter((e) => e.user_id !== targetUserId));
+    setLocalMemberCount((c) => Math.max(0, c - 1));
     setShowRemoveModal(false);
     const res = await fetch(`/api/groups/${group.id}/members/${targetUserId}`, { method: 'DELETE' });
     if (!res.ok) {
+      // Rollback
       setLocalLeaderboard(leaderboard);
-      router.refresh();
+      setLocalMemberCount(memberCount);
+      return;
     }
+    // Notificar al miembro expulsado en tiempo real
+    supabase.channel(`notify:${targetUserId}`).send({
+      type: 'broadcast',
+      event: 'member_removed',
+      payload: { group_id: group.id, group_name: group.name },
+    });
   }
 
   async function handleRequest(targetUserId: string, action: 'accept' | 'reject') {
     setProcessingUserId(targetUserId);
+    const request = pendingRequests.find((r) => r.user_id === targetUserId);
     const res = await fetch(`/api/groups/${group.id}/requests`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -261,7 +308,33 @@ export function GroupDetailClient({
     });
     if (res.ok) {
       setPendingRequests((prev) => prev.filter((r) => r.user_id !== targetUserId));
-      if (action === 'accept') router.refresh();
+      if (action === 'accept' && request) {
+        // Añadir al leaderboard localmente (0 puntos hasta que haga predicciones)
+        setLocalLeaderboard((prev) => {
+          if (prev.find((e) => e.user_id === targetUserId)) return prev;
+          return [...prev, {
+            group_id: group.id,
+            user_id: targetUserId,
+            username: request.username,
+            full_name: null,
+            avatar_url: null,
+            total_points: 0,
+            scored_matches: 0,
+            calculated_matches: 0,
+            total_predictions: 0,
+            podio_points: 0,
+            groups_points: 0,
+            matches_points: 0,
+          }];
+        });
+        setLocalMemberCount((c) => c + 1);
+        // Notificar al nuevo miembro en tiempo real
+        supabase.channel(`notify:${targetUserId}`).send({
+          type: 'broadcast',
+          event: 'join_request_accepted',
+          payload: { group_id: group.id, group_name: group.name },
+        });
+      }
     }
     setProcessingUserId(null);
   }
@@ -276,6 +349,7 @@ export function GroupDetailClient({
     setTransferringTo(null);
     if (res.ok) {
       setShowTransferModal(false);
+      router.push('/dashboard');
       router.refresh();
     }
   }
@@ -284,7 +358,6 @@ export function GroupDetailClient({
     setSelectedMemberId(targetId);
     if (targetId === userId) { setModalFriendStatus('none'); return; }
     setModalFriendStatus('loading');
-    const supabase = createClient();
     const { data } = await supabase
       .from('friendships')
       .select('requester_id, status')
@@ -298,13 +371,13 @@ export function GroupDetailClient({
 
   async function sendFriendRequestFromModal(targetId: string) {
     setAddingFriend(true);
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('friendships')
-      .insert({ requester_id: userId, addressee_id: targetId, status: 'pending' })
-      .select()
-      .single();
-    if (!error && data) {
+    const res = await fetch('/api/friends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addressee_id: targetId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
       setModalFriendStatus('pending_sent');
       supabase.channel(`notify:${targetId}`).send({
         type: 'broadcast',
@@ -383,7 +456,6 @@ export function GroupDetailClient({
       return;
     }
     setShowGroups(false);
-    router.refresh();
   }
 
   const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));
@@ -550,7 +622,7 @@ export function GroupDetailClient({
               <div className="text-xs text-gray-500">Posición</div>
             </div>
             <div className="bg-field/10 border border-field/20 rounded-xl py-2.5 text-center">
-              <div className="text-xl font-black text-field-light">{memberCount}</div>
+              <div className="text-xl font-black text-field-light">{localMemberCount}</div>
               <div className="text-xs text-gray-500">Miembros</div>
             </div>
           </div>

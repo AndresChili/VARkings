@@ -19,9 +19,11 @@ interface GroupInvite {
   created_at: string;
 }
 
+type GroupEntry = { group_id: string; member_count: number; is_admin: boolean; groups: { id: string; name: string } | null };
+
 interface DashboardClientProps {
   userId: string;
-  groups: Array<{ group_id: string; member_count: number; is_admin: boolean; groups: { id: string; name: string } | null }>;
+  groups: GroupEntry[];
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
   groupInvites: GroupInvite[];
@@ -35,12 +37,14 @@ const PODIO_STEPS = [
 
 export function DashboardClient({
   userId,
-  groups,
+  groups: initialGroups,
   tournamentPrediction,
   teams,
   groupInvites: initialInvites,
 }: DashboardClientProps) {
   const router = useRouter();
+  const supabase = createClient();
+  const [localGroups, setLocalGroups] = useState<GroupEntry[]>(initialGroups);
   const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>(initialInvites);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [acceptedPendingGroup, setAcceptedPendingGroup] = useState<string | null>(null);
@@ -70,35 +74,58 @@ export function DashboardClient({
 
   useNavigationGuard(showPodio || showGroups);
 
-  // Real-time: receive group invite notifications
+  // Realtime: invitaciones, solicitudes aceptadas, expulsiones
   useEffect(() => {
-    const supabase = createClient();
     const channel = supabase
       .channel(`notify:${userId}`)
       .on('broadcast', { event: 'group_invite' }, ({ payload }) => {
         const invite = payload.invite as GroupInvite;
         setPendingInvites((prev) => prev.find((i) => i.id === invite.id) ? prev : [invite, ...prev]);
       })
+      // Admin aceptó solicitud de unión → añadir grupo sin recargar
+      .on('broadcast', { event: 'join_request_accepted' }, ({ payload }) => {
+        const { group_id, group_name } = payload as { group_id: string; group_name: string };
+        setLocalGroups((prev) => {
+          if (prev.find((g) => g.group_id === group_id)) return prev;
+          return [...prev, { group_id, member_count: 0, is_admin: false, groups: { id: group_id, name: group_name } }];
+        });
+      })
+      // Admin expulsó al usuario → quitar grupo de la lista
+      .on('broadcast', { event: 'member_removed' }, ({ payload }) => {
+        const { group_id } = payload as { group_id: string };
+        setLocalGroups((prev) => prev.filter((g) => g.group_id !== group_id));
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [userId]);
+  }, [supabase, userId]);
 
   async function respondToInvite(invite: GroupInvite, action: 'accept' | 'reject') {
-    setRespondingId(invite.id);
+    // Optimistic: quitar invitación inmediatamente
+    setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+
     const res = await fetch(`/api/groups/${invite.group_id}/invite/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invite_id: invite.id, action }),
     });
-    setRespondingId(null);
-    setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
-    if (res.ok && action === 'accept') {
+
+    if (!res.ok) {
+      // Rollback si falla
+      setPendingInvites((prev) => [...prev, invite]);
+      return;
+    }
+
+    if (action === 'accept') {
       const data = await res.json();
       if (data.pending) {
         setAcceptedPendingGroup(invite.group_name);
       } else {
+        // Añadir grupo localmente sin reload
+        setLocalGroups((prev) => {
+          if (prev.find((g) => g.group_id === invite.group_id)) return prev;
+          return [...prev, { group_id: invite.group_id, member_count: 0, is_admin: false, groups: { id: invite.group_id, name: invite.group_name } }];
+        });
         router.push(`/groups/${invite.group_id}`);
-        router.refresh();
       }
     }
   }
@@ -462,7 +489,7 @@ export function DashboardClient({
             </div>
           )}
 
-          {groups.length === 0 ? (
+          {localGroups.length === 0 ? (
             <div className="bg-surface-card border border-white/10 rounded-2xl p-6 text-center">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-field/20 to-field-dark/30 border border-field/20 flex items-center justify-center mx-auto mb-3">
                 <Users size={22} className="text-field-light" />
@@ -471,7 +498,7 @@ export function DashboardClient({
             </div>
           ) : (
             <div className="space-y-3">
-              {groups.map((m) => {
+              {localGroups.map((m) => {
                 if (!m.groups) return null;
                 const initials = m.groups.name.slice(0, 2).toUpperCase();
                 return (

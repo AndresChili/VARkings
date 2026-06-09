@@ -76,7 +76,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddMenu]);
 
-  // Broadcast: recibe eventos de otros usuarios en tiempo real
+  // Realtime: broadcast (instantáneo si la pestaña está abierta) + postgres_changes (fallback si no)
   useEffect(() => {
     const channel = supabase
       .channel(`notify:${currentUserId}`)
@@ -96,6 +96,30 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       })
       .on('broadcast', { event: 'friendship_deleted' }, ({ payload }) => {
         setFriendships((prev) => prev.filter((x) => x.id !== payload.friendshipId));
+      })
+      // Fallback DB: captura solicitudes nuevas aunque el broadcast se pierda
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'friendships',
+        filter: `addressee_id=eq.${currentUserId}`,
+      }, async ({ new: f }) => {
+        setFriendships((prev) => prev.find((x) => x.id === f.id) ? prev : [f as Friendship, ...prev]);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .eq('id', (f as Friendship).requester_id)
+          .single();
+        if (profile) setProfileMap((prev) => new Map(prev).set(profile.id, profile));
+      })
+      // Fallback DB: captura aceptaciones aunque el broadcast se pierda
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'friendships',
+        filter: `requester_id=eq.${currentUserId}`,
+      }, ({ new: f }) => {
+        setFriendships((prev) => prev.map((x) => x.id === f.id ? (f as Friendship) : x));
       })
       .subscribe();
 
@@ -155,16 +179,18 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     setFriendships((prev) => [optimistic, ...prev]);
     setProfileMap((prev) => new Map(prev).set(addressee.id, addressee));
 
-    const { data, error } = await supabase
-      .from('friendships')
-      .insert({ requester_id: currentUserId, addressee_id: addressee.id, status: 'pending' })
-      .select()
-      .single();
+    const res = await fetch('/api/friends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addressee_id: addressee.id }),
+    });
 
-    if (error || !data) {
+    if (!res.ok) {
       setFriendships((prev) => prev.filter((f) => f.id !== tempId));
       return;
     }
+
+    const data = await res.json();
     setFriendships((prev) => prev.map((f) => (f.id === tempId ? (data as Friendship) : f)));
 
     // Notifica al destinatario en tiempo real
