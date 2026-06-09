@@ -50,6 +50,12 @@ export async function POST(req: NextRequest) {
   if (isKnockout && isDraw && !predicted_winner) {
     return NextResponse.json({ error: 'Debes elegir qué equipo pasa de ronda' }, { status: 400 });
   }
+  if (isKnockout && isDraw && predicted_winner) {
+    const validWinners = [match.home_team_name, match.away_team_name].filter(Boolean);
+    if (!validWinners.includes(predicted_winner)) {
+      return NextResponse.json({ error: 'Equipo inválido' }, { status: 400 });
+    }
+  }
   const sanitizedWinner: string | null =
     isKnockout && isDraw ? (predicted_winner ?? null) : null;
 
