@@ -18,7 +18,7 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, totalMatchCount, streakStats, existingAchievementEvents] = await Promise.all([
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, totalMatchCount, streakStats] = await Promise.all([
     supabase.from('profiles').select('avatar_url').eq('id', user.id).single(),
     supabase.from('match_predictions').select('points_total, is_calculated').eq('user_id', user.id),
     supabase.from('tournament_predictions').select('champion_points, runner_up_points, third_place_points, group_predictions_points, champion, group_predictions').eq('user_id', user.id).maybeSingle(),
@@ -27,7 +27,6 @@ export async function GET() {
     supabase.from('match_predictions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('points_total', 3),
     supabase.from('matches').select('id', { count: 'exact', head: true }),
     getUserStreakStats(admin, user.id),
-    admin.from('xp_events').select('source_id').eq('user_id', user.id).eq('source_type', 'achievement'),
   ]);
 
   let maxGroupMembers = 0;
@@ -70,14 +69,12 @@ export async function GET() {
   const achievements = getAchievements(stats);
   const completedAchievements = achievements.filter((a) => a.current >= a.target);
 
-  const alreadyAwarded = new Set((existingAchievementEvents.data ?? []).map((e: { source_id: string }) => e.source_id));
-  const newlyUnlocked = completedAchievements.filter((a) => !alreadyAwarded.has(a.id));
-
+  // Award XP for all completed achievements (idempotent)
   await Promise.all(
     completedAchievements.map((a) =>
       awardXP(admin, user.id, 'achievement', a.id, ACHIEVEMENT_XP[a.difficulty])
     )
   );
 
-  return NextResponse.json({ newlyUnlocked });
+  return NextResponse.json({ completed: completedAchievements });
 }
