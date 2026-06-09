@@ -9,6 +9,7 @@ import type { Team } from '@/types';
 import { isTournamentLocked, WC_GROUPS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 
 interface GroupInvite {
   id: string;
@@ -210,6 +211,7 @@ export function DashboardClient({
     setShowCreate(false);
     setCreateForm({ name: '', description: '' });
     setNewGroupId(data.group.id);
+    triggerAchievementCheck();
     if (!locked) {
       openPodio();
     } else {
@@ -255,6 +257,7 @@ export function DashboardClient({
     // Direct join — navigate to group
     setJoinPending(false);
     setNewGroupId(data.group.id);
+    triggerAchievementCheck();
     if (!locked) {
       openPodio();
     } else {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 import { getLevel } from '@/lib/xp';
 import { isValidAvatarUrl } from '@/lib/avatar';
 
@@ -191,6 +192,8 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       );
       return;
     }
+
+    triggerAchievementCheck();
 
     // Notifica al que envió la solicitud
     supabase.channel(`notify:${friendship.requester_id}`).send({

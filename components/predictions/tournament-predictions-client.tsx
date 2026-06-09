@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Trophy, Shield, CheckCircle, Lock, Crown, Star, X } from 'lucide-react';
 import type { Team, TournamentPrediction } from '@/types';
 import { cn, WC_GROUPS, isTournamentLocked, getTournamentDeadlineText, TOURNAMENT_LOCK_DATE } from '@/lib/utils';
+import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -85,6 +86,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
       if (!res.ok) { setError(data.error); return; }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      triggerAchievementCheck();
       router.refresh();
     } catch {
       setError('Error de red. Inténtalo de nuevo.');
