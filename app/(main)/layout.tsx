@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { PushPermissionBanner } from '@/components/ui/push-permission';
 import { InstallPrompt } from '@/components/ui/install-prompt';
+import { AchievementChecker } from '@/components/ui/achievement-checker';
 import { recordDailyLogin } from '@/lib/xp-server';
 
 async function TopBarWithProfile({ userId }: { userId: string }) {
@@ -29,6 +30,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       </Suspense>
       <InstallPrompt />
       <PushPermissionBanner />
+      <AchievementChecker />
       <main className="flex-1 pb-20">{children}</main>
       <BottomNav />
     </div>
