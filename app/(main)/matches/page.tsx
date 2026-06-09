@@ -33,8 +33,8 @@ export default async function MatchesPage() {
 
   const translatedMatches = matches.map((m) => ({
     ...m,
-    home_team_name: TEAM_NAME_ES[m.home_team_name ?? ''] ?? m.home_team_name,
-    away_team_name: TEAM_NAME_ES[m.away_team_name ?? ''] ?? m.away_team_name,
+    home_team_name: m.home_team_name ? (TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name) : null,
+    away_team_name: m.away_team_name ? (TEAM_NAME_ES[m.away_team_name] ?? m.away_team_name) : null,
   }));
 
   return <MatchesClient matches={translatedMatches} predictionMap={predictionMap} />;

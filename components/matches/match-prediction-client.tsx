@@ -104,9 +104,9 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
   const predictedWinner =
     homeScore !== '' && awayScore !== ''
       ? +homeScore > +awayScore
-        ? match.home_team_name
+        ? (match.home_team_name ?? 'Local')
         : +awayScore > +homeScore
-        ? match.away_team_name
+        ? (match.away_team_name ?? 'Visitante')
         : 'Empate'
       : null;
 
@@ -137,10 +137,11 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         <div className="flex items-center justify-between gap-4">
           {/* Home team */}
           <div className="flex-1 text-center">
-            {match.home_team_logo && (
-              <img src={match.home_team_logo} alt={match.home_team_name} className="w-14 h-14 object-contain mx-auto mb-2" />
-            )}
-            <p className="font-bold text-white text-sm leading-tight">{match.home_team_name}</p>
+            {match.home_team_logo
+              ? <img src={match.home_team_logo} alt={match.home_team_name ?? ''} className="w-14 h-14 object-contain mx-auto mb-2" />
+              : <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-2" />
+            }
+            <p className="font-bold text-white text-sm leading-tight">{match.home_team_name ?? 'Por determinar'}</p>
           </div>
 
           {/* Score */}
@@ -158,10 +159,11 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
           {/* Away team */}
           <div className="flex-1 text-center">
-            {match.away_team_logo && (
-              <img src={match.away_team_logo} alt={match.away_team_name} className="w-14 h-14 object-contain mx-auto mb-2" />
-            )}
-            <p className="font-bold text-white text-sm leading-tight">{match.away_team_name}</p>
+            {match.away_team_logo
+              ? <img src={match.away_team_logo} alt={match.away_team_name ?? ''} className="w-14 h-14 object-contain mx-auto mb-2" />
+              : <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-2" />
+            }
+            <p className="font-bold text-white text-sm leading-tight">{match.away_team_name ?? 'Por determinar'}</p>
           </div>
         </div>
       </div>
@@ -179,8 +181,8 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: 'Ganador', pts: existingPrediction.points_winner },
-              { label: `Goles ${match.home_team_name.split(' ')[0]}`, pts: existingPrediction.points_home_score },
-              { label: `Goles ${match.away_team_name.split(' ')[0]}`, pts: existingPrediction.points_away_score },
+              { label: `Goles ${(match.home_team_name ?? 'Local').split(' ')[0]}`, pts: existingPrediction.points_home_score },
+              { label: `Goles ${(match.away_team_name ?? 'Visit.').split(' ')[0]}`, pts: existingPrediction.points_away_score },
             ].map(({ label, pts }) => (
               <div key={label} className="bg-surface rounded-xl p-3 text-center">
                 <div className={cn('text-lg font-black', pts > 0 ? 'text-crown' : 'text-gray-600')}>
@@ -216,7 +218,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex-1 text-center">
-                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.home_team_name}</p>
+                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.home_team_name ?? 'Local'}</p>
                 <input
                   type="number"
                   min="0"
@@ -230,7 +232,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
               <div className="text-gray-500 font-bold text-xl shrink-0">–</div>
               <div className="flex-1 text-center">
-                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.away_team_name}</p>
+                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.away_team_name ?? 'Visitante'}</p>
                 <input
                   type="number"
                   min="0"

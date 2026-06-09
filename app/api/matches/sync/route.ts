@@ -26,15 +26,14 @@ export async function POST(req: NextRequest) {
     const fixtures = await getWCMatches();
 
     const upserts = fixtures
-      .filter((f) => f.homeTeam?.name && f.awayTeam?.name)
       .map((f) => ({
         api_id: f.id,
-        home_team_name: f.homeTeam.name,
-        away_team_name: f.awayTeam.name,
-        home_team_logo: f.homeTeam.crest ?? null,
-        away_team_logo: f.awayTeam.crest ?? null,
-        home_team_api_id: f.homeTeam.id,
-        away_team_api_id: f.awayTeam.id,
+        home_team_name: f.homeTeam?.name || null,
+        away_team_name: f.awayTeam?.name || null,
+        home_team_logo: f.homeTeam?.crest ?? null,
+        away_team_logo: f.awayTeam?.crest ?? null,
+        home_team_api_id: f.homeTeam?.id ?? null,
+        away_team_api_id: f.awayTeam?.id ?? null,
         match_date: f.utcDate,
         stage: mapFDStage(f.stage),
         group_name: mapFDGroup(f.group),

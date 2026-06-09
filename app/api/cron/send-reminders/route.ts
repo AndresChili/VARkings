@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       const sanitize = (s: string) => s.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 50);
       await sendBulkPushNotifications(validSubs, {
         title: '⚽ ¡Partido en 1 hora!',
-        body: `${sanitize(match.home_team_name)} vs ${sanitize(match.away_team_name)} - ¡Haz tu predicción!`,
+        body: `${sanitize(match.home_team_name ?? 'Local')} vs ${sanitize(match.away_team_name ?? 'Visitante')} - ¡Haz tu predicción!`,
         url: `/matches/${match.id}`,
       });
 

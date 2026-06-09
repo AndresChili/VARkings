@@ -7,8 +7,8 @@ export interface FDMatch {
   matchday: number;
   stage: string;
   group: string | null;
-  homeTeam: { id: number; name: string; crest: string };
-  awayTeam: { id: number; name: string; crest: string };
+  homeTeam: { id: number; name: string | null; crest: string } | null;
+  awayTeam: { id: number; name: string | null; crest: string } | null;
   score: {
     winner: string | null;
     duration: string;

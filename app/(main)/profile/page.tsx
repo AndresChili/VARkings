@@ -99,6 +99,7 @@ export default async function ProfilePage() {
       for (const m of groupMatches) {
         const g = m.group_name!;
         const hs = m.home_score!, as_ = m.away_score!;
+        if (!m.home_team_name || !m.away_team_name) continue;
         pts[g] ??= {}; gd[g] ??= {};
         pts[g][m.home_team_name] ??= 0; gd[g][m.home_team_name] ??= 0;
         pts[g][m.away_team_name] ??= 0; gd[g][m.away_team_name] ??= 0;

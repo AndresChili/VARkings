@@ -152,8 +152,8 @@ export interface Database {
         Row: {
           id: string;
           api_id: number | null;
-          home_team_name: string;
-          away_team_name: string;
+          home_team_name: string | null;
+          away_team_name: string | null;
           home_team_logo: string | null;
           away_team_logo: string | null;
           home_team_api_id: number | null;
@@ -172,8 +172,8 @@ export interface Database {
         Insert: {
           id?: string;
           api_id?: number | null;
-          home_team_name: string;
-          away_team_name: string;
+          home_team_name?: string | null;
+          away_team_name?: string | null;
           home_team_logo?: string | null;
           away_team_logo?: string | null;
           home_team_api_id?: number | null;

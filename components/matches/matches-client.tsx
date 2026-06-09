@@ -7,6 +7,14 @@ import { CheckCircle, Circle, Search, X } from 'lucide-react';
 import type { Match } from '@/types';
 import { cn, formatMatchDate, getMatchStatusLabel, isMatchLive, isMatchFinished } from '@/lib/utils';
 
+const STAGE_ES: Record<string, string> = {
+  'Round of 32': 'Dieciseisavos',
+  'Round of 16': 'Octavos de Final',
+  'Quarter-finals': 'Cuartos de Final',
+  'Semi-finals': 'Semifinales',
+  'Third Place': 'Tercer Puesto',
+  'Final': 'Final',
+};
 
 interface MatchesClientProps {
   matches: Match[];
@@ -89,7 +97,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   const groups = useMemo(() => {
     if (filter !== 'upcoming') return null;
     return filtered.reduce((acc: Record<string, Match[]>, match) => {
-      const key = match.group_name ? `Grupo ${match.group_name}` : match.stage;
+      const key = match.group_name ? `Grupo ${match.group_name}` : (STAGE_ES[match.stage] ?? match.stage);
       if (!acc[key]) acc[key] = [];
       acc[key].push(match);
       return acc;
@@ -251,7 +259,7 @@ function MatchCard({ match, prediction }: {
               ? <Image src={match.home_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
               : <div className="w-10 h-10 rounded-full bg-white/5" />
             }
-            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.home_team_name}</span>
+            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.home_team_name ?? 'Por determinar'}</span>
           </div>
 
           <div className="flex flex-col items-center shrink-0 px-2">
@@ -269,7 +277,7 @@ function MatchCard({ match, prediction }: {
               ? <Image src={match.away_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
               : <div className="w-10 h-10 rounded-full bg-white/5" />
             }
-            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.away_team_name}</span>
+            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.away_team_name ?? 'Por determinar'}</span>
           </div>
         </div>
 
@@ -291,7 +299,7 @@ function MatchCard({ match, prediction }: {
               </span>
             )}
           </div>
-        ) : match.status === 'NS' ? (
+        ) : match.status === 'NS' && match.home_team_name && match.away_team_name ? (
           <div className="px-4 py-3 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2">
             <Circle size={15} className="text-amber-500 shrink-0" />
             <div>
