@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Trophy, Shield, CheckCircle, Lock, Crown, Star, X } from 'lucide-react';
 import type { Team, TournamentPrediction } from '@/types';
 import { cn, WC_GROUPS, isTournamentLocked, getTournamentDeadlineText, TOURNAMENT_LOCK_DATE } from '@/lib/utils';
@@ -23,7 +22,6 @@ interface TournamentPredictionsClientProps {
 }
 
 export function TournamentPredictionsClient({ teams, existingPrediction, groupQualifiers, actualPodio }: TournamentPredictionsClientProps) {
-  const router = useRouter();
   const locked = isTournamentLocked();
 
   const [champion, setChampion] = useState(existingPrediction?.champion ?? '');
@@ -34,6 +32,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hasSaved, setHasSaved] = useState(!!existingPrediction);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'podio' | 'grupos'>('podio');
 
@@ -85,9 +84,9 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       setSaved(true);
+      setHasSaved(true);
       setTimeout(() => setSaved(false), 3000);
       triggerAchievementCheck();
-      router.refresh();
     } catch {
       setError('Error de red. Inténtalo de nuevo.');
     } finally {
@@ -340,7 +339,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
               </span>
             ) : saving ? (
               'Guardando...'
-            ) : existingPrediction ? (
+            ) : hasSaved ? (
               'Actualizar predicciones'
             ) : (
               'Guardar todas las predicciones'
