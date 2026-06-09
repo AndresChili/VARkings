@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Trophy, Users, Zap, Star, X } from 'lucide-react';
+import { ChevronRight, Trophy, Users, Zap, Star, X, MessageSquare } from 'lucide-react';
 import { VarkingsLogo, VarkingsWordmark } from '@/components/ui/varkings-logo';
 
 interface WelcomeModalProps {
@@ -266,15 +266,20 @@ function StepExtras() {
           </div>
         </div>
 
-        <p className="text-center text-gray-600 text-xs pt-1">
-          Hecho por Andrés con ❤️ ·{' '}
-          <a
-            href="mailto:andrescabreroamieva@gmail.com"
-            className="text-gray-500 hover:text-gray-300 transition-colors underline underline-offset-2"
-          >
-            ¿sugerencias?
-          </a>
-        </p>
+        <div className="bg-surface border border-orange-500/20 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-10 h-10 bg-orange-500/15 rounded-xl flex items-center justify-center flex-shrink-0">
+            <MessageSquare size={19} className="text-orange-400" />
+          </div>
+          <div>
+            <p className="font-bold text-white text-sm">¿Errores o sugerencias?</p>
+            <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
+              Ve a tu <span className="text-orange-400 font-medium">Perfil</span> y pulsa en{' '}
+              <span className="text-orange-400 font-medium">Sugerencias</span>. Cualquier cosa que veas, cuéntamela.
+            </p>
+          </div>
+        </div>
+
+        <p className="text-center text-gray-600 text-xs pt-0.5">Hecho por Andrés con ❤️</p>
       </div>
     </div>
   );
