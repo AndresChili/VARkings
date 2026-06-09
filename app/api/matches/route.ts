@@ -38,13 +38,12 @@ export async function GET() {
       if (unnamedKnockout && unnamedKnockout.length > 0) {
         const allFixtures = await getWCMatches();
         const knockoutUpserts = allFixtures
-          .filter((f) => f.homeTeam?.name && f.awayTeam?.name)
           .map((f) => ({
             api_id: f.id,
-            home_team_name: f.homeTeam.name,
-            away_team_name: f.awayTeam.name,
-            home_team_logo: f.homeTeam.crest ?? null,
-            away_team_logo: f.awayTeam.crest ?? null,
+            home_team_name: f.homeTeam?.name || null,
+            away_team_name: f.awayTeam?.name || null,
+            home_team_logo: f.homeTeam?.crest ?? null,
+            away_team_logo: f.awayTeam?.crest ?? null,
             match_date: f.utcDate,
             stage: mapFDStage(f.stage),
             group_name: mapFDGroup(f.group),
@@ -96,9 +95,9 @@ export async function GET() {
         const alreadyFinished = ['FT', 'AET', 'PEN'].includes(match.status);
         const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
         const winnerName = fixture.score.winner === 'HOME_TEAM'
-          ? fixture.homeTeam.name
+          ? (fixture.homeTeam?.name ?? null)
           : fixture.score.winner === 'AWAY_TEAM'
-          ? fixture.awayTeam.name
+          ? (fixture.awayTeam?.name ?? null)
           : null;
 
         if (!alreadyFinished) {
@@ -145,7 +144,7 @@ export async function GET() {
               match_id: match.id,
               points: result.points_total,
               reason: 'match_prediction',
-              description: `${fixture.homeTeam.name} ${homeScore}-${awayScore} ${fixture.awayTeam.name}`,
+              description: `${fixture.homeTeam?.name ?? '?'} ${homeScore}-${awayScore} ${fixture.awayTeam?.name ?? '?'}`,
             });
           }
         }

@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
 
       const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
       const winnerName = fixture.score.winner === 'HOME_TEAM'
-        ? fixture.homeTeam.name
+        ? (fixture.homeTeam?.name ?? null)
         : fixture.score.winner === 'AWAY_TEAM'
-        ? fixture.awayTeam.name
+        ? (fixture.awayTeam?.name ?? null)
         : null;
 
       if (!alreadyFinished) {
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
             match_id: match.id,
             points: result.points_total,
             reason: 'match_prediction',
-            description: `${fixture.homeTeam.name} ${homeScore}-${awayScore} ${fixture.awayTeam.name}`,
+            description: `${fixture.homeTeam?.name ?? '?'} ${homeScore}-${awayScore} ${fixture.awayTeam?.name ?? '?'}`,
           });
         }
       }
