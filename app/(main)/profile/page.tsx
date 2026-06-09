@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { ProfileClient } from '@/components/profile/profile-client';
-import { getUserXP, computeAndAwardBonuses } from '@/lib/xp-server';
+import { getUserXP, computeAndAwardBonuses, getUserStreakStats } from '@/lib/xp-server';
 import { isValidAvatarUrl } from '@/lib/avatar';
 import { getLevelProgress } from '@/lib/xp';
 
@@ -19,7 +19,7 @@ export default async function ProfilePage() {
 
   const admin = createAdminClient();
 
-  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, groupStagePredCount, totalMatchCount, groupStageMatchCount] = await Promise.all([
+  const [profileRes, predsRes, tournamentRes, friendsRes, groupsRes, exactPredsRes, groupStagePredCount, totalMatchCount, groupStageMatchCount, streakStats] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('match_predictions')
@@ -51,6 +51,7 @@ export default async function ProfilePage() {
       .not('matches.group_name', 'is', null),
     supabase.from('matches').select('id', { count: 'exact', head: true }),
     supabase.from('matches').select('id', { count: 'exact', head: true }).not('group_name', 'is', null),
+    getUserStreakStats(admin, user.id),
   ]);
 
   let maxGroupMembers = 0;
@@ -148,6 +149,9 @@ export default async function ProfilePage() {
       ? Object.keys(tp.group_predictions as Record<string, unknown>).length
       : 0,
     totalMatches: totalMatchCount.count ?? 0,
+    currentStreak: streakStats.currentStreak,
+    maxStreak: streakStats.maxStreak,
+    totalDaysActive: streakStats.totalDaysActive,
   };
 
   // Compute and award automatic XP bonuses, then get total XP
