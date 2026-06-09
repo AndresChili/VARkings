@@ -244,7 +244,14 @@ function MatchCard({ match, prediction }: {
         live ? 'border-green-500/40' : 'border-white/10'
       )}>
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
-          <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
+            {!match.group_name && (
+              <span className="text-[10px] font-bold text-field uppercase tracking-wider">
+                {STAGE_ES[match.stage] ?? match.stage}
+              </span>
+            )}
+          </div>
           {live && (
             <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
