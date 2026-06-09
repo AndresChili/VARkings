@@ -31,6 +31,20 @@ export async function DELETE(req: NextRequest) {
   }
 
   const adminClient = createAdminClient();
+
+  // Delete user data explicitly before deleting the auth account.
+  // Supabase cascades may handle some of these, but push_subscriptions
+  // and predictions contain PII that must be removed for GDPR compliance.
+  await Promise.allSettled([
+    adminClient.from('push_subscriptions').delete().eq('user_id', user.id),
+    adminClient.from('match_predictions').delete().eq('user_id', user.id),
+    adminClient.from('tournament_predictions').delete().eq('user_id', user.id),
+    adminClient.from('xp_events').delete().eq('user_id', user.id),
+    adminClient.from('points_log').delete().eq('user_id', user.id),
+    adminClient.from('friendships').delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+    adminClient.from('group_members').delete().eq('user_id', user.id),
+  ]);
+
   const { error } = await adminClient.auth.admin.deleteUser(user.id);
 
   if (error) return NextResponse.json({ error: 'Error al eliminar la cuenta' }, { status: 500 });

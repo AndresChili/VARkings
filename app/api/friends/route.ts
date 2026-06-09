@@ -10,6 +10,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera 5 minutos.' }, { status: 429 });
   }
 
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 1_000) {
+    return NextResponse.json({ error: 'Payload demasiado grande' }, { status: 413 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

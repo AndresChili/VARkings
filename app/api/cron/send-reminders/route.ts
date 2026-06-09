@@ -41,6 +41,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, sent: 0 });
     }
 
+    // Fetch all push subscriptions once — reused across all upcoming matches.
+    const { data: allSubscriptions } = await supabase
+      .from('push_subscriptions')
+      .select('user_id, endpoint, p256dh, auth_key')
+      .limit(5000);
+
     let totalSent = 0;
 
     for (const match of upcomingMatches) {
@@ -51,10 +57,6 @@ export async function GET(req: NextRequest) {
 
       const predictedIds = (predictedUsers?.map((p) => p.user_id) ?? []).filter((id) => UUID_RE.test(id));
 
-      const { data: allSubscriptions } = await supabase
-        .from('push_subscriptions')
-        .select('user_id, endpoint, p256dh, auth_key')
-        .limit(1000);
       const subscriptions = (allSubscriptions ?? []).filter(
         (s) => !predictedIds.includes(s.user_id)
       );

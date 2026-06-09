@@ -14,6 +14,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Demasiados intentos. Espera un momento.' }, { status: 429 });
   }
 
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 2_000) {
+    return NextResponse.json({ error: 'Payload demasiado grande' }, { status: 413 });
+  }
+
   const body = await req.json();
   const { match_id, predicted_home_score, predicted_away_score, predicted_winner } = body;
 
@@ -121,8 +126,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin
+  const { error } = await supabase
     .from('match_predictions')
     .delete()
     .eq('match_id', match_id)
