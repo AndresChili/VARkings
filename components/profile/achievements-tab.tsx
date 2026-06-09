@@ -51,8 +51,7 @@ const C = {
   },
 } as const;
 
-function AchievementCard({ a }: { a: Achievement }) {
-  const done = a.current >= a.target;
+function AchievementCard({ a, done = false }: { a: Achievement; done?: boolean }) {
   const pct  = Math.min(100, Math.round((a.current / a.target) * 100));
   const c    = C[a.category];
 
@@ -109,10 +108,12 @@ function AchievementCard({ a }: { a: Achievement }) {
   );
 }
 
-export function AchievementsTab({ stats }: { stats: AchievementStats }) {
+export function AchievementsTab({ stats, earnedIds = [] }: { stats: AchievementStats; earnedIds?: string[] }) {
   const achievements = getAchievements(stats);
-  const done         = achievements.filter((a) => a.current >= a.target);
-  const pending      = achievements.filter((a) => a.current < a.target);
+  const earnedSet    = new Set(earnedIds);
+  const isDone       = (a: Achievement) => a.current >= a.target || earnedSet.has(a.id);
+  const done         = achievements.filter(isDone);
+  const pending      = achievements.filter((a) => !isDone(a));
   const overallPct   = Math.round((done.length / achievements.length) * 100);
 
   return (
@@ -157,7 +158,7 @@ export function AchievementsTab({ stats }: { stats: AchievementStats }) {
       {done.length > 0 && (
         <div className="space-y-2.5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider pt-1">Conseguidos ✨</p>
-          {done.map((a) => <AchievementCard key={a.id} a={a} />)}
+          {done.map((a) => <AchievementCard key={a.id} a={a} done={true} />)}
         </div>
       )}
 
