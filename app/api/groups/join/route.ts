@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { sendPushNotification } from '@/lib/push-notifications';
 
 const INVITE_CODE_RE = /^[A-Z0-9]{4,16}$/;
 
@@ -85,6 +86,23 @@ export async function POST(req: NextRequest) {
     .insert({ group_id: group.id, user_id: user.id, status: 'pending' });
 
   if (error) return NextResponse.json({ error: 'Error al enviar solicitud' }, { status: 500 });
+
+  // Fire-and-forget push to group admin
+  ;(async () => {
+    if (!group.created_by) return;
+    const [{ data: profile }, admin] = [
+      await supabase.from('profiles').select('username').eq('id', user.id).single(),
+      adminClient,
+    ];
+    const { data: sub } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth_key').eq('user_id', group.created_by).maybeSingle();
+    if (sub?.p256dh && sub?.auth_key) {
+      await sendPushNotification({ endpoint: sub.endpoint, p256dh: sub.p256dh, auth_key: sub.auth_key }, {
+        title: '🔔 Solicitud de entrada al grupo',
+        body: `@${profile?.username ?? 'Alguien'} quiere unirse a "${group.name}"`,
+        url: `/groups/${group.id}`,
+      });
+    }
+  })().catch(() => {});
 
   return NextResponse.json({ group, pending: true }, { status: 201 });
 }
