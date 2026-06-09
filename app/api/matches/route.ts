@@ -95,11 +95,21 @@ export async function GET() {
 
         const alreadyFinished = ['FT', 'AET', 'PEN'].includes(match.status);
         const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
+        const winnerName = fixture.score.winner === 'HOME_TEAM'
+          ? fixture.homeTeam.name
+          : fixture.score.winner === 'AWAY_TEAM'
+          ? fixture.awayTeam.name
+          : null;
 
         if (!alreadyFinished) {
           await supabase
             .from('matches')
-            .update({ status: newStatus, home_score: homeScore, away_score: awayScore, updated_at: now })
+            .update({ status: newStatus, home_score: homeScore, away_score: awayScore, winner_team_name: winnerName, updated_at: now })
+            .eq('id', match.id);
+        } else if (winnerName) {
+          await supabase
+            .from('matches')
+            .update({ winner_team_name: winnerName })
             .eq('id', match.id);
         }
 
@@ -207,33 +217,31 @@ export async function GET() {
   // Auto-calculate podio points when Final and 3rd place match are finished
   const { data: finalMatch } = await supabase
     .from('matches')
-    .select('home_team_name, away_team_name, home_score, away_score')
+    .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')
     .eq('stage', 'Final')
     .in('status', ['FT', 'AET', 'PEN'])
     .maybeSingle();
 
   const { data: thirdMatch } = await supabase
     .from('matches')
-    .select('home_team_name, away_team_name, home_score, away_score')
+    .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')
     .eq('stage', 'Third Place')
     .in('status', ['FT', 'AET', 'PEN'])
     .maybeSingle();
 
   if (finalMatch && thirdMatch) {
-    const fHome = finalMatch.home_score ?? 0;
-    const fAway = finalMatch.away_score ?? 0;
-    const actualChampion = TEAM_NAME_ES[
-      fHome >= fAway ? (finalMatch.home_team_name ?? '') : (finalMatch.away_team_name ?? '')
-    ] ?? (fHome >= fAway ? finalMatch.home_team_name : finalMatch.away_team_name);
-    const actualRunnerUp = TEAM_NAME_ES[
-      fHome >= fAway ? (finalMatch.away_team_name ?? '') : (finalMatch.home_team_name ?? '')
-    ] ?? (fHome >= fAway ? finalMatch.away_team_name : finalMatch.home_team_name);
+    const fWinner = finalMatch.winner_team_name
+      ?? (((finalMatch.home_score ?? 0) >= (finalMatch.away_score ?? 0)) ? finalMatch.home_team_name : finalMatch.away_team_name);
+    const fLoser = finalMatch.winner_team_name
+      ? (finalMatch.winner_team_name === finalMatch.home_team_name ? finalMatch.away_team_name : finalMatch.home_team_name)
+      : (((finalMatch.home_score ?? 0) >= (finalMatch.away_score ?? 0)) ? finalMatch.away_team_name : finalMatch.home_team_name);
 
-    const tHome = thirdMatch.home_score ?? 0;
-    const tAway = thirdMatch.away_score ?? 0;
-    const actualThird = TEAM_NAME_ES[
-      tHome >= tAway ? (thirdMatch.home_team_name ?? '') : (thirdMatch.away_team_name ?? '')
-    ] ?? (tHome >= tAway ? thirdMatch.home_team_name : thirdMatch.away_team_name);
+    const actualChampion = TEAM_NAME_ES[fWinner ?? ''] ?? fWinner;
+    const actualRunnerUp = TEAM_NAME_ES[fLoser ?? ''] ?? fLoser;
+
+    const tWinner = thirdMatch.winner_team_name
+      ?? (((thirdMatch.home_score ?? 0) >= (thirdMatch.away_score ?? 0)) ? thirdMatch.home_team_name : thirdMatch.away_team_name);
+    const actualThird = TEAM_NAME_ES[tWinner ?? ''] ?? tWinner;
 
     const { data: podPreds } = await supabase
       .from('tournament_predictions')
