@@ -76,17 +76,5 @@ export async function GET() {
     )
   );
 
-  // Return achievements awarded in the last 5 minutes (newly inserted rows)
-  const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  const { data: recentEvents } = await admin
-    .from('xp_events')
-    .select('source_id')
-    .eq('user_id', user.id)
-    .eq('source_type', 'achievement')
-    .gte('created_at', since);
-
-  const recentIds = new Set((recentEvents ?? []).map((e: { source_id: string }) => e.source_id));
-  const recentlyUnlocked = completedAchievements.filter((a) => recentIds.has(a.id));
-
-  return NextResponse.json({ recentlyUnlocked });
+  return NextResponse.json({ completed: completedAchievements });
 }
