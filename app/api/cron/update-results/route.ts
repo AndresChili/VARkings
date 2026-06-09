@@ -45,11 +45,21 @@ export async function GET(req: NextRequest) {
       const alreadyFinished = match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
 
       const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
+      const winnerName = fixture.score.winner === 'HOME_TEAM'
+        ? fixture.homeTeam.name
+        : fixture.score.winner === 'AWAY_TEAM'
+        ? fixture.awayTeam.name
+        : null;
 
       if (!alreadyFinished) {
         await supabase
           .from('matches')
-          .update({ home_score: homeScore, away_score: awayScore, status: newStatus })
+          .update({ home_score: homeScore, away_score: awayScore, status: newStatus, winner_team_name: winnerName })
+          .eq('id', match.id);
+      } else if (winnerName) {
+        await supabase
+          .from('matches')
+          .update({ winner_team_name: winnerName })
           .eq('id', match.id);
       }
 
