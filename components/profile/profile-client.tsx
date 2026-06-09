@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock, MessageSquare } from 'lucide-react';
+import { LogOut, Target, Trophy, Zap, ChevronRight, CheckCircle, Edit3, X, Camera, Loader2, Plus, Trash2, ImageIcon, Share2, Check, Lock, MessageSquare, Bell, BellOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
@@ -50,6 +50,15 @@ interface ProfileClientProps {
   isOAuthUser: boolean;
 }
 
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}
 
 function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -112,9 +121,59 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   const [suggestionSending, setSuggestionSending] = useState(false);
   const [suggestionSent, setSuggestionSent] = useState(false);
   const [suggestionError, setSuggestionError] = useState('');
+  const [notifStatus, setNotifStatus] = useState<'loading' | 'subscribed' | 'unsubscribed' | 'denied' | 'unsupported'>('loading');
+  const [notifLoading, setNotifLoading] = useState(false);
 
   const supabase = createClient();
   const initials = profile?.username?.slice(0, 2).toUpperCase() ?? '??';
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setNotifStatus('unsupported');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      setNotifStatus('denied');
+      return;
+    }
+    navigator.serviceWorker.ready.then((reg) =>
+      reg.pushManager.getSubscription().then((sub) =>
+        setNotifStatus(sub ? 'subscribed' : 'unsubscribed')
+      )
+    );
+  }, []);
+
+  async function handleEnableNotifications() {
+    setNotifLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { setNotifStatus('denied'); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+      });
+      await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      setNotifStatus('subscribed');
+    } catch { /* ignore */ } finally { setNotifLoading(false); }
+  }
+
+  async function handleDisableNotifications() {
+    setNotifLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      await fetch('/api/notifications/subscribe', { method: 'DELETE' });
+      setNotifStatus('unsubscribed');
+    } catch { /* ignore */ } finally { setNotifLoading(false); }
+  }
 
   const achievementStats: AchievementStats = {
     totalPredictions: stats.totalPredictions,
@@ -656,6 +715,45 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </div>
           {shareStatus === 'idle' && <ChevronRight size={16} className="text-field/40" />}
         </button>
+
+        {/* Notifications toggle */}
+        {notifStatus !== 'loading' && notifStatus !== 'unsupported' && (
+          <button
+            onClick={notifStatus === 'subscribed' ? handleDisableNotifications : handleEnableNotifications}
+            disabled={notifLoading || notifStatus === 'denied'}
+            className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-colors group mb-3 ${
+              notifStatus === 'denied'
+                ? 'border-white/5 text-gray-600 cursor-not-allowed'
+                : notifStatus === 'subscribed'
+                ? 'border-teal-500/20 text-teal-400 hover:bg-teal-500/8'
+                : 'border-teal-500/20 text-teal-400 hover:bg-teal-500/8'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                notifStatus === 'denied' ? 'bg-white/5' : 'bg-teal-500/15 group-hover:bg-teal-500/25'
+              }`}>
+                {notifLoading
+                  ? <Loader2 size={15} className="animate-spin text-teal-400" />
+                  : notifStatus === 'subscribed'
+                  ? <BellOff size={15} className="text-teal-400" />
+                  : <Bell size={15} className={notifStatus === 'denied' ? 'text-gray-600' : 'text-teal-400'} />
+                }
+              </div>
+              <div>
+                <span className="font-medium text-sm block">
+                  {notifStatus === 'subscribed' ? 'Desactivar notificaciones' : 'Activar notificaciones'}
+                </span>
+                {notifStatus === 'denied' && (
+                  <span className="text-xs text-gray-600">Actívalas en los ajustes del navegador</span>
+                )}
+              </div>
+            </div>
+            {notifStatus !== 'denied' && !notifLoading && (
+              <ChevronRight size={16} className="text-teal-500/40" />
+            )}
+          </button>
+        )}
 
         {/* Change password */}
         {!showPasswordForm ? (
