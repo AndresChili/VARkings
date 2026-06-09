@@ -922,6 +922,10 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
         )}
 
 
+        <p className="text-center text-gray-700 text-xs pb-4">
+          VARkings v{process.env.NEXT_PUBLIC_APP_VERSION}
+        </p>
+
       </div>
     </div>
   );
