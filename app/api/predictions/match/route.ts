@@ -126,7 +126,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'El partido ya ha comenzado' }, { status: 403 });
   }
 
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { error } = await admin
     .from('match_predictions')
     .delete()
     .eq('match_id', match_id)
