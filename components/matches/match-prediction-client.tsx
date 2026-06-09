@@ -11,6 +11,7 @@ import {
 } from '@/lib/utils';
 import { calculateMatchPoints } from '@/lib/scoring';
 import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
+import { TEAM_NAME_ES } from '@/lib/teams';
 
 const STAGE_ES: Record<string, string> = {
   'Round of 32': 'Dieciseisavos',
@@ -34,6 +35,9 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
   const done = isMatchFinished(match.status);
 
   const isKnockout = match.stage !== 'Group Stage';
+
+  const homeNameEs = TEAM_NAME_ES[match.home_team_name ?? ''] ?? match.home_team_name ?? 'Local';
+  const awayNameEs = TEAM_NAME_ES[match.away_team_name ?? ''] ?? match.away_team_name ?? 'Visitante';
 
   const [homeScore, setHomeScore] = useState(
     existingPrediction?.predicted_home_score?.toString() ?? ''
@@ -129,9 +133,9 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
   const predictedWinner =
     scoresEntered
       ? +homeScore > +awayScore
-        ? (match.home_team_name ?? 'Local')
+        ? homeNameEs
         : +awayScore > +homeScore
-        ? (match.away_team_name ?? 'Visitante')
+        ? awayNameEs
         : needsKnockoutWinner
         ? null
         : 'Empate'
@@ -165,10 +169,10 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
           {/* Home team */}
           <div className="flex-1 text-center">
             {match.home_team_logo
-              ? <img src={match.home_team_logo} alt={match.home_team_name ?? ''} className="w-14 h-14 object-contain mx-auto mb-2" />
+              ? <img src={match.home_team_logo} alt={homeNameEs} className="w-14 h-14 object-contain mx-auto mb-2" />
               : <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-2" />
             }
-            <p className="font-bold text-white text-sm leading-tight">{match.home_team_name ?? 'Por determinar'}</p>
+            <p className="font-bold text-white text-sm leading-tight">{match.home_team_name ? homeNameEs : 'Por determinar'}</p>
           </div>
 
           {/* Score */}
@@ -187,10 +191,10 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
           {/* Away team */}
           <div className="flex-1 text-center">
             {match.away_team_logo
-              ? <img src={match.away_team_logo} alt={match.away_team_name ?? ''} className="w-14 h-14 object-contain mx-auto mb-2" />
+              ? <img src={match.away_team_logo} alt={awayNameEs} className="w-14 h-14 object-contain mx-auto mb-2" />
               : <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-2" />
             }
-            <p className="font-bold text-white text-sm leading-tight">{match.away_team_name ?? 'Por determinar'}</p>
+            <p className="font-bold text-white text-sm leading-tight">{match.away_team_name ? awayNameEs : 'Por determinar'}</p>
           </div>
         </div>
       </div>
@@ -208,8 +212,8 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: 'Ganador', pts: existingPrediction.points_winner },
-              { label: `Goles ${(match.home_team_name ?? 'Local').split(' ')[0]}`, pts: existingPrediction.points_home_score },
-              { label: `Goles ${(match.away_team_name ?? 'Visit.').split(' ')[0]}`, pts: existingPrediction.points_away_score },
+              { label: `Goles ${homeNameEs.split(' ')[0]}`, pts: existingPrediction.points_home_score },
+              { label: `Goles ${awayNameEs.split(' ')[0]}`, pts: existingPrediction.points_away_score },
             ].map(({ label, pts }) => (
               <div key={label} className="bg-surface rounded-xl p-3 text-center">
                 <div className={cn('text-lg font-black', pts > 0 ? 'text-crown' : 'text-gray-600')}>
@@ -234,7 +238,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               <p className="text-sm text-gray-500 mt-1">
                 Tu predicción: {existingPrediction.predicted_home_score} - {existingPrediction.predicted_away_score}
                 {existingPrediction.predicted_winner && (
-                  <span className="text-gray-400"> · pasa {existingPrediction.predicted_winner}</span>
+                  <span className="text-gray-400"> · pasa {TEAM_NAME_ES[existingPrediction.predicted_winner] ?? existingPrediction.predicted_winner}</span>
                 )}
               </p>
             ) : (
@@ -248,7 +252,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
             <div className="flex items-center justify-between gap-4 mb-5">
               <div className="flex-1 text-center">
-                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.home_team_name ?? 'Local'}</p>
+                <p className="text-xs text-gray-400 mb-2 leading-tight">{homeNameEs}</p>
                 <input
                   type="number"
                   min="0"
@@ -262,7 +266,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
               <div className="text-gray-500 font-bold text-xl shrink-0">–</div>
               <div className="flex-1 text-center">
-                <p className="text-xs text-gray-400 mb-2 leading-tight">{match.away_team_name ?? 'Visitante'}</p>
+                <p className="text-xs text-gray-400 mb-2 leading-tight">{awayNameEs}</p>
                 <input
                   type="number"
                   min="0"
@@ -302,7 +306,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
                         : 'bg-surface border-white/10 text-gray-300 hover:border-white/30'
                     )}
                   >
-                    {match.home_team_name ?? 'Local'}
+                    {homeNameEs}
                   </button>
                   <button
                     type="button"
@@ -314,7 +318,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
                         : 'bg-surface border-white/10 text-gray-300 hover:border-white/30'
                     )}
                   >
-                    {match.away_team_name ?? 'Visitante'}
+                    {awayNameEs}
                   </button>
                 </div>
               </div>

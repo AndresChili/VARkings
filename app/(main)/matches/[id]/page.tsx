@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MatchPredictionClient } from '@/components/matches/match-prediction-client';
-import { TEAM_NAME_ES } from '@/lib/teams';
 
 export default async function MatchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,11 +20,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
   if (!matchRes.data) notFound();
 
-  const match = {
-    ...matchRes.data,
-    home_team_name: TEAM_NAME_ES[matchRes.data.home_team_name ?? ''] ?? matchRes.data.home_team_name,
-    away_team_name: TEAM_NAME_ES[matchRes.data.away_team_name ?? ''] ?? matchRes.data.away_team_name,
-  };
+  const match = matchRes.data;
 
   return (
     <MatchPredictionClient
