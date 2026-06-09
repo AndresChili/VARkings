@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AchievementToast } from './achievement-toast';
+import { AchievementToast, type ToastItem, type LevelUpItem } from './achievement-toast';
 import type { Achievement } from '@/lib/achievements';
 
 const NOTIFIED_KEY = 'vk_notified_achievements';
 const INIT_KEY = 'vk_achievements_init';
+const LEVEL_KEY = 'vk_known_level';
 const COOLDOWN_MS = 10_000;
 
 function getNotified(): Set<string> {
@@ -23,7 +24,7 @@ function saveNotified(ids: Set<string>) {
 async function runCheck(
   lastCheckRef: React.MutableRefObject<number>,
   force: boolean,
-  setToShow: React.Dispatch<React.SetStateAction<Achievement[]>>
+  setToShow: React.Dispatch<React.SetStateAction<ToastItem[]>>
 ) {
   const now = Date.now();
   if (!force && now - lastCheckRef.current < COOLDOWN_MS) return;
@@ -31,23 +32,36 @@ async function runCheck(
 
   try {
     const r = await fetch('/api/achievements/check');
-    const data: { completed: Achievement[] } = await r.json();
+    const data: { completed: Achievement[]; level?: number } = await r.json();
     const completed = data.completed ?? [];
+    const currentLevel = data.level;
 
     const notified = getNotified();
     const initialized = !!localStorage.getItem(INIT_KEY);
 
     if (!initialized && !force) {
-      // First mount: silently mark all existing as seen, no toasts
       completed.forEach((a) => notified.add(a.id));
       saveNotified(notified);
       localStorage.setItem(INIT_KEY, '1');
+      if (currentLevel !== undefined) localStorage.setItem(LEVEL_KEY, String(currentLevel));
       console.log('[achievements] initialized, existing count:', completed.length);
       return;
     }
 
-    // Mark initialized if not yet (e.g. force=true before mount check returned)
     if (!initialized) localStorage.setItem(INIT_KEY, '1');
+
+    const allNewItems: ToastItem[] = [];
+
+    if (currentLevel !== undefined) {
+      const storedLevel = parseInt(localStorage.getItem(LEVEL_KEY) ?? '0', 10);
+      if (storedLevel > 0 && currentLevel > storedLevel) {
+        for (let l = storedLevel + 1; l <= currentLevel; l++) {
+          const item: LevelUpItem = { id: `levelup_${l}`, type: 'levelup', level: l };
+          allNewItems.push(item);
+        }
+      }
+      localStorage.setItem(LEVEL_KEY, String(currentLevel));
+    }
 
     const newOnes = completed.filter((a) => !notified.has(a.id));
     console.log('[achievements] completed:', completed.length, 'new:', newOnes.length);
@@ -55,7 +69,11 @@ async function runCheck(
     if (newOnes.length > 0) {
       newOnes.forEach((a) => notified.add(a.id));
       saveNotified(notified);
-      setToShow(newOnes);
+      allNewItems.push(...newOnes);
+    }
+
+    if (allNewItems.length > 0) {
+      setToShow(allNewItems);
     }
   } catch (e) {
     console.error('[achievements] error:', e);
@@ -63,7 +81,7 @@ async function runCheck(
 }
 
 export function AchievementChecker() {
-  const [toShow, setToShow] = useState<Achievement[]>([]);
+  const [toShow, setToShow] = useState<ToastItem[]>([]);
   const lastCheckRef = useRef(0);
 
   useEffect(() => {
@@ -78,7 +96,7 @@ export function AchievementChecker() {
   }, []);
 
   if (toShow.length === 0) return null;
-  return <AchievementToast achievements={toShow} />;
+  return <AchievementToast items={toShow} />;
 }
 
 /** Call after any action that could unlock an achievement */

@@ -3,7 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAchievements, type AchievementStats } from '@/lib/achievements';
 import { getUserXP, awardXP, getUserStreakStats } from '@/lib/xp-server';
 import { isValidAvatarUrl } from '@/lib/avatar';
-import { XP_VALUES } from '@/lib/xp';
+import { XP_VALUES, getLevel } from '@/lib/xp';
 
 const ACHIEVEMENT_XP: Record<string, number> = {
   easy: XP_VALUES.ACHIEVEMENT_EASY,
@@ -67,7 +67,18 @@ export async function GET() {
   };
 
   const achievements = getAchievements(stats);
-  const completedAchievements = achievements.filter((a) => a.current >= a.target);
+
+  // Load previously earned achievements so they stay earned permanently
+  const { data: earnedRows } = await admin
+    .from('xp_events')
+    .select('source_id')
+    .eq('user_id', user.id)
+    .eq('source_type', 'achievement');
+  const earnedIds = new Set((earnedRows ?? []).map((r: { source_id: string }) => r.source_id));
+
+  const completedAchievements = achievements.filter(
+    (a) => a.current >= a.target || earnedIds.has(a.id)
+  );
 
   // Award XP for all completed achievements (idempotent upsert)
   await Promise.all(
@@ -76,5 +87,5 @@ export async function GET() {
     )
   );
 
-  return NextResponse.json({ completed: completedAchievements });
+  return NextResponse.json({ completed: completedAchievements, level: getLevel(totalXP) });
 }
