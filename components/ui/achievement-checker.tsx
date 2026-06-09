@@ -31,18 +31,20 @@ async function runCheck(
   try {
     const r = await fetch('/api/achievements/check');
     const data: { recentlyUnlocked: Achievement[] } = await r.json();
+    console.log('[achievements] API response:', data);
     const recent = data.recentlyUnlocked ?? [];
     if (recent.length === 0) return;
 
     const notified = getNotified();
     const newOnes = recent.filter((a) => !notified.has(a.id));
+    console.log('[achievements] newOnes:', newOnes, 'notified:', [...notified]);
     if (newOnes.length === 0) return;
 
     newOnes.forEach((a) => notified.add(a.id));
     saveNotified(notified);
     setToShow(newOnes);
-  } catch {
-    // silent
+  } catch (e) {
+    console.error('[achievements] error:', e);
   }
 }
 
@@ -51,8 +53,12 @@ export function AchievementChecker() {
   const lastCheckRef = useRef(0);
 
   useEffect(() => {
+    console.log('[achievements] checker mounted');
     runCheck(lastCheckRef, false, setToShow);
-    const handler = () => runCheck(lastCheckRef, true, setToShow);
+    const handler = () => {
+      console.log('[achievements] event received, running check');
+      runCheck(lastCheckRef, true, setToShow);
+    };
     window.addEventListener('achievement-check', handler);
     return () => window.removeEventListener('achievement-check', handler);
   }, []);
