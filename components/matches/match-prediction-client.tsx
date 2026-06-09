@@ -12,6 +12,15 @@ import {
 import { calculateMatchPoints } from '@/lib/scoring';
 import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 
+const STAGE_ES: Record<string, string> = {
+  'Round of 32': 'Dieciseisavos',
+  'Round of 16': 'Octavos de Final',
+  'Quarter-finals': 'Cuartos de Final',
+  'Semi-finals': 'Semifinales',
+  'Third Place': 'Tercer Puesto',
+  'Final': 'Final',
+};
+
 interface MatchPredictionClientProps {
   match: Match;
   existingPrediction: MatchPrediction | null;
@@ -118,7 +127,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         </button>
         <div>
           <h1 className="font-bold text-white">Predicción del partido</h1>
-          <p className="text-xs text-gray-400">{match.stage}{match.group_name ? ` · Grupo ${match.group_name}` : ''}</p>
+          <p className="text-xs text-gray-400">{STAGE_ES[match.stage] ?? match.stage}{match.group_name ? ` · Grupo ${match.group_name}` : ''}</p>
         </div>
       </div>
 
