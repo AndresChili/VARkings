@@ -796,8 +796,12 @@ export function GroupDetailClient({
                       )}
                     </div>
 
-                    <div className={cn('w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold', isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
-                      {entry.username.slice(0, 2).toUpperCase()}
+                    <div className={cn('w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold', isMe ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
+                      {isValidAvatarUrl(entry.avatar_url) ? (
+                        <Image src={entry.avatar_url!} alt={entry.username} width={32} height={32} className="w-full h-full object-cover" />
+                      ) : (
+                        entry.username.slice(0, 2).toUpperCase()
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">

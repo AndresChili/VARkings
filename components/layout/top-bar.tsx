@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { VarkingsLogo, VarkingsWordmark } from '@/components/ui/varkings-logo';
+import { isValidAvatarUrl } from '@/lib/avatar';
 import type { Profile } from '@/types';
 
 interface TopBarProps {
@@ -20,8 +22,12 @@ export function TopBar({ profile }: TopBarProps) {
         </Link>
 
         <Link href="/profile" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-field flex items-center justify-center text-xs font-bold text-white">
-            {initials}
+          <div className="w-8 h-8 rounded-full bg-field flex items-center justify-center text-xs font-bold text-white overflow-hidden">
+            {isValidAvatarUrl(profile?.avatar_url) ? (
+              <Image src={profile!.avatar_url!} alt={profile?.username ?? ''} width={32} height={32} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
         </Link>
       </div>
