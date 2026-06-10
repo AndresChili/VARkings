@@ -14,13 +14,39 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+async function saveSubscription(sub: PushSubscription) {
+  await fetch('/api/notifications/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscription: sub.toJSON() }),
+  });
+}
+
 export function PushPermissionBanner() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (Notification.permission === 'denied') return;
-    if (Notification.permission === 'granted') return;
+
+    if (Notification.permission === 'granted') {
+      // Permission already granted — silently ensure subscription is saved in DB
+      // (covers cases where subscription was lost: cache clear, new device, SW update)
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+      navigator.serviceWorker.ready.then(async (reg) => {
+        try {
+          const existing = await reg.pushManager.getSubscription();
+          const sub = existing ?? await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+          });
+          await saveSubscription(sub);
+        } catch { /* silent */ }
+      });
+      return;
+    }
+
     const dismissed = localStorage.getItem('push_banner_dismissed');
     if (!dismissed) setShow(true);
   }, []);
@@ -39,11 +65,7 @@ export function PushPermissionBanner() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
       });
 
-      await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-      });
+      await saveSubscription(sub);
 
       setShow(false);
     } catch (err) {
