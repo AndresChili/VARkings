@@ -48,6 +48,7 @@ interface ProfileClientProps {
   isSuperadmin: boolean;
   unreadSuggestions: number;
   isOAuthUser: boolean;
+  earnedIds?: string[];
 }
 
 
@@ -84,7 +85,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions, isOAuthUser }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions, isOAuthUser, earnedIds = [] }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -192,7 +193,8 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
     totalDaysActive: achievementData.totalDaysActive,
   };
   const allAchievements = getAchievements(achievementStats);
-  const completedCount = allAchievements.filter((a) => a.current >= a.target).length;
+  const earnedSet = new Set(earnedIds);
+  const completedCount = allAchievements.filter((a) => a.current >= a.target || earnedSet.has(a.id)).length;
   const totalAchievements = allAchievements.length;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
