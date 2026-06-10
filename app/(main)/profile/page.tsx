@@ -155,6 +155,13 @@ export default async function ProfilePage() {
     totalDaysActive: streakStats.totalDaysActive,
   };
 
+  const { data: earnedRows } = await admin
+    .from('xp_events')
+    .select('source_id')
+    .eq('user_id', user.id)
+    .eq('source_type', 'achievement');
+  const earnedIds = (earnedRows ?? []).map((r: { source_id: string }) => r.source_id);
+
   // Compute and award automatic XP bonuses, then get total XP
   await computeAndAwardBonuses(admin, user.id, {
     totalPredictions: preds.length,
@@ -197,6 +204,7 @@ export default async function ProfilePage() {
       isSuperadmin={isSuperadmin}
       unreadSuggestions={unreadSuggestions}
       isOAuthUser={isOAuthUser}
+      earnedIds={earnedIds}
     />
   );
 }
