@@ -96,9 +96,15 @@ export function getRankEmoji(rank: number): string {
 export const WC_GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
 export const TOURNAMENT_LOCK_DATE = new Date('2026-06-11T14:00:00Z');
+// Round of 16 starts — group podio predictions lock here
+export const KNOCKOUT_LOCK_DATE = new Date('2026-06-27T14:00:00Z');
 
 export function isTournamentLocked(): boolean {
   return isPast(TOURNAMENT_LOCK_DATE);
+}
+
+export function isKnockoutStarted(): boolean {
+  return isPast(KNOCKOUT_LOCK_DATE);
 }
 
 export function getTournamentDeadlineText(): string {
