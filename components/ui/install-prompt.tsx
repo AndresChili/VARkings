@@ -75,7 +75,9 @@ export function InstallPrompt() {
     }
   }
 
+  // Android: only render when native install prompt is available
   if (dismissed || !platform) return null;
+  if (platform === 'android' && !deferredPrompt) return null;
 
   return (
     <div className="mx-4 mt-2 mb-1 rounded-xl bg-field/20 border border-field/40 px-4 py-3 flex items-start gap-3">
@@ -102,18 +104,12 @@ export function InstallPrompt() {
         )}
       </div>
       {platform === 'android' && (
-        deferredPrompt ? (
-          <button
-            onClick={install}
-            className="bg-crown text-surface text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 self-center"
-          >
-            Instalar
-          </button>
-        ) : (
-          <p className="text-xs text-white/40 flex-shrink-0 self-center text-right leading-tight">
-            Menú ⋮<br />→ Instalar
-          </p>
-        )
+        <button
+          onClick={install}
+          className="bg-crown text-surface text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 self-center"
+        >
+          Instalar
+        </button>
       )}
       <button onClick={dismiss} className="text-white/40 text-lg leading-none flex-shrink-0 self-start">×</button>
     </div>
