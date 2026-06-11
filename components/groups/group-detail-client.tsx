@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2, User } from 'lucide-react';
 import { LevelBadge } from '@/components/ui/level-badge';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
-import { cn, formatMatchDate, getRankEmoji, isTournamentLocked, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
+import { cn, formatMatchDate, getRankEmoji, isKnockoutStarted, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
 import { TEAM_NAME_ES } from '@/lib/teams';
 import { isValidAvatarUrl } from '@/lib/avatar';
 
@@ -123,7 +123,7 @@ export function GroupDetailClient({
     setLocalLeaderboard(leaderboard);
   }, [leaderboard]);
 
-  const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isTournamentLocked());
+  const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isKnockoutStarted());
   const [podioStep, setPodioStep] = useState(0);
   const [podioSearch, setPodioSearch] = useState('');
   const [champion, setChampion] = useState('');
@@ -147,7 +147,7 @@ export function GroupDetailClient({
 
   useNavigationGuard(showPodio || showGroups);
 
-  const locked = isTournamentLocked();
+  const locked = isKnockoutStarted();
   const isCreator = group.created_by === userId;
   const needsPodioSetup = !myPodio?.champion && !locked;
 

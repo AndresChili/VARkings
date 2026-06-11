@@ -6,7 +6,7 @@ import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import Link from 'next/link';
 import { Users, ChevronRight, Plus, LogIn, Crown, Search, ChevronLeft, Check, Bell, X, Loader2 } from 'lucide-react';
 import type { Team } from '@/types';
-import { isTournamentLocked, WC_GROUPS } from '@/lib/utils';
+import { isKnockoutStarted, WC_GROUPS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
@@ -130,7 +130,7 @@ export function DashboardClient({
     }
   }
 
-  const locked = isTournamentLocked();
+  const locked = isKnockoutStarted();
   const teamOptions = [...teams].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
   function getStepValue(step: number) {
