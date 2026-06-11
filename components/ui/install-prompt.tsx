@@ -24,7 +24,7 @@ function isInStandaloneMode() {
     ('standalone' in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true);
 }
 
-const DISMISS_KEY = 'pwa-install-dismissed-v2';
+const DISMISS_KEY = 'pwa-install-dismissed-v3';
 
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -67,8 +67,12 @@ export function InstallPrompt() {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') dismiss();
-    else setDeferredPrompt(null);
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setPlatform(null);
+    } else {
+      setDeferredPrompt(null);
+    }
   }
 
   if (dismissed || !platform) return null;
