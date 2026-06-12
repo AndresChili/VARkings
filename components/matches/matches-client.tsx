@@ -338,19 +338,17 @@ function MatchCard({ match, prediction }: {
           {/* Prediction footer */}
           {hasPrediction ? (
             <div className={cn(
-              'flex items-center justify-center gap-3 px-4 py-3 border-t',
+              'flex items-center justify-center gap-2.5 px-4 py-3 border-t',
               live ? 'border-green-500/15 bg-green-500/8' : 'border-white/6 bg-field/8'
             )}>
-              <div className="flex items-center gap-2">
-                <CheckCircle size={14} className="text-field-light shrink-0" />
-                <div>
-                  <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Tu predicción</p>
-                  <p className="text-sm font-black text-white">{prediction!.predicted_home_score} – {prediction!.predicted_away_score}</p>
-                </div>
-              </div>
+              <CheckCircle size={13} className="text-field-light shrink-0" />
+              <span className="text-xs text-gray-400 font-medium">Tu predicción:</span>
+              <span className="text-sm font-black text-white tabular-nums">
+                {prediction!.predicted_home_score} – {prediction!.predicted_away_score}
+              </span>
               {prediction!.is_calculated && (
                 <span className={cn(
-                  'text-sm font-black px-3 py-1 rounded-xl',
+                  'text-xs font-black px-2.5 py-1 rounded-lg',
                   prediction!.points_total > 0
                     ? 'bg-crown/25 text-crown-light border border-crown/20'
                     : 'bg-white/5 text-gray-500'
@@ -360,20 +358,14 @@ function MatchCard({ match, prediction }: {
               )}
             </div>
           ) : match.status === 'NS' && match.home_team_name && match.away_team_name ? (
-            <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-amber-500/20 bg-gradient-to-r from-amber-500/8 to-transparent">
-              <Circle size={14} className="text-amber-400 shrink-0" />
-              <div>
-                <p className="text-[9px] text-amber-500/60 uppercase tracking-widest font-bold">Sin predicción</p>
-                <p className="text-xs text-amber-300/80 font-semibold">Predice antes del partido</p>
-              </div>
-              <div className="flex items-center gap-1 text-amber-400/70">
-                <span className="text-xs font-bold">Predecir</span>
-                <ChevronRight size={13} />
-              </div>
+            <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-amber-500/20 bg-amber-500/5">
+              <Circle size={13} className="text-amber-400 shrink-0" />
+              <span className="text-xs text-amber-300/80 font-semibold">Predice antes del partido</span>
+              <ChevronRight size={13} className="text-amber-400/60" />
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-white/5">
-              <Circle size={14} className="text-gray-700 shrink-0" />
+              <Circle size={13} className="text-gray-700 shrink-0" />
               <p className="text-xs text-gray-600">No predijiste este partido</p>
             </div>
           )}
