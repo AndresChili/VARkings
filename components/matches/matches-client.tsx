@@ -3,9 +3,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CheckCircle, Circle, Search, X } from 'lucide-react';
+import { CheckCircle, Circle, Search, X, Zap } from 'lucide-react';
 import type { Match } from '@/types';
-import { cn, formatMatchDate, getMatchStatusLabel, isMatchLive, isMatchFinished } from '@/lib/utils';
+import { cn, formatMatchDate, isMatchLive, isMatchFinished } from '@/lib/utils';
 
 const STAGE_ES: Record<string, string> = {
   'Round of 32': 'Dieciseisavos',
@@ -103,15 +103,27 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
     });
   }, [filter, nonFinished, finished, upcoming, searchQuery, selectedGroup]);
 
-
   const showSearchBar = filter === 'all' || filter === 'finished';
+  const liveCount = matches.filter((m) => isMatchLive(m.status)).length;
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
-      <h1 className="text-2xl font-bold text-white">Partidos</h1>
+    <div className="max-w-lg mx-auto px-4 py-5 space-y-5 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Partidos</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Mundial 2026</p>
+        </div>
+        {liveCount > 0 && (
+          <div className="flex items-center gap-1.5 bg-green-500/15 border border-green-500/30 px-3 py-1.5 rounded-full">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-xs font-bold text-green-400">{liveCount} en vivo</span>
+          </div>
+        )}
+      </div>
 
       {/* Filter tabs */}
-      <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
+      <div className="flex bg-white/5 rounded-2xl p-1 gap-1">
         {([
           ['upcoming', 'Próximos', upcoming.length],
           ['all', 'Todos', nonFinished.length],
@@ -125,15 +137,17 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
               setSelectedGroup(null);
             }}
             className={cn(
-              'flex-1 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5',
-              filter === key ? 'bg-field text-white' : 'text-gray-400'
+              'flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5',
+              filter === key
+                ? 'bg-field text-white shadow-md'
+                : 'text-gray-500 hover:text-gray-300'
             )}
           >
             {label}
             {count > 0 && (
               <span className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
-                filter === key ? 'bg-white/20' : 'bg-white/10 text-gray-400'
+                'text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center',
+                filter === key ? 'bg-white/20 text-white' : 'bg-white/8 text-gray-500'
               )}>
                 {count}
               </span>
@@ -142,22 +156,22 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
         ))}
       </div>
 
-      {/* Search + group filter (Todos / Finalizados only) */}
+      {/* Search + group filter */}
       {showSearchBar && (
         <div className="space-y-2">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar país..."
-              className="w-full bg-surface-card border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-white/25 transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-field/50 focus:bg-white/8 transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
               >
                 <X size={14} />
               </button>
@@ -165,12 +179,12 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
           </div>
 
           {(availableGroups.length > 0 || availableStages.length > 0) && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               <button
                 onClick={() => setSelectedGroup(null)}
                 className={cn(
-                  'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  !selectedGroup ? 'bg-field text-white' : 'bg-surface-card border border-white/10 text-gray-400'
+                  'shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all',
+                  !selectedGroup ? 'bg-field text-white' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200'
                 )}
               >
                 Todos
@@ -180,8 +194,8 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
                   key={g}
                   onClick={() => setSelectedGroup(selectedGroup === g ? null : g)}
                   className={cn(
-                    'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                    selectedGroup === g ? 'bg-field text-white' : 'bg-surface-card border border-white/10 text-gray-400'
+                    'shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all',
+                    selectedGroup === g ? 'bg-field text-white' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200'
                   )}
                 >
                   Grupo {g}
@@ -195,8 +209,8 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
                   key={s}
                   onClick={() => setSelectedGroup(selectedGroup === s ? null : s)}
                   className={cn(
-                    'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                    selectedGroup === s ? 'bg-field text-white' : 'bg-surface-card border border-white/10 text-gray-400'
+                    'shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all',
+                    selectedGroup === s ? 'bg-field text-white' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200'
                   )}
                 >
                   {STAGE_ES[s] ?? s}
@@ -208,18 +222,16 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
       )}
 
       {/* Matches list */}
-      {(
-        filtered.length === 0 ? (
-          <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
-            <p className="text-gray-400 text-sm">No hay partidos que coincidan</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((match) => (
-              <MatchCard key={match.id} match={match} prediction={predictionMap[match.id]} />
-            ))}
-          </div>
-        )
+      {filtered.length === 0 ? (
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-10 text-center">
+          <p className="text-gray-500 text-sm">No hay partidos en esta categoría</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((match) => (
+            <MatchCard key={match.id} match={match} prediction={predictionMap[match.id]} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -232,62 +244,109 @@ function MatchCard({ match, prediction }: {
   const hasPrediction = !!prediction;
   const live = isMatchLive(match.status);
   const done = isMatchFinished(match.status);
+  const label = match.group_name ? `Grupo ${match.group_name}` : (STAGE_ES[match.stage] ?? match.stage);
 
   return (
-    <Link href={`/matches/${match.id}`} className="block">
+    <Link href={`/matches/${match.id}`} className="block group">
       <div className={cn(
-        'bg-surface-card border rounded-2xl overflow-hidden card-hover',
-        live ? 'border-green-500/40' : 'border-white/10'
+        'relative overflow-hidden rounded-2xl border transition-all duration-200',
+        'group-hover:scale-[1.01] group-active:scale-[0.99]',
+        live
+          ? 'bg-gradient-to-br from-green-950/50 to-surface-card border-green-500/40 shadow-lg shadow-green-900/20'
+          : done
+          ? 'bg-surface-card border-white/8 opacity-80 hover:opacity-100'
+          : 'bg-surface-card border-white/10 hover:border-white/20'
       )}>
-        <div className="flex items-center justify-between px-4 pt-3 pb-2">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-semibold text-white/80">{formatMatchDate(match.match_date)}</span>
-            {!match.group_name && (
-              <span className="text-[10px] font-bold text-field uppercase tracking-wider">
-                {STAGE_ES[match.stage] ?? match.stage}
-              </span>
-            )}
-          </div>
-          {live && (
-            <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              EN VIVO
+        {/* Card header row */}
+        <div className={cn(
+          'flex items-center justify-between px-4 py-2.5 border-b',
+          live ? 'border-green-500/20 bg-green-500/8' : 'border-white/5'
+        )}>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
+              live ? 'bg-green-500/20 text-green-400' : 'bg-field/15 text-field'
+            )}>
+              {label}
             </span>
-          )}
+            <span className="text-[11px] text-gray-500">{formatMatchDate(match.match_date)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {live && (
+              <span className="flex items-center gap-1 text-[11px] font-black text-green-400 bg-green-400/15 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                EN VIVO
+              </span>
+            )}
+            {done && (
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">Final</span>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between px-4 pb-4 gap-2">
-          <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
-            {match.home_team_logo
-              ? <Image src={match.home_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
-              : <div className="w-10 h-10 rounded-full bg-white/5" />
-            }
-            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.home_team_name ?? 'Por determinar'}</span>
+        {/* Teams + score */}
+        <div className="flex items-center px-5 py-4 gap-2">
+          {/* Home */}
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex items-center justify-center p-1',
+              'bg-white/5 border border-white/8'
+            )}>
+              {match.home_team_logo
+                ? <Image src={match.home_team_logo} alt="" width={48} height={48} className="w-11 h-11 object-contain" />
+                : <div className="w-10 h-10 rounded-lg bg-white/10" />
+              }
+            </div>
+            <span className="text-xs font-bold text-white text-center leading-tight line-clamp-2 w-full">
+              {match.home_team_name ?? '?'}
+            </span>
           </div>
 
-          <div className="flex flex-col items-center shrink-0 px-2">
+          {/* Score / VS */}
+          <div className="flex flex-col items-center shrink-0 w-[72px]">
             {done || live ? (
-              <span className="text-2xl font-black text-white tabular-nums tracking-tight">
-                {match.home_score ?? 0} – {match.away_score ?? 0}
-              </span>
+              <div className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl',
+                live ? 'bg-green-500/15 border border-green-500/20' : 'bg-white/8 border border-white/10'
+              )}>
+                <span className={cn('text-xl font-black tabular-nums', live ? 'text-green-300' : 'text-white')}>
+                  {match.home_score ?? 0}
+                </span>
+                <span className={cn('text-base font-black', live ? 'text-green-600' : 'text-gray-600')}>–</span>
+                <span className={cn('text-xl font-black tabular-nums', live ? 'text-green-300' : 'text-white')}>
+                  {match.away_score ?? 0}
+                </span>
+              </div>
             ) : (
-              <span className="text-xs font-bold text-gray-600 bg-white/5 px-3 py-1 rounded-lg">VS</span>
+              <div className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/4 border border-white/8">
+                <Zap size={12} className="text-gray-600" />
+                <span className="text-xs font-black text-gray-600">VS</span>
+              </div>
             )}
           </div>
 
-          <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
-            {match.away_team_logo
-              ? <Image src={match.away_team_logo} alt="" width={40} height={40} className="w-10 h-10 object-contain" />
-              : <div className="w-10 h-10 rounded-full bg-white/5" />
-            }
-            <span className="text-xs font-semibold text-white text-center leading-tight line-clamp-2">{match.away_team_name ?? 'Por determinar'}</span>
+          {/* Away */}
+          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex items-center justify-center p-1',
+              'bg-white/5 border border-white/8'
+            )}>
+              {match.away_team_logo
+                ? <Image src={match.away_team_logo} alt="" width={48} height={48} className="w-11 h-11 object-contain" />
+                : <div className="w-10 h-10 rounded-lg bg-white/10" />
+              }
+            </div>
+            <span className="text-xs font-bold text-white text-center leading-tight line-clamp-2 w-full">
+              {match.away_team_name ?? '?'}
+            </span>
           </div>
         </div>
 
+        {/* Prediction footer */}
         {hasPrediction ? (
-          <div className="px-4 py-3 border-t border-white/10 bg-field/10 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-t border-field/20 bg-field/8 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle size={15} className="text-green-400 shrink-0" />
+              <CheckCircle size={14} className="text-field shrink-0" />
               <div>
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Tu predicción</p>
                 <p className="text-sm font-black text-white">{prediction!.predicted_home_score} – {prediction!.predicted_away_score}</p>
@@ -303,16 +362,16 @@ function MatchCard({ match, prediction }: {
             )}
           </div>
         ) : match.status === 'NS' && match.home_team_name && match.away_team_name ? (
-          <div className="px-4 py-3 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2">
-            <Circle size={15} className="text-amber-500 shrink-0" />
+          <div className="px-4 py-2.5 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2">
+            <Circle size={14} className="text-amber-500 shrink-0" />
             <div>
-              <p className="text-[10px] text-amber-500/70 uppercase tracking-wider font-bold">Sin predicción</p>
-              <p className="text-xs text-amber-400 font-semibold">Toca para predecir antes del partido</p>
+              <p className="text-[10px] text-amber-500/60 uppercase tracking-wider font-bold">Sin predicción</p>
+              <p className="text-xs text-amber-400/80 font-semibold">Toca para predecir antes del partido</p>
             </div>
           </div>
         ) : (
-          <div className="px-4 py-3 border-t border-white/5 bg-white/[0.02] flex items-center gap-2">
-            <Circle size={15} className="text-gray-600 shrink-0" />
+          <div className="px-4 py-2.5 border-t border-white/5 flex items-center gap-2">
+            <Circle size={14} className="text-gray-700 shrink-0" />
             <p className="text-xs text-gray-600">No predijiste este partido</p>
           </div>
         )}
