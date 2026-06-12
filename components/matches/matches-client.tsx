@@ -62,7 +62,10 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [shouldPoll]);
 
-  const upcoming = matches.filter((m) => m.status === 'NS').slice(0, 4);
+  const upcoming = [
+    ...matches.filter((m) => isMatchLive(m.status)),
+    ...matches.filter((m) => m.status === 'NS').slice(0, 4),
+  ];
   const finished = matches.filter((m) => isMatchFinished(m.status));
   const nonFinished = matches.filter((m) => !isMatchFinished(m.status));
 
