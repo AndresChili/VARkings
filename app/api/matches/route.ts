@@ -58,6 +58,7 @@ export async function GET() {
           }));
         if (knockoutUpserts.length > 0) {
           await supabase.from('matches').upsert(knockoutUpserts, { onConflict: 'api_id' });
+          await supabase.from('matches').delete().is('api_id', null).neq('stage', 'Group Stage');
           revalidateTag('matches');
         }
       }
