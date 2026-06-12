@@ -100,15 +100,6 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
     });
   }, [filter, nonFinished, finished, upcoming, searchQuery, selectedGroup]);
 
-  const groups = useMemo(() => {
-    if (filter !== 'upcoming') return null;
-    return filtered.reduce((acc: Record<string, Match[]>, match) => {
-      const key = match.group_name ? `Grupo ${match.group_name}` : (STAGE_ES[match.stage] ?? match.stage);
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(match);
-      return acc;
-    }, {});
-  }, [filter, filtered]);
 
   const showSearchBar = filter === 'all' || filter === 'finished';
 
@@ -214,26 +205,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
       )}
 
       {/* Matches list */}
-      {filter === 'upcoming' && groups ? (
-        Object.keys(groups).length === 0 ? (
-          <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
-            <p className="text-gray-400 text-sm">No hay partidos en esta categoría</p>
-          </div>
-        ) : (
-          Object.entries(groups).map(([groupLabel, groupMatches]) => (
-            <div key={groupLabel} className="space-y-1">
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                {groupLabel}
-              </h2>
-              <div className="space-y-3">
-                {groupMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} prediction={predictionMap[match.id]} />
-                ))}
-              </div>
-            </div>
-          ))
-        )
-      ) : (
+      {(
         filtered.length === 0 ? (
           <div className="bg-surface-card border border-white/10 rounded-2xl p-8 text-center">
             <p className="text-gray-400 text-sm">No hay partidos que coincidan</p>
