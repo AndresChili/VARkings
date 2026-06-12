@@ -11,13 +11,18 @@ const DEBOUNCE_MS = 75_000;
 export async function GET() {
   const supabase = createAdminClient();
 
-  // Find any match that is live OR started in the last 3 hours but still NS (status not yet synced)
+  // Find any match that is live, started in the last 3 hours but still NS, OR recently finished (to catch uncalculated predictions)
   const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
 
   const { data: candidateMatches } = await supabase
     .from('matches')
     .select('id, status, updated_at, match_date')
-    .or(`status.in.(${LIVE_STATUSES.join(',')}),and(status.eq.NS,match_date.lte.${new Date().toISOString()},match_date.gte.${threeHoursAgo})`)
+    .or(
+      `status.in.(${LIVE_STATUSES.join(',')}),` +
+      `and(status.eq.NS,match_date.lte.${nowIso},match_date.gte.${threeHoursAgo}),` +
+      `and(status.in.(FT,AET,PEN),match_date.gte.${threeHoursAgo})`
+    )
     .limit(5);
 
   const needsRefresh = (candidateMatches ?? []).some((m) => {
