@@ -82,7 +82,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setHomeScore('');
     setAwayScore('');
     startTransition(() => {
-      router.push('/matches');
+      router.back();
       router.refresh();
     });
   }
@@ -121,7 +121,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setSaved(true);
     triggerAchievementCheck();
     startTransition(() => {
-      router.push('/matches');
+      router.back();
       router.refresh();
     });
   }

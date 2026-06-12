@@ -338,7 +338,7 @@ function MatchCard({ match, prediction }: {
           {/* Prediction footer */}
           {hasPrediction ? (
             <div className={cn(
-              'flex items-center justify-between px-4 py-3 border-t',
+              'flex items-center justify-center gap-3 px-4 py-3 border-t',
               live ? 'border-green-500/15 bg-green-500/8' : 'border-white/6 bg-field/8'
             )}>
               <div className="flex items-center gap-2">
@@ -360,13 +360,11 @@ function MatchCard({ match, prediction }: {
               )}
             </div>
           ) : match.status === 'NS' && match.home_team_name && match.away_team_name ? (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-amber-500/20 bg-gradient-to-r from-amber-500/8 to-transparent">
-              <div className="flex items-center gap-2">
-                <Circle size={14} className="text-amber-400 shrink-0" />
-                <div>
-                  <p className="text-[9px] text-amber-500/60 uppercase tracking-widest font-bold">Sin predicción</p>
-                  <p className="text-xs text-amber-300/80 font-semibold">Predice antes del partido</p>
-                </div>
+            <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-amber-500/20 bg-gradient-to-r from-amber-500/8 to-transparent">
+              <Circle size={14} className="text-amber-400 shrink-0" />
+              <div>
+                <p className="text-[9px] text-amber-500/60 uppercase tracking-widest font-bold">Sin predicción</p>
+                <p className="text-xs text-amber-300/80 font-semibold">Predice antes del partido</p>
               </div>
               <div className="flex items-center gap-1 text-amber-400/70">
                 <span className="text-xs font-bold">Predecir</span>
@@ -374,7 +372,7 @@ function MatchCard({ match, prediction }: {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-3 border-t border-white/5">
+            <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-white/5">
               <Circle size={14} className="text-gray-700 shrink-0" />
               <p className="text-xs text-gray-600">No predijiste este partido</p>
             </div>
