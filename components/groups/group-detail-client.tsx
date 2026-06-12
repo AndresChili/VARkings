@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -118,10 +118,37 @@ export function GroupDetailClient({
   const [transferringTo, setTransferringTo] = useState<string | null>(null);
   const [localLeaderboard, setLocalLeaderboard] = useState(leaderboard);
   const [localMemberCount, setLocalMemberCount] = useState(memberCount);
+  const [liveMatches, setLiveMatches] = useState<MatchWithMemberPreds[]>(matchesWithPredictions);
+  const liveMatchesRef = useRef(liveMatches);
+  liveMatchesRef.current = liveMatches;
 
   useEffect(() => {
     setLocalLeaderboard(leaderboard);
   }, [leaderboard]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const current = liveMatchesRef.current;
+        const hasLive = current.some((m) => isMatchLive(m.status));
+        const hasRecentlyStarted = current.some(
+          (m) => m.status === 'NS' && new Date(m.match_date) <= new Date()
+        );
+        if (!hasLive && !hasRecentlyStarted) return;
+        const res = await fetch('/api/matches');
+        if (!res.ok) return;
+        const updated: Match[] = await res.json();
+        setLiveMatches((prev) =>
+          prev.map((m) => {
+            const fresh = updated.find((u) => u.id === m.id);
+            if (!fresh) return m;
+            return { ...m, status: fresh.status, home_score: fresh.home_score, away_score: fresh.away_score };
+          })
+        );
+      } catch {}
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [showPodio, setShowPodio] = useState(() => !myPodio?.champion && !isKnockoutStarted());
   const [podioStep, setPodioStep] = useState(0);
@@ -965,9 +992,9 @@ export function GroupDetailClient({
 
       {/* Matches tab */}
       {tab === 'matches' && (() => {
-        const finishedMatches = matchesWithPredictions.filter((m) => isMatchFinished(m.status));
-        const upcomingMatchesList = matchesWithPredictions.filter((m) => !isMatchFinished(m.status));
-        const liveMatches = matchesWithPredictions.filter((m) => isMatchLive(m.status));
+        const finishedMatches = liveMatches.filter((m) => isMatchFinished(m.status));
+        const upcomingMatchesList = liveMatches.filter((m) => !isMatchFinished(m.status));
+        const currentlyLive = liveMatches.filter((m) => isMatchLive(m.status));
         const displayed = matchFilter === 'finished' ? finishedMatches : upcomingMatchesList;
 
         return (
@@ -1001,10 +1028,10 @@ export function GroupDetailClient({
             </div>
 
             {/* Live badge */}
-            {liveMatches.length > 0 && matchFilter === 'upcoming' && (
+            {currentlyLive.length > 0 && matchFilter === 'upcoming' && (
               <div className="flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-xs text-green-400 font-semibold">{liveMatches.length} partido{liveMatches.length > 1 ? 's' : ''} en vivo</span>
+                <span className="text-xs text-green-400 font-semibold">{currentlyLive.length} partido{currentlyLive.length > 1 ? 's' : ''} en vivo</span>
               </div>
             )}
 
