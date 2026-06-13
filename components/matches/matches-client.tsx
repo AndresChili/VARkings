@@ -38,7 +38,12 @@ type FilterType = 'upcoming' | 'all' | 'finished';
 
 export function MatchesClient({ matches: initialMatches, predictionMap }: MatchesClientProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
-  const [filter, setFilter] = useState<FilterType>('upcoming');
+  const [filter, setFilter] = useState<FilterType>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('matches-filter') as FilterType) ?? 'upcoming';
+    }
+    return 'upcoming';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
@@ -131,7 +136,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
         ] as [FilterType, string, number][]).map(([key, label, count]) => (
           <button
             key={key}
-            onClick={() => { setFilter(key); setSearchQuery(''); setSelectedGroup(null); }}
+            onClick={() => { setFilter(key); sessionStorage.setItem('matches-filter', key); setSearchQuery(''); setSelectedGroup(null); }}
             className={cn(
               'flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5',
               filter === key
