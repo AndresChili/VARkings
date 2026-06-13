@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { FriendsClient } from '@/components/friends/friends-client';
-import { getBulkXP } from '@/lib/xp-server';
+import { getBulkXP, getBulkGamePoints } from '@/lib/xp-server';
 
 export default async function FriendsPage() {
   const supabase = await createClient();
@@ -30,8 +30,12 @@ export default async function FriendsPage() {
 
   const admin = createAdminClient();
   const allIds = [user.id, ...otherIds];
-  const xpMap = await getBulkXP(admin, allIds);
+  const [xpMap, gamePointsMap] = await Promise.all([
+    getBulkXP(admin, allIds),
+    getBulkGamePoints(admin, allIds),
+  ]);
   const xpRecord = Object.fromEntries(xpMap.entries());
+  const pointsRecord = Object.fromEntries(gamePointsMap.entries());
 
   return (
     <FriendsClient
@@ -39,6 +43,7 @@ export default async function FriendsPage() {
       friendships={friendships ?? []}
       profiles={profiles ?? []}
       xpMap={xpRecord}
+      pointsMap={pointsRecord}
     />
   );
 }

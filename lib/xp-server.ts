@@ -57,6 +57,37 @@ export async function getBulkXP(
   return xpMap;
 }
 
+export async function getBulkGamePoints(
+  adminClient: SupabaseClient,
+  userIds: string[]
+): Promise<Map<string, number>> {
+  if (!userIds.length) return new Map();
+
+  const [matchRes, tournamentRes] = await Promise.all([
+    adminClient
+      .from('match_predictions')
+      .select('user_id, points_total')
+      .in('user_id', userIds)
+      .eq('is_calculated', true),
+    adminClient
+      .from('tournament_predictions')
+      .select('user_id, champion_points, runner_up_points, third_place_points, group_predictions_points')
+      .in('user_id', userIds),
+  ]);
+
+  const pointsMap = new Map<string, number>(userIds.map((id) => [id, 0]));
+
+  for (const p of matchRes.data ?? []) {
+    pointsMap.set(p.user_id, (pointsMap.get(p.user_id) ?? 0) + (p.points_total ?? 0));
+  }
+  for (const t of tournamentRes.data ?? []) {
+    const tp = (t.champion_points ?? 0) + (t.runner_up_points ?? 0) + (t.third_place_points ?? 0) + (t.group_predictions_points ?? 0);
+    pointsMap.set(t.user_id, (pointsMap.get(t.user_id) ?? 0) + tp);
+  }
+
+  return pointsMap;
+}
+
 export async function awardXP(
   adminClient: SupabaseClient,
   userId: string,

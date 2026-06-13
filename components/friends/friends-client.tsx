@@ -30,6 +30,7 @@ interface Props {
   friendships: Friendship[];
   profiles: FriendProfile[];
   xpMap: Record<string, number>;
+  pointsMap: Record<string, number>;
 }
 
 function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number }) {
@@ -45,7 +46,7 @@ function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number 
   );
 }
 
-type FriendsSort = 'level-high' | 'level-low';
+type FriendsSort = 'none' | 'level-high' | 'level-low';
 type RankingSort = 'points-high' | 'points-low';
 
 function SortToggle<T extends string>({
@@ -55,7 +56,7 @@ function SortToggle<T extends string>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: [{ value: T; label: string }, { value: T; label: string }];
+  options: Array<{ value: T; label: string; icon?: React.ReactNode }>;
 }) {
   return (
     <div className="flex gap-0.5 bg-black/20 border border-white/8 rounded-xl p-0.5">
@@ -68,7 +69,7 @@ function SortToggle<T extends string>({
             value === opt.value ? 'bg-field/30 text-field-light' : 'text-gray-600 hover:text-gray-400'
           )}
         >
-          {opt.value.includes('high') ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
+          {opt.icon}
           {opt.label}
         </button>
       ))}
@@ -82,7 +83,7 @@ const RANKING_POSITION: Record<number, string> = {
   3: 'bg-orange-600/20 text-orange-400 border border-orange-500/20',
 };
 
-export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap }: Props) {
+export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap, pointsMap }: Props) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -92,7 +93,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   );
 
   const [activeTab, setActiveTab] = useState<'friends' | 'ranking'>('friends');
-  const [friendsSort, setFriendsSort] = useState<FriendsSort>('level-high');
+  const [friendsSort, setFriendsSort] = useState<FriendsSort>('none');
   const [rankingSort, setRankingSort] = useState<RankingSort>('points-high');
 
   const [query, setQuery] = useState('');
@@ -182,16 +183,18 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   const getFriendId = (f: Friendship) =>
     f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
 
-  const acceptedSorted = [...accepted].sort((a, b) => {
-    const aLevel = getLevel(xpMap[getFriendId(a)] ?? 0);
-    const bLevel = getLevel(xpMap[getFriendId(b)] ?? 0);
-    return friendsSort === 'level-high' ? bLevel - aLevel : aLevel - bLevel;
-  });
+  const acceptedSorted = friendsSort === 'none'
+    ? accepted
+    : [...accepted].sort((a, b) => {
+        const aLevel = getLevel(xpMap[getFriendId(a)] ?? 0);
+        const bLevel = getLevel(xpMap[getFriendId(b)] ?? 0);
+        return friendsSort === 'level-high' ? bLevel - aLevel : aLevel - bLevel;
+      });
 
   const rankingSorted = [...accepted].sort((a, b) => {
-    const aXp = xpMap[getFriendId(a)] ?? 0;
-    const bXp = xpMap[getFriendId(b)] ?? 0;
-    return rankingSort === 'points-high' ? bXp - aXp : aXp - bXp;
+    const aPts = pointsMap[getFriendId(a)] ?? 0;
+    const bPts = pointsMap[getFriendId(b)] ?? 0;
+    return rankingSort === 'points-high' ? bPts - aPts : aPts - bPts;
   });
 
   async function triggerSearch() {
@@ -594,8 +597,9 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                     value={friendsSort}
                     onChange={setFriendsSort}
                     options={[
-                      { value: 'level-high', label: 'Nivel' },
-                      { value: 'level-low', label: 'Nivel' },
+                      { value: 'none', label: 'Nivel', icon: <span className="text-[9px] leading-none">—</span> },
+                      { value: 'level-high', label: 'Nivel', icon: <ChevronDown size={10} /> },
+                      { value: 'level-low', label: 'Nivel', icon: <ChevronUp size={10} /> },
                     ]}
                   />
                 )}
@@ -698,8 +702,8 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                 value={rankingSort}
                 onChange={setRankingSort}
                 options={[
-                  { value: 'points-high', label: 'Pts' },
-                  { value: 'points-low', label: 'Pts' },
+                  { value: 'points-high', label: 'Pts', icon: <ChevronDown size={10} /> },
+                  { value: 'points-low', label: 'Pts', icon: <ChevronUp size={10} /> },
                 ]}
               />
             )}
@@ -717,8 +721,8 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
               {rankingSorted.map((f, index) => {
                 const friendId = getFriendId(f);
                 const profile = getProfile(friendId);
-                const friendXp = xpMap[friendId] ?? 0;
-                const friendLevel = getLevel(friendXp);
+                const friendPts = pointsMap[friendId] ?? 0;
+                const friendLevel = getLevel(xpMap[friendId] ?? 0);
                 const position = index + 1;
                 const positionClass = RANKING_POSITION[position] ?? 'bg-white/5 text-gray-600 border border-white/5';
 
@@ -744,8 +748,8 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-white text-sm font-bold tabular-nums">{friendXp.toLocaleString()}</p>
-                      <p className="text-gray-600 text-xs">XP</p>
+                      <p className="text-white text-sm font-bold tabular-nums">{friendPts.toLocaleString()}</p>
+                      <p className="text-gray-600 text-xs">pts</p>
                     </div>
                   </div>
                 );
