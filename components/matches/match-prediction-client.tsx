@@ -80,7 +80,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setDeleted(true);
     setHomeScore('');
     setAwayScore('');
-    router.push('/matches');
+    router.push(`/matches?r=${Date.now()}`);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -116,7 +116,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
     setSaved(true);
     triggerAchievementCheck();
-    router.push('/matches');
+    router.push(`/matches?r=${Date.now()}`);
   }
 
   const scoresEntered = homeScore !== '' && awayScore !== '';

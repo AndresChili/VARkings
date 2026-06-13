@@ -47,6 +47,15 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('r')) {
+      const saved = sessionStorage.getItem('matches-scroll');
+      if (saved) window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
+      window.history.replaceState(null, '', '/matches');
+    }
+  }, []);
+
   const hasLive = matches.some((m) => isMatchLive(m.status));
   const hasRecentlyStarted = matches.some(
     (m) => m.status === 'NS' && new Date(m.match_date) <= new Date()
@@ -229,7 +238,7 @@ function MatchCard({ match, prediction }: {
   const { day, time } = formatCardDate(match.match_date);
 
   return (
-    <Link href={`/matches/${match.id}`} className="block group">
+    <Link href={`/matches/${match.id}`} className="block group" onClick={() => sessionStorage.setItem('matches-scroll', String(window.scrollY))}>
       <div className={cn(
         'relative overflow-hidden rounded-2xl transition-all duration-200',
         'group-hover:scale-[1.015] group-active:scale-[0.98]',
