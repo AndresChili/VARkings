@@ -75,9 +75,7 @@ export function InstallPrompt() {
     }
   }
 
-  // Android: only render when native install prompt is available
   if (dismissed || !platform) return null;
-  if (platform === 'android' && !deferredPrompt) return null;
 
   return (
     <div className="mx-4 mt-2 mb-1 rounded-xl bg-field/20 border border-field/40 px-4 py-3 flex items-start gap-3">
@@ -96,14 +94,21 @@ export function InstallPrompt() {
               {' '}y luego <strong className="text-white/80">"Añadir a pantalla de inicio"</strong>
             </p>
           </>
-        ) : (
+        ) : deferredPrompt ? (
           <>
             <p className="text-sm font-semibold text-white">Instalar VARkings</p>
             <p className="text-xs text-white/60">Añade la app a tu pantalla de inicio</p>
           </>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-white">Instalar VARkings</p>
+            <p className="text-xs text-white/60">
+              Pulsa <strong className="text-white/80">⋮</strong> en Chrome y elige <strong className="text-white/80">"Instalar app"</strong> o <strong className="text-white/80">"Añadir a pantalla de inicio"</strong>
+            </p>
+          </>
         )}
       </div>
-      {platform === 'android' && (
+      {platform === 'android' && deferredPrompt && (
         <button
           onClick={install}
           className="bg-crown text-surface text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 self-center"
