@@ -105,9 +105,10 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   const filtered = useMemo(() => {
     if (filter === 'upcoming') return upcoming;
     const base = filter === 'all' ? nonFinished : finished;
-    const sorted = [...base].sort((a, b) =>
-      new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
-    );
+    const sorted = [...base].sort((a, b) => {
+      const diff = new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+      return filter === 'finished' ? -diff : diff;
+    });
     const q = searchQuery.toLowerCase().trim();
     return sorted.filter((m) => {
       const matchesSearch = !q ||
