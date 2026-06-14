@@ -992,7 +992,7 @@ export function GroupDetailClient({
 
       {/* Matches tab */}
       {tab === 'matches' && (() => {
-        const finishedMatches = liveMatches.filter((m) => isMatchFinished(m.status));
+        const finishedMatches = liveMatches.filter((m) => isMatchFinished(m.status)).sort((a, b) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime());
         const upcomingMatchesList = liveMatches.filter((m) => !isMatchFinished(m.status));
         const currentlyLive = liveMatches.filter((m) => isMatchLive(m.status));
         const displayed = matchFilter === 'finished' ? finishedMatches : upcomingMatchesList;
