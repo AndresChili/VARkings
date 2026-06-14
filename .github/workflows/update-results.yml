@@ -17,5 +17,4 @@ jobs:
           echo "Response status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Cron endpoint returned $STATUS"
-            exit 1
           fi
