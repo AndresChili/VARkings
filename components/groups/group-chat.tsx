@@ -229,7 +229,7 @@ export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
                           'px-3 py-2 rounded-2xl text-sm leading-relaxed break-words',
                           isMe
                             ? 'bg-field text-white rounded-br-sm'
-                            : 'bg-white/8 text-gray-100 rounded-bl-sm'
+                            : 'bg-surface-hover text-white rounded-bl-sm'
                         )}
                       >
                         {msg.content}
