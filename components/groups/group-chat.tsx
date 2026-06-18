@@ -59,6 +59,8 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const onNewMessageRef = useRef(onNewMessage);
+  useEffect(() => { onNewMessageRef.current = onNewMessage; }, [onNewMessage]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     bottomRef.current?.scrollIntoView({ behavior });
@@ -94,7 +96,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
             return [...prev, msg];
           });
           setTimeout(() => scrollToBottom(), 50);
-          if (msg.user_id !== userId) onNewMessage?.();
+          if (msg.user_id !== userId) onNewMessageRef.current?.();
         }
       )
       .subscribe();
