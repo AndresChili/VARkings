@@ -21,6 +21,8 @@ interface GroupChatProps {
   groupId: string;
   userId: string;
   leaderboard: LeaderboardEntry[];
+  onNewMessage?: () => void;
+  hidden?: boolean;
 }
 
 function getProfile(
@@ -49,7 +51,7 @@ function formatDateLabel(dateStr: string) {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
+export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }: GroupChatProps) {
   const supabase = createClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,7 @@ export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
             return [...prev, msg];
           });
           setTimeout(() => scrollToBottom(), 50);
+          if (msg.user_id !== userId) onNewMessage?.();
         }
       )
       .subscribe();
@@ -156,7 +159,7 @@ export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
 
   if (loading) {
     return (
-      <div className="bg-surface-card border border-white/10 rounded-2xl flex items-center justify-center" style={{ height: '480px' }}>
+      <div className={cn('bg-surface-card border border-white/10 rounded-2xl flex items-center justify-center', hidden && 'hidden')} style={{ height: '480px' }}>
         <div className="w-5 h-5 border-2 border-field/30 border-t-field rounded-full animate-spin" />
       </div>
     );
@@ -164,7 +167,7 @@ export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
 
   return (
     <div
-      className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden flex flex-col"
+      className={cn('bg-surface-card border border-white/10 rounded-2xl overflow-hidden flex flex-col', hidden && 'hidden')}
       style={{ height: '480px' }}
     >
       {/* Messages list */}

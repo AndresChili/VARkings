@@ -248,22 +248,6 @@ export function GroupDetailClient({
     };
   }, [group.id, userId, supabase, router]);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel(`unread-${group.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${group.id}` },
-        (payload) => {
-          const msg = payload.new as { user_id: string };
-          if (msg.user_id !== userId && tabRef.current !== 'chat') {
-            setUnreadCount((n) => n + 1);
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [group.id, userId, supabase]);
 
   async function openInviteFriends() {
     setShowMenu(false);
@@ -1221,10 +1205,14 @@ export function GroupDetailClient({
           </div>
         );
       })()}
-      {/* Chat tab */}
-      {tab === 'chat' && (
-        <GroupChat groupId={group.id} userId={userId} leaderboard={localLeaderboard} />
-      )}
+      {/* Chat tab — always mounted so Realtime subscription tracks unread */}
+      <GroupChat
+        groupId={group.id}
+        userId={userId}
+        leaderboard={localLeaderboard}
+        hidden={tab !== 'chat'}
+        onNewMessage={() => { if (tabRef.current !== 'chat') setUnreadCount((n) => n + 1); }}
+      />
     </div>
 
     {/* Transfer admin modal */}
