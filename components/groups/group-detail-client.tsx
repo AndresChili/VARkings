@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2, User } from 'lucide-react';
+import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2, User, MessageCircle } from 'lucide-react';
+import { GroupChat } from '@/components/groups/group-chat';
 import { LevelBadge } from '@/components/ui/level-badge';
 import type { Group, Match, LeaderboardEntry, Team } from '@/types';
 import { cn, formatMatchDate, getRankEmoji, isKnockoutStarted, WC_GROUPS, isMatchFinished, isMatchLive } from '@/lib/utils';
@@ -103,7 +104,7 @@ export function GroupDetailClient({
   const [friends, setFriends] = useState<{ id: string; username: string; avatar_url: string | null }[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [sharedFriendId, setSharedFriendId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'leaderboard' | 'grupos' | 'matches'>('leaderboard');
+  const [tab, setTab] = useState<'leaderboard' | 'grupos' | 'matches' | 'chat'>('leaderboard');
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -803,6 +804,18 @@ export function GroupDetailClient({
           <Target size={12} />
           Partidos
         </button>
+        <button
+          onClick={() => setTab('chat')}
+          className={cn(
+            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+            tab === 'chat'
+              ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
+          )}
+        >
+          <MessageCircle size={12} />
+          Chat
+        </button>
       </div>
 
       {/* Leaderboard */}
@@ -1181,6 +1194,10 @@ export function GroupDetailClient({
           </div>
         );
       })()}
+      {/* Chat tab */}
+      {tab === 'chat' && (
+        <GroupChat groupId={group.id} userId={userId} leaderboard={localLeaderboard} />
+      )}
     </div>
 
     {/* Transfer admin modal */}

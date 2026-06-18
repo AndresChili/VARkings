@@ -51,6 +51,15 @@ export interface APIFootballFixture {
   };
 }
 
+export interface GroupMessage {
+  id: string;
+  group_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles?: { username: string; avatar_url: string | null } | null;
+}
+
 export interface PushNotificationPayload {
   title: string;
   body: string;
