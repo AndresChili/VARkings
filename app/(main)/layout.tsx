@@ -8,6 +8,7 @@ import { PushPermissionBanner } from '@/components/ui/push-permission';
 import { InstallPrompt } from '@/components/ui/install-prompt';
 import { AchievementChecker } from '@/components/ui/achievement-checker';
 import { WelcomeModal } from '@/components/welcome/WelcomeModal';
+import { WhatsNewModal } from '@/components/welcome/WhatsNewModal';
 import { recordDailyLogin } from '@/lib/xp-server';
 
 async function TopBarWithProfile({ userId }: { userId: string }) {
@@ -33,6 +34,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <PushPermissionBanner />
       <AchievementChecker />
       <WelcomeModal userId={user.id} />
+      <WhatsNewModal />
       <main className="flex-1 pb-20">{children}</main>
       <BottomNav />
     </div>
