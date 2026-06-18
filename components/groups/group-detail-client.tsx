@@ -122,6 +122,9 @@ export function GroupDetailClient({
   const [liveMatches, setLiveMatches] = useState<MatchWithMemberPreds[]>(matchesWithPredictions);
   const liveMatchesRef = useRef(liveMatches);
   liveMatchesRef.current = liveMatches;
+  const [unreadCount, setUnreadCount] = useState(0);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
 
   useEffect(() => {
     setLocalLeaderboard(leaderboard);
@@ -244,6 +247,23 @@ export function GroupDetailClient({
       supabase.removeChannel(lbChannel);
     };
   }, [group.id, userId, supabase, router]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`unread-${group.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${group.id}` },
+        (payload) => {
+          const msg = payload.new as { user_id: string };
+          if (msg.user_id !== userId && tabRef.current !== 'chat') {
+            setUnreadCount((n) => n + 1);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [group.id, userId, supabase]);
 
   async function openInviteFriends() {
     setShowMenu(false);
@@ -805,15 +825,22 @@ export function GroupDetailClient({
           Partidos
         </button>
         <button
-          onClick={() => setTab('chat')}
+          onClick={() => { setTab('chat'); setUnreadCount(0); }}
           className={cn(
-            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5',
+            'flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 relative',
             tab === 'chat'
               ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm'
               : 'text-gray-400 hover:text-gray-200'
           )}
         >
-          <MessageCircle size={12} />
+          <span className="relative">
+            <MessageCircle size={12} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </span>
           Chat
         </button>
       </div>
