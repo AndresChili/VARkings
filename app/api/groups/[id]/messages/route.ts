@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: messages, error } = await supabase
     .from('group_messages')
-    .select('id, group_id, user_id, content, created_at, profiles(username, avatar_url)')
+    .select('id, group_id, user_id, content, created_at')
     .eq('group_id', groupId)
     .order('created_at', { ascending: false })
     .limit(50);

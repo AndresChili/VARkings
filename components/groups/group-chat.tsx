@@ -103,14 +103,36 @@ export function GroupChat({ groupId, userId, leaderboard }: GroupChatProps) {
     if (!content || sending) return;
     setSending(true);
     setInput('');
+
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg: ChatMessage = {
+      id: tempId,
+      group_id: groupId,
+      user_id: userId,
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+    setTimeout(() => scrollToBottom(), 50);
+
     const res = await fetch(`/api/groups/${groupId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     });
     setSending(false);
-    if (!res.ok) setInput(content);
-    else inputRef.current?.focus();
+
+    if (!res.ok) {
+      // Rollback optimistic message
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setInput(content);
+    } else {
+      const saved: ChatMessage = await res.json();
+      // Replace temp with real (Realtime may also arrive — dedup handles it)
+      setMessages((prev) => prev.map((m) => m.id === tempId ? saved : m));
+      inputRef.current?.focus();
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
