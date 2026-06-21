@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
       const { data: match } = await supabase
         .from('matches')
-        .select('id, status, home_score, away_score')
+        .select('id, status')
         .eq('api_id', fixture.id)
         .maybeSingle();
 
@@ -71,15 +71,12 @@ export async function GET(req: NextRequest) {
 
       if (!predictions?.length) continue;
 
-      const calcHome = alreadyFinished ? (match.home_score ?? homeScore) : homeScore;
-      const calcAway = alreadyFinished ? (match.away_score ?? awayScore) : awayScore;
-
       for (const pred of predictions ?? []) {
         const result = calculateMatchPoints(
           pred.predicted_home_score,
           pred.predicted_away_score,
-          calcHome,
-          calcAway,
+          homeScore,
+          awayScore,
           {
             predictedKnockoutWinner: pred.predicted_winner ?? null,
             actualKnockoutWinner: winnerName,
@@ -103,7 +100,7 @@ export async function GET(req: NextRequest) {
             match_id: match.id,
             points: result.points_total,
             reason: 'match_prediction',
-            description: `${fixture.homeTeam?.name ?? '?'} ${calcHome}-${calcAway} ${fixture.awayTeam?.name ?? '?'}`,
+            description: `${fixture.homeTeam?.name ?? '?'} ${homeScore}-${awayScore} ${fixture.awayTeam?.name ?? '?'}`,
           });
         }
       }

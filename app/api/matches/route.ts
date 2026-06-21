@@ -90,7 +90,7 @@ export async function GET() {
 
         const { data: match } = await supabase
           .from('matches')
-          .select('id, status, home_score, away_score')
+          .select('id, status')
           .eq('api_id', fixture.id)
           .maybeSingle();
 
@@ -123,15 +123,12 @@ export async function GET() {
           .eq('match_id', match.id)
           .eq('is_calculated', false);
 
-        const calcHome = alreadyFinished ? (match.home_score ?? homeScore) : homeScore;
-        const calcAway = alreadyFinished ? (match.away_score ?? awayScore) : awayScore;
-
         for (const pred of predictions ?? []) {
           const result = calculateMatchPoints(
             pred.predicted_home_score,
             pred.predicted_away_score,
-            calcHome,
-            calcAway,
+            homeScore,
+            awayScore,
           );
 
           await supabase
@@ -151,7 +148,7 @@ export async function GET() {
               match_id: match.id,
               points: result.points_total,
               reason: 'match_prediction',
-              description: `${fixture.homeTeam?.name ?? '?'} ${calcHome}-${calcAway} ${fixture.awayTeam?.name ?? '?'}`,
+              description: `${fixture.homeTeam?.name ?? '?'} ${homeScore}-${awayScore} ${fixture.awayTeam?.name ?? '?'}`,
             });
           }
         }
