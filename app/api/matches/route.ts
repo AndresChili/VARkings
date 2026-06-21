@@ -11,8 +11,8 @@ const DEBOUNCE_MS = 75_000;
 export async function GET() {
   const supabase = createAdminClient();
 
-  // Find any match that is live, started in the last 3 hours but still NS, OR recently finished (to catch uncalculated predictions)
-  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+  // Find any match that is live, started but still NS, OR recently finished (to catch uncalculated predictions)
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
   const nowIso = new Date().toISOString();
 
   const { data: candidateMatches } = await supabase
@@ -20,8 +20,8 @@ export async function GET() {
     .select('id, status, updated_at, match_date')
     .or(
       `status.in.(${LIVE_STATUSES.join(',')}),` +
-      `and(status.eq.NS,match_date.lte.${nowIso},match_date.gte.${threeHoursAgo}),` +
-      `and(status.in.(FT,AET,PEN),match_date.gte.${threeHoursAgo})`
+      `and(status.eq.NS,match_date.lte.${nowIso},match_date.gte.${twelveHoursAgo}),` +
+      `and(status.in.(FT,AET,PEN),match_date.gte.${twelveHoursAgo})`
     )
     .limit(5);
 
@@ -111,10 +111,10 @@ export async function GET() {
             .from('matches')
             .update({ status: newStatus, home_score: homeScore, away_score: awayScore, winner_team_name: winnerName, updated_at: now })
             .eq('id', match.id);
-        } else if (winnerName) {
+        } else {
           await supabase
             .from('matches')
-            .update({ winner_team_name: winnerName })
+            .update({ ...(winnerName ? { winner_team_name: winnerName } : {}), updated_at: now })
             .eq('id', match.id);
         }
 
