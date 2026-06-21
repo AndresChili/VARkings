@@ -92,7 +92,7 @@ export async function GET() {
 
         const { data: match } = await supabase
           .from('matches')
-          .select('id, status, home_score, away_score')
+          .select('id, status')
           .eq('api_id', fixture.id)
           .maybeSingle();
 
@@ -106,20 +106,11 @@ export async function GET() {
           ? (fixture.awayTeam?.name ?? null)
           : null;
 
-        const scoreChanged = match.home_score !== homeScore || match.away_score !== awayScore;
-
-        if (!alreadyFinished || scoreChanged) {
+        if (!alreadyFinished) {
           await supabase
             .from('matches')
             .update({ status: newStatus, home_score: homeScore, away_score: awayScore, winner_team_name: winnerName, updated_at: now })
             .eq('id', match.id);
-
-          if (alreadyFinished && scoreChanged) {
-            await supabase
-              .from('match_predictions')
-              .update({ is_calculated: false })
-              .eq('match_id', match.id);
-          }
         } else {
           await supabase
             .from('matches')
