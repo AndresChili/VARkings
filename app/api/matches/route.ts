@@ -52,8 +52,6 @@ export async function GET() {
             match_date: f.utcDate,
             stage: mapFDStage(f.stage),
             group_name: mapFDGroup(f.group),
-            home_score: f.score.fullTime.home,
-            away_score: f.score.fullTime.away,
             status: mapFDStatus(f.status, f.score.duration),
           }));
         if (knockoutUpserts.length > 0) {
