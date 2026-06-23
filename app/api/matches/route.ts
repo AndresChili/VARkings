@@ -90,13 +90,14 @@ export async function GET() {
 
         const { data: match } = await supabase
           .from('matches')
-          .select('id, status')
+          .select('id, status, home_score, away_score')
           .eq('api_id', fixture.id)
           .maybeSingle();
 
         if (!match) continue;
 
         const alreadyFinished = ['FT', 'AET', 'PEN'].includes(match.status);
+        const scoresAreMissing = match.home_score === null || match.away_score === null;
         const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
         const winnerName = fixture.score.winner === 'HOME_TEAM'
           ? (fixture.homeTeam?.name ?? null)
@@ -104,7 +105,7 @@ export async function GET() {
           ? (fixture.awayTeam?.name ?? null)
           : null;
 
-        if (!alreadyFinished) {
+        if (!alreadyFinished || scoresAreMissing) {
           await supabase
             .from('matches')
             .update({ status: newStatus, home_score: homeScore, away_score: awayScore, winner_team_name: winnerName, updated_at: now })
