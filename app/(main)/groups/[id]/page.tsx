@@ -4,6 +4,7 @@ import { getCachedTeams, getCachedGroupStageMatches, getCachedAllMatches } from 
 import { GroupDetailClient } from '@/components/groups/group-detail-client';
 import { STATIC_WC2026_TEAMS, TEAM_NAME_ES } from '@/lib/teams';
 import { getBulkXP } from '@/lib/xp-server';
+import { getGroupQualifiers } from '@/lib/group-qualifiers';
 import { getLevel } from '@/lib/xp';
 import type { Match, Team, MatchPrediction } from '@/types';
 
@@ -114,25 +115,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     memberPredictions: predsByMatch[m.id] ?? [],
   }));
 
-  // Derive which teams qualified (appeared in Round of 16 matches)
-  const teamGroupMap = new Map<string, string>();
-  groupStageMatchesData.forEach((m) => {
-    if (m.home_team_name && m.group_name) teamGroupMap.set(m.home_team_name, m.group_name);
-    if (m.away_team_name && m.group_name) teamGroupMap.set(m.away_team_name, m.group_name);
-  });
-  const groupQualifiers: Record<string, string[]> = {};
-  (allMatches as Match[])
-    .filter((m) => m.stage === 'Round of 16')
-    .forEach((m) => {
-      [m.home_team_name, m.away_team_name].forEach((teamName) => {
-        if (!teamName) return;
-        const group = teamGroupMap.get(teamName);
-        if (!group) return;
-        const esName = TEAM_NAME_ES[teamName] ?? teamName;
-        if (!groupQualifiers[group]) groupQualifiers[group] = [];
-        if (!groupQualifiers[group].includes(esName)) groupQualifiers[group].push(esName);
-      });
-    });
+  // Official top-2 qualifiers per group (best thirds don't count)
+  const groupQualifiers = await getGroupQualifiers();
 
   const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
   const pendingRequests = (requestsRes.data ?? []).map((r) => ({

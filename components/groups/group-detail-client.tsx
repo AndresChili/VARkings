@@ -965,7 +965,7 @@ export function GroupDetailClient({
                             if (hasResults) {
                               correctCount = teamPicks.filter((t) => qualifiers.includes(t)).length;
                             }
-                            const pointsEarned = correctCount * 2;
+                            const pointsEarned = correctCount === 2 ? 5 : correctCount === 1 ? 2 : 0;
                             return (
                               <div key={g} className="rounded-xl p-3 border bg-surface border-white/5">
                                 <div className="flex items-center justify-between mb-2">
