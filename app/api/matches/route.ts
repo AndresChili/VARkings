@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { getLiveWCMatches, getRecentlyFinishedWCMatches, getWCMatches, getFixtureScores, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
 import { revalidateTag } from 'next/cache';
 import { TEAM_NAME_ES } from '@/lib/teams';
+import { getGroupQualifiers } from '@/lib/group-qualifiers';
 import { calculateMatchPoints, calculateGroupPoints, calculateTournamentPoints } from '@/lib/scoring';
 
 const LIVE_STATUSES = ['1H', 'HT', '2H', 'ET', 'P', 'BT'];
@@ -188,38 +189,9 @@ export async function GET() {
     }
   }
 
-  // Auto-calculate group prediction points when Round of 16 fixtures are known
-  const { data: r16 } = await supabase
-    .from('matches')
-    .select('home_team_name, away_team_name')
-    .eq('stage', 'Round of 16')
-    .not('home_team_name', 'is', null)
-    .not('away_team_name', 'is', null);
-
-  if (r16 && r16.length > 0) {
-    const { data: groupStageRows } = await supabase
-      .from('matches')
-      .select('home_team_name, away_team_name, group_name')
-      .eq('stage', 'Group Stage')
-      .not('group_name', 'is', null);
-
-    const teamGroupMap = new Map<string, string>();
-    for (const m of groupStageRows ?? []) {
-      if (m.home_team_name && m.group_name) teamGroupMap.set(m.home_team_name, m.group_name);
-      if (m.away_team_name && m.group_name) teamGroupMap.set(m.away_team_name, m.group_name);
-    }
-
-    const groupQualifiers: Record<string, string[]> = {};
-    for (const m of r16) {
-      for (const teamName of [m.home_team_name, m.away_team_name]) {
-        if (!teamName) continue;
-        const group = teamGroupMap.get(teamName);
-        if (!group) continue;
-        const esName = TEAM_NAME_ES[teamName] ?? teamName;
-        if (!groupQualifiers[group]) groupQualifiers[group] = [];
-        if (!groupQualifiers[group].includes(esName)) groupQualifiers[group].push(esName);
-      }
-    }
+  // Auto-calculate group prediction points from official standings (top 2 per group)
+  {
+    const groupQualifiers = await getGroupQualifiers();
 
     if (Object.keys(groupQualifiers).length > 0) {
       const { data: tournPreds } = await supabase
