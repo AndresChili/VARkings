@@ -55,7 +55,10 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
   const preview =
     homeScore !== '' && awayScore !== '' && match.home_score != null && match.away_score != null
-      ? calculateMatchPoints(+homeScore, +awayScore, match.home_score, match.away_score)
+      ? calculateMatchPoints(+homeScore, +awayScore, match.home_score, match.away_score, {
+          predictedKnockoutWinner: knockoutWinner,
+          actualKnockoutWinner: match.winner_team_name,
+        })
       : null;
 
   async function handleDelete() {
@@ -176,6 +179,14 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
             ) : (
               <div className="text-gray-600 text-sm font-medium">vs</div>
+            )}
+            {done && match.home_penalties != null && match.away_penalties != null && (
+              <div className="text-xs text-crown font-bold mt-1">
+                Penales: {match.home_penalties} — {match.away_penalties}
+                {match.winner_team_name && (
+                  <span className="text-gray-400 font-medium"> · pasa {TEAM_NAME_ES[match.winner_team_name] ?? match.winner_team_name}</span>
+                )}
+              </div>
             )}
             <div className="text-xs text-gray-500 mt-1">{formatMatchDateLong(match.match_date)}</div>
             {match.venue && <div className="text-xs text-gray-600 mt-0.5">{match.venue}</div>}

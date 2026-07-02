@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getLiveWCMatches, getRecentlyFinishedWCMatches, getWCMatches, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
+import { getLiveWCMatches, getRecentlyFinishedWCMatches, getWCMatches, getFixtureScores, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
 import { revalidateTag } from 'next/cache';
 import { TEAM_NAME_ES } from '@/lib/teams';
 import { calculateMatchPoints, calculateGroupPoints, calculateTournamentPoints } from '@/lib/scoring';
@@ -11,8 +11,10 @@ const DEBOUNCE_MS = 75_000;
 export async function GET() {
   const supabase = createAdminClient();
 
-  // Find any match that is live, started but still NS, OR recently finished (to catch uncalculated predictions)
+  // Find any match that is live, started but still NS, OR recently finished
+  // (to catch uncalculated predictions and repair mis-synced results)
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
   const nowIso = new Date().toISOString();
 
   const { data: candidateMatches } = await supabase
@@ -21,7 +23,7 @@ export async function GET() {
     .or(
       `status.in.(${LIVE_STATUSES.join(',')}),` +
       `and(status.eq.NS,match_date.lte.${nowIso},match_date.gte.${twelveHoursAgo}),` +
-      `and(status.in.(FT,AET,PEN),match_date.gte.${twelveHoursAgo})`
+      `and(status.in.(FT,AET,PEN),match_date.gte.${seventyTwoHoursAgo})`
     )
     .limit(5);
 
@@ -69,8 +71,7 @@ export async function GET() {
       const now = new Date().toISOString();
 
       for (const fixture of live) {
-        const homeScore = fixture.score.fullTime.home;
-        const awayScore = fixture.score.fullTime.away;
+        const { home: homeScore, away: awayScore } = getFixtureScores(fixture);
         await supabase
           .from('matches')
           .update({
@@ -84,13 +85,12 @@ export async function GET() {
       }
 
       for (const fixture of finished) {
-        const homeScore = fixture.score.fullTime.home;
-        const awayScore = fixture.score.fullTime.away;
+        const { home: homeScore, away: awayScore, penaltiesHome, penaltiesAway } = getFixtureScores(fixture);
         if (homeScore === null || awayScore === null) continue;
 
         const { data: match } = await supabase
           .from('matches')
-          .select('id, status, home_score, away_score')
+          .select('id, status, home_score, away_score, home_penalties')
           .eq('api_id', fixture.id)
           .maybeSingle();
 
@@ -98,6 +98,10 @@ export async function GET() {
 
         const alreadyFinished = ['FT', 'AET', 'PEN'].includes(match.status);
         const scoresAreMissing = match.home_score === null || match.away_score === null;
+        // Repair rows saved before penalty handling: DB score included shootout goals
+        const scoresAreWrong = !scoresAreMissing &&
+          (match.home_score !== homeScore || match.away_score !== awayScore ||
+            (penaltiesHome !== null && match.home_penalties === null));
         const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
         const winnerName = fixture.score.winner === 'HOME_TEAM'
           ? (fixture.homeTeam?.name ?? null)
@@ -105,10 +109,18 @@ export async function GET() {
           ? (fixture.awayTeam?.name ?? null)
           : null;
 
-        if (!alreadyFinished || scoresAreMissing) {
+        if (!alreadyFinished || scoresAreMissing || scoresAreWrong) {
           await supabase
             .from('matches')
-            .update({ status: newStatus, home_score: homeScore, away_score: awayScore, winner_team_name: winnerName, updated_at: now })
+            .update({
+              status: newStatus,
+              home_score: homeScore,
+              away_score: awayScore,
+              home_penalties: penaltiesHome,
+              away_penalties: penaltiesAway,
+              winner_team_name: winnerName,
+              updated_at: now,
+            })
             .eq('id', match.id);
         } else {
           await supabase
@@ -117,12 +129,23 @@ export async function GET() {
             .eq('id', match.id);
         }
 
-        // Calculate points for uncalculated predictions
-        const { data: predictions } = await supabase
+        // If scores were repaired, recalculate every prediction (they were scored
+        // against the wrong result) and rebuild the points log for this match.
+        const forceRecalc = alreadyFinished && scoresAreWrong;
+        let predQuery = supabase
           .from('match_predictions')
-          .select('id, user_id, predicted_home_score, predicted_away_score')
-          .eq('match_id', match.id)
-          .eq('is_calculated', false);
+          .select('id, user_id, predicted_home_score, predicted_away_score, predicted_winner')
+          .eq('match_id', match.id);
+        if (!forceRecalc) predQuery = predQuery.eq('is_calculated', false);
+        const { data: predictions } = await predQuery;
+
+        if (forceRecalc && predictions?.length) {
+          await supabase
+            .from('points_log')
+            .delete()
+            .eq('match_id', match.id)
+            .eq('reason', 'match_prediction');
+        }
 
         for (const pred of predictions ?? []) {
           const result = calculateMatchPoints(
@@ -130,6 +153,10 @@ export async function GET() {
             pred.predicted_away_score,
             homeScore,
             awayScore,
+            {
+              predictedKnockoutWinner: pred.predicted_winner ?? null,
+              actualKnockoutWinner: winnerName,
+            }
           );
 
           await supabase

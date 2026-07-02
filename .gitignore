@@ -38,3 +38,6 @@ next-env.d.ts
 /public/workbox-*.js
 
 .vercel
+
+# Supabase cron setup con secretos
+supabase/cron_setup.local.sql

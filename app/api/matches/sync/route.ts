@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getWCMatches, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
+import { getWCMatches, getFixtureScores, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
 
 function verifyCronSecret(header: string | null, secret: string): boolean {
   const expected = Buffer.from(`Bearer ${secret}`, 'utf8');
@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
     const fixtures = await getWCMatches();
 
     const upserts = fixtures
-      .map((f) => ({
+      .map((f) => {
+        const scores = getFixtureScores(f);
+        return {
         api_id: f.id,
         home_team_name: f.homeTeam?.name || null,
         away_team_name: f.awayTeam?.name || null,
@@ -37,11 +39,14 @@ export async function POST(req: NextRequest) {
         match_date: f.utcDate,
         stage: mapFDStage(f.stage),
         group_name: mapFDGroup(f.group),
-        home_score: f.score.fullTime.home,
-        away_score: f.score.fullTime.away,
+        home_score: scores.home,
+        away_score: scores.away,
+        home_penalties: scores.penaltiesHome,
+        away_penalties: scores.penaltiesAway,
         status: mapFDStatus(f.status, f.score.duration),
         venue: null,
-      }));
+        };
+      });
 
     if (!upserts.length) {
       return NextResponse.json({ error: 'API returned no valid fixtures' }, { status: 502 });

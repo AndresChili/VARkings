@@ -13,7 +13,35 @@ export interface FDMatch {
     winner: string | null;
     duration: string;
     fullTime: { home: number | null; away: number | null };
+    regularTime?: { home: number | null; away: number | null } | null;
+    extraTime?: { home: number | null; away: number | null } | null;
+    penalties?: { home: number | null; away: number | null } | null;
   };
+}
+
+// football-data.org v4 quirk: for matches decided on penalties, score.fullTime
+// includes the shootout goals. Subtract penalties to get the real match score.
+export function getFixtureScores(f: FDMatch): {
+  home: number | null;
+  away: number | null;
+  penaltiesHome: number | null;
+  penaltiesAway: number | null;
+} {
+  const ft = f.score.fullTime;
+  const pens = f.score.penalties;
+  if (
+    f.score.duration === 'PENALTY_SHOOTOUT' &&
+    pens != null && pens.home != null && pens.away != null &&
+    ft.home != null && ft.away != null
+  ) {
+    return {
+      home: ft.home - pens.home,
+      away: ft.away - pens.away,
+      penaltiesHome: pens.home,
+      penaltiesAway: pens.away,
+    };
+  }
+  return { home: ft.home, away: ft.away, penaltiesHome: null, penaltiesAway: null };
 }
 
 async function fdRequest<T>(path: string): Promise<T> {
@@ -46,11 +74,12 @@ export async function getLiveWCMatches(): Promise<FDMatch[]> {
 
 export async function getRecentlyFinishedWCMatches(): Promise<FDMatch[]> {
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  const windowStart = new Date(today);
+  // 3-day window so the daily cron can also repair recently mis-synced results
+  windowStart.setDate(windowStart.getDate() - 3);
 
   const dateTo = today.toISOString().split('T')[0];
-  const dateFrom = yesterday.toISOString().split('T')[0];
+  const dateFrom = windowStart.toISOString().split('T')[0];
 
   const data = await fdRequest<{ matches: FDMatch[] }>(
     `/competitions/WC/matches?season=2026&status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`

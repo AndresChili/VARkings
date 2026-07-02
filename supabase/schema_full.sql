@@ -68,6 +68,8 @@ CREATE TABLE public.matches (
   group_name        TEXT,
   home_score        INTEGER,
   away_score        INTEGER,
+  home_penalties    INTEGER,
+  away_penalties    INTEGER,
   winner_team_name  TEXT,
   status            TEXT DEFAULT 'NS',
   venue             TEXT,
