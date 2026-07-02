@@ -56,28 +56,27 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
     }
   }, []);
 
-  const hasLive = matches.some((m) => isMatchLive(m.status));
-  const hasRecentlyStarted = matches.some(
-    (m) => m.status === 'NS' && new Date(m.match_date) <= new Date()
-  );
-  const shouldPoll = hasLive || hasRecentlyStarted;
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const matchesRef = useRef(matches);
+  matchesRef.current = matches;
 
+  // Always-on interval that decides on each tick whether to refresh, so a match
+  // reaching kickoff (or going live) starts updating without a page reload.
   useEffect(() => {
-    if (!shouldPoll) {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-    async function refresh() {
+    const interval = setInterval(async () => {
+      const current = matchesRef.current;
+      const hasLive = current.some((m) => isMatchLive(m.status));
+      const hasRecentlyStarted = current.some(
+        (m) => m.status === 'NS' && new Date(m.match_date) <= new Date()
+      );
+      if (!hasLive && !hasRecentlyStarted) return;
       try {
         const res = await fetch('/api/matches');
         if (!res.ok) return;
         setMatches(await res.json());
       } catch {}
-    }
-    pollRef.current = setInterval(refresh, 60_000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [shouldPoll]);
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const upcoming = [
     ...matches.filter((m) => isMatchLive(m.status)),
@@ -312,7 +311,7 @@ function MatchCard({ match, prediction }: {
             </div>
 
             {/* Score / VS */}
-            <div className="shrink-0 w-[76px] flex flex-col items-center">
+            <div className="shrink-0 w-[76px] flex flex-col items-center gap-1">
               {done || live ? (
                 <div className={cn(
                   'flex items-center gap-1 px-3 py-2 rounded-2xl',
@@ -332,6 +331,9 @@ function MatchCard({ match, prediction }: {
                 <div className="px-4 py-2 rounded-2xl bg-white/5 border border-white/8">
                   <span className="text-xs font-black text-gray-600 tracking-[0.15em]">VS</span>
                 </div>
+              )}
+              {done && match.status === 'PEN' && (
+                <span className="text-[10px] font-bold text-gray-500 tracking-wide">PENALES</span>
               )}
             </div>
 

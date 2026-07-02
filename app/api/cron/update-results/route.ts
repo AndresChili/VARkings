@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getLiveWCMatches, getRecentlyFinishedWCMatches, mapFDStatus } from '@/lib/football-data';
+import { getLiveWCMatches, getRecentlyFinishedWCMatches, getFixtureScores, mapFDStatus } from '@/lib/football-data';
 import { calculateMatchPoints } from '@/lib/scoring';
 
 function verifyCronSecret(header: string | null, secret: string): boolean {
@@ -31,19 +31,22 @@ export async function GET(req: NextRequest) {
     const finished = await getRecentlyFinishedWCMatches();
 
     for (const fixture of finished) {
-      const homeScore = fixture.score.fullTime.home;
-      const awayScore = fixture.score.fullTime.away;
+      const { home: homeScore, away: awayScore, penaltiesHome, penaltiesAway } = getFixtureScores(fixture);
       if (homeScore === null || awayScore === null) continue;
 
       const { data: match } = await supabase
         .from('matches')
-        .select('id, status, home_score, away_score')
+        .select('id, status, home_score, away_score, home_penalties, winner_team_name')
         .eq('api_id', fixture.id)
         .maybeSingle();
 
       if (!match) continue;
       const alreadyFinished = match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
       const scoresAreMissing = match.home_score === null || match.away_score === null;
+      // Repair rows saved before penalty handling: DB score included shootout goals
+      const scoresAreWrong = !scoresAreMissing &&
+        (match.home_score !== homeScore || match.away_score !== awayScore ||
+          (penaltiesHome !== null && match.home_penalties === null));
 
       const newStatus = mapFDStatus(fixture.status, fixture.score.duration);
       const winnerName = fixture.score.winner === 'HOME_TEAM'
@@ -52,25 +55,44 @@ export async function GET(req: NextRequest) {
         ? (fixture.awayTeam?.name ?? null)
         : null;
 
-      if (!alreadyFinished || scoresAreMissing) {
+      if (!alreadyFinished || scoresAreMissing || scoresAreWrong) {
         await supabase
           .from('matches')
-          .update({ home_score: homeScore, away_score: awayScore, status: newStatus, winner_team_name: winnerName })
+          .update({
+            home_score: homeScore,
+            away_score: awayScore,
+            home_penalties: penaltiesHome,
+            away_penalties: penaltiesAway,
+            status: newStatus,
+            winner_team_name: winnerName,
+          })
           .eq('id', match.id);
-      } else if (winnerName) {
+      } else if (winnerName && match.winner_team_name !== winnerName) {
         await supabase
           .from('matches')
           .update({ winner_team_name: winnerName })
           .eq('id', match.id);
       }
 
-      const { data: predictions } = await supabase
+      // If scores were repaired, recalculate every prediction (they were scored
+      // against the wrong result) and rebuild the points log for this match.
+      const forceRecalc = alreadyFinished && scoresAreWrong;
+      let predQuery = supabase
         .from('match_predictions')
         .select('id, user_id, predicted_home_score, predicted_away_score, predicted_winner')
-        .eq('match_id', match.id)
-        .eq('is_calculated', false);
+        .eq('match_id', match.id);
+      if (!forceRecalc) predQuery = predQuery.eq('is_calculated', false);
+      const { data: predictions } = await predQuery;
 
       if (!predictions?.length) continue;
+
+      if (forceRecalc) {
+        await supabase
+          .from('points_log')
+          .delete()
+          .eq('match_id', match.id)
+          .eq('reason', 'match_prediction');
+      }
 
       for (const pred of predictions ?? []) {
         const result = calculateMatchPoints(
@@ -109,12 +131,18 @@ export async function GET(req: NextRequest) {
       updated++;
     }
 
-    // Update live match statuses
+    // Update live match statuses and scores
     const live = await getLiveWCMatches();
     for (const fixture of live) {
+      const { home: liveHome, away: liveAway } = getFixtureScores(fixture);
       await supabase
         .from('matches')
-        .update({ status: mapFDStatus(fixture.status) })
+        .update({
+          status: mapFDStatus(fixture.status),
+          ...(liveHome !== null && liveAway !== null
+            ? { home_score: liveHome, away_score: liveAway }
+            : {}),
+        })
         .eq('api_id', fixture.id);
     }
 

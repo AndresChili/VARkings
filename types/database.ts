@@ -163,6 +163,8 @@ export interface Database {
           group_name: string | null;
           home_score: number | null;
           away_score: number | null;
+          home_penalties: number | null;
+          away_penalties: number | null;
           winner_team_name: string | null;
           status: string;
           venue: string | null;
@@ -183,6 +185,8 @@ export interface Database {
           group_name?: string | null;
           home_score?: number | null;
           away_score?: number | null;
+          home_penalties?: number | null;
+          away_penalties?: number | null;
           winner_team_name?: string | null;
           status?: string;
           venue?: string | null;
@@ -190,6 +194,8 @@ export interface Database {
         Update: {
           home_score?: number | null;
           away_score?: number | null;
+          home_penalties?: number | null;
+          away_penalties?: number | null;
           winner_team_name?: string | null;
           status?: string;
           updated_at?: string;
