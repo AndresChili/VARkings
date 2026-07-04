@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
-import { getLiveWCMatches, getRecentlyFinishedWCMatches, getFixtureScores, mapFDStatus } from '@/lib/football-data';
+import { getLiveWCMatches, getRecentlyFinishedWCMatches, getWCMatches, getFixtureScores, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
 import { calculateMatchPoints } from '@/lib/scoring';
 
 function verifyCronSecret(header: string | null, secret: string): boolean {
@@ -26,6 +26,34 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createAdminClient();
     let updated = 0;
+
+    // Resolve pending knockout pairings: /api/matches only syncs team names
+    // while clients are polling (live matches), so pairings decided by the
+    // day's last games would otherwise stay unnamed until the next kickoff.
+    const { data: unnamedKnockout } = await supabase
+      .from('matches')
+      .select('id')
+      .neq('stage', 'Group Stage')
+      .or('home_team_name.is.null,away_team_name.is.null')
+      .limit(1);
+
+    if (unnamedKnockout && unnamedKnockout.length > 0) {
+      const allFixtures = await getWCMatches();
+      const knockoutUpserts = allFixtures.map((f) => ({
+        api_id: f.id,
+        home_team_name: f.homeTeam?.name || null,
+        away_team_name: f.awayTeam?.name || null,
+        home_team_logo: f.homeTeam?.crest ?? null,
+        away_team_logo: f.awayTeam?.crest ?? null,
+        match_date: f.utcDate,
+        stage: mapFDStage(f.stage),
+        group_name: mapFDGroup(f.group),
+        status: mapFDStatus(f.status, f.score.duration),
+      }));
+      if (knockoutUpserts.length > 0) {
+        await supabase.from('matches').upsert(knockoutUpserts, { onConflict: 'api_id' });
+      }
+    }
 
     // Update finished matches and calculate points
     const finished = await getRecentlyFinishedWCMatches();
