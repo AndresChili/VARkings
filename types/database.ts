@@ -210,6 +210,10 @@ export interface Database {
           champion: string | null;
           runner_up: string | null;
           third_place: string | null;
+          champion_points: number;
+          runner_up_points: number;
+          third_place_points: number;
+          is_calculated: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -220,6 +224,10 @@ export interface Database {
           champion?: string | null;
           runner_up?: string | null;
           third_place?: string | null;
+          champion_points?: number;
+          runner_up_points?: number;
+          third_place_points?: number;
+          is_calculated?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -227,6 +235,10 @@ export interface Database {
           champion?: string | null;
           runner_up?: string | null;
           third_place?: string | null;
+          champion_points?: number;
+          runner_up_points?: number;
+          third_place_points?: number;
+          is_calculated?: boolean;
           updated_at?: string;
         };
         Relationships: [];

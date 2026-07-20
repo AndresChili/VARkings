@@ -247,7 +247,7 @@ export async function GET() {
     const actualThird = TEAM_NAME_ES[tWinner ?? ''] ?? tWinner;
 
     const { data: podPreds } = await supabase
-      .from('tournament_predictions')
+      .from('group_tournament_predictions')
       .select('id, champion, runner_up, third_place, champion_points, runner_up_points, third_place_points, is_calculated');
 
     for (const pred of podPreds ?? []) {
@@ -261,7 +261,7 @@ export async function GET() {
         actualThird: actualThird ?? null,
       });
       await supabase
-        .from('tournament_predictions')
+        .from('group_tournament_predictions')
         .update({
           champion_points: result.champion,
           runner_up_points: result.runner_up,
