@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getLiveWCMatches, getRecentlyFinishedWCMatches, getWCMatches, getFixtureScores, mapFDStatus, mapFDStage, mapFDGroup } from '@/lib/football-data';
-import { calculateMatchPoints } from '@/lib/scoring';
+import { calculateMatchPoints, calculateTournamentPoints } from '@/lib/scoring';
+import { TEAM_NAME_ES } from '@/lib/teams';
 
 function verifyCronSecret(header: string | null, secret: string): boolean {
   const expected = Buffer.from(`Bearer ${secret}`, 'utf8');
@@ -172,6 +173,61 @@ export async function GET(req: NextRequest) {
             : {}),
         })
         .eq('api_id', fixture.id);
+    }
+
+    // Auto-calculate podio points when Final and 3rd place match are finished
+    const { data: finalMatch } = await supabase
+      .from('matches')
+      .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')
+      .eq('stage', 'Final')
+      .in('status', ['FT', 'AET', 'PEN'])
+      .maybeSingle();
+
+    const { data: thirdMatch } = await supabase
+      .from('matches')
+      .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')
+      .eq('stage', 'Third Place')
+      .in('status', ['FT', 'AET', 'PEN'])
+      .maybeSingle();
+
+    if (finalMatch && thirdMatch) {
+      const fWinner = finalMatch.winner_team_name
+        ?? (((finalMatch.home_score ?? 0) >= (finalMatch.away_score ?? 0)) ? finalMatch.home_team_name : finalMatch.away_team_name);
+      const fLoser = finalMatch.winner_team_name
+        ? (finalMatch.winner_team_name === finalMatch.home_team_name ? finalMatch.away_team_name : finalMatch.home_team_name)
+        : (((finalMatch.home_score ?? 0) >= (finalMatch.away_score ?? 0)) ? finalMatch.away_team_name : finalMatch.home_team_name);
+
+      const actualChampion = TEAM_NAME_ES[fWinner ?? ''] ?? fWinner;
+      const actualRunnerUp = TEAM_NAME_ES[fLoser ?? ''] ?? fLoser;
+
+      const tWinner = thirdMatch.winner_team_name
+        ?? (((thirdMatch.home_score ?? 0) >= (thirdMatch.away_score ?? 0)) ? thirdMatch.home_team_name : thirdMatch.away_team_name);
+      const actualThird = TEAM_NAME_ES[tWinner ?? ''] ?? tWinner;
+
+      const { data: podPreds } = await supabase
+        .from('group_tournament_predictions')
+        .select('id, champion, runner_up, third_place, is_calculated');
+
+      for (const pred of podPreds ?? []) {
+        if (pred.is_calculated) continue;
+        const result = calculateTournamentPoints({
+          predictedChampion: pred.champion,
+          predictedRunnerUp: pred.runner_up,
+          predictedThird: pred.third_place,
+          actualChampion: actualChampion ?? null,
+          actualRunnerUp: actualRunnerUp ?? null,
+          actualThird: actualThird ?? null,
+        });
+        await supabase
+          .from('group_tournament_predictions')
+          .update({
+            champion_points: result.champion,
+            runner_up_points: result.runner_up,
+            third_place_points: result.third_place,
+            is_calculated: true,
+          })
+          .eq('id', pred.id);
+      }
     }
 
     revalidateTag('matches');
