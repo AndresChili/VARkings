@@ -49,6 +49,7 @@ interface ProfileClientProps {
   unreadSuggestions: number;
   isOAuthUser: boolean;
   earnedIds?: string[];
+  basePath?: string;
 }
 
 
@@ -85,7 +86,7 @@ function cropAndResizeImage(file: File, size: number): Promise<Blob> {
   });
 }
 
-export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions, isOAuthUser, earnedIds = [] }: ProfileClientProps) {
+export function ProfileClient({ profile, stats, achievementData, levelProgress, email, isSuperadmin, unreadSuggestions, isOAuthUser, earnedIds = [], basePath = '' }: ProfileClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -687,7 +688,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
 
         {/* Logros */}
         <button
-          onClick={() => router.push('/profile/logros')}
+          onClick={() => router.push(`${basePath}/profile/logros`)}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-blue-500/20 text-blue-400 hover:bg-blue-500/8 transition-colors group mb-3"
         >
           <div className="flex items-center gap-3">

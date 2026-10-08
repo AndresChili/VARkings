@@ -52,6 +52,7 @@ interface GroupDetailClientProps {
   memberGroupPicks: Record<string, Record<string, string[]>>;
   groupQualifiers: Record<string, string[]>;
   memberLevels: Record<string, number>;
+  basePath?: string;
 }
 
 const PODIO_STEPS = [
@@ -94,6 +95,7 @@ export function GroupDetailClient({
   memberGroupPicks,
   groupQualifiers,
   memberLevels,
+  basePath = '',
 }: GroupDetailClientProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -217,7 +219,7 @@ export function GroupDetailClient({
       .channel(`notify:${userId}`)
       .on('broadcast', { event: 'member_removed' }, ({ payload }) => {
         if ((payload as { group_id: string }).group_id === group.id) {
-          router.push('/dashboard');
+          router.push(`${basePath}/dashboard`);
         }
       })
       .subscribe();
@@ -295,7 +297,7 @@ export function GroupDetailClient({
     setDeleting(true);
     const res = await fetch(`/api/groups/${group.id}`, { method: 'DELETE' });
     if (res.ok) {
-      router.push('/dashboard');
+      router.push(`${basePath}/dashboard`);
       router.refresh();
     }
     setDeleting(false);
@@ -305,7 +307,7 @@ export function GroupDetailClient({
     setLeaving(true);
     const res = await fetch(`/api/groups/${group.id}/leave`, { method: 'DELETE' });
     if (res.ok) {
-      router.push('/dashboard');
+      router.push(`${basePath}/dashboard`);
       router.refresh();
     }
     setLeaving(false);
@@ -381,7 +383,7 @@ export function GroupDetailClient({
     setTransferringTo(null);
     if (res.ok) {
       setShowTransferModal(false);
-      router.push('/dashboard');
+      router.push(`${basePath}/dashboard`);
       router.refresh();
     }
   }
@@ -1358,7 +1360,7 @@ export function GroupDetailClient({
                 </button>
               )}
               <button
-                onClick={() => router.push(`/users/${selectedMemberId}`)}
+                onClick={() => router.push(`${basePath}/users/${selectedMemberId}`)}
                 className="w-full py-3 rounded-2xl border border-white/10 text-white text-sm font-semibold hover:bg-white/5 transition-colors flex items-center justify-center gap-2"
               >
                 <User size={15} />
