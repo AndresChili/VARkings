@@ -12,12 +12,13 @@ const NAV_ITEMS = [
   { href: '/profile', icon: User, label: 'Perfil' },
 ];
 
-export function BottomNav() {
+export function BottomNav({ basePath = '' }: { basePath?: string }) {
   const pathname = usePathname();
 
   return (
     <nav className="bottom-nav">
-      {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+      {NAV_ITEMS.map(({ href: relHref, icon: Icon, label }) => {
+        const href = `${basePath}${relHref}`;
         const isActive = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

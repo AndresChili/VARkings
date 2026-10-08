@@ -31,6 +31,7 @@ interface Props {
   profiles: FriendProfile[];
   xpMap: Record<string, number>;
   pointsMap: Record<string, number>;
+  basePath?: string;
 }
 
 function Avatar({ profile, size = 11 }: { profile: FriendProfile; size?: number }) {
@@ -83,7 +84,7 @@ const RANKING_POSITION: Record<number, string> = {
   3: 'bg-orange-600/20 text-orange-400 border border-orange-500/20',
 };
 
-export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap, pointsMap }: Props) {
+export function FriendsClient({ currentUserId, friendships: initial, profiles: initialProfiles, xpMap, pointsMap, basePath = '' }: Props) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -631,7 +632,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
                           )}
                         </div>
                         <button
-                          onClick={() => router.push(`/users/${friendId}`)}
+                          onClick={() => router.push(`${basePath}/users/${friendId}`)}
                           className="w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:border-white/30 transition-colors"
                           aria-label="Ver perfil"
                         >

@@ -27,6 +27,7 @@ interface DashboardClientProps {
   tournamentPrediction: { champion: string | null; runner_up: string | null; third_place: string | null } | null;
   teams: Team[];
   groupInvites: GroupInvite[];
+  basePath?: string;
 }
 
 const PODIO_STEPS = [
@@ -35,10 +36,10 @@ const PODIO_STEPS = [
   { key: 'thirdPlace' as const, label: 'Tercer clasificado', medal: '🥉', pts: 5, color: 'text-amber-600' },
 ];
 
-function GroupCard({ m }: { m: GroupEntry }) {
+function GroupCard({ m, basePath }: { m: GroupEntry; basePath: string }) {
   if (!m.groups) return null;
   return (
-    <Link href={`/groups/${m.groups.id}`} className="block group">
+    <Link href={`${basePath}/groups/${m.groups.id}`} className="block group">
       <div className={cn(
         'relative overflow-hidden rounded-2xl border-[1.5px] transition-all duration-300',
         'hover:-translate-y-0.5 hover:shadow-2xl active:scale-[0.99]',
@@ -121,6 +122,7 @@ export function DashboardClient({
   tournamentPrediction,
   teams,
   groupInvites: initialInvites,
+  basePath = '',
 }: DashboardClientProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -199,7 +201,7 @@ export function DashboardClient({
           if (prev.find((g) => g.group_id === invite.group_id)) return prev;
           return [...prev, { group_id: invite.group_id, member_count: 0, is_admin: false, groups: { id: invite.group_id, name: invite.group_name } }];
         });
-        router.push(`/groups/${invite.group_id}`);
+        router.push(`${basePath}/groups/${invite.group_id}`);
       }
     }
   }
@@ -230,7 +232,7 @@ export function DashboardClient({
   }
 
   function redirectToGroup() {
-    router.push(`/groups/${newGroupId}`);
+    router.push(`${basePath}/groups/${newGroupId}`);
     router.refresh();
   }
 
@@ -316,7 +318,7 @@ export function DashboardClient({
     if (!locked) {
       openPodio();
     } else {
-      router.push(`/groups/${data.group.id}`);
+      router.push(`${basePath}/groups/${data.group.id}`);
       router.refresh();
     }
   }
@@ -359,7 +361,7 @@ export function DashboardClient({
     if (!locked) {
       openPodio();
     } else {
-      router.push(`/groups/${data.group.id}`);
+      router.push(`${basePath}/groups/${data.group.id}`);
       router.refresh();
     }
   }
@@ -643,7 +645,7 @@ export function DashboardClient({
           <div className="space-y-3">
             {adminGroups.length > 0 && (
               <div className="space-y-2.5">
-                {adminGroups.map((m) => <GroupCard key={m.group_id} m={m} />)}
+                {adminGroups.map((m) => <GroupCard key={m.group_id} m={m} basePath={basePath} />)}
               </div>
             )}
             {adminGroups.length > 0 && memberGroups.length > 0 && (
@@ -655,7 +657,7 @@ export function DashboardClient({
             )}
             {memberGroups.length > 0 && (
               <div className="space-y-2.5">
-                {memberGroups.map((m) => <GroupCard key={m.group_id} m={m} />)}
+                {memberGroups.map((m) => <GroupCard key={m.group_id} m={m} basePath={basePath} />)}
               </div>
             )}
           </div>

@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/add/') ||
-    pathname === '/demo' ||
+    pathname.startsWith('/demo') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/icons/') ||

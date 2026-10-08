@@ -25,9 +25,10 @@ const STAGE_ES: Record<string, string> = {
 interface MatchPredictionClientProps {
   match: Match;
   existingPrediction: MatchPrediction | null;
+  basePath?: string;
 }
 
-export function MatchPredictionClient({ match, existingPrediction }: MatchPredictionClientProps) {
+export function MatchPredictionClient({ match, existingPrediction, basePath = '' }: MatchPredictionClientProps) {
   const router = useRouter();
   const started = isMatchStarted(match.match_date) || match.status !== 'NS';
   const live = isMatchLive(match.status);
@@ -83,7 +84,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
     setDeleted(true);
     setHomeScore('');
     setAwayScore('');
-    router.push(`/matches?r=${Date.now()}`);
+    router.push(`${basePath}/matches?r=${Date.now()}`);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -119,7 +120,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
 
     setSaved(true);
     triggerAchievementCheck();
-    router.push(`/matches?r=${Date.now()}`);
+    router.push(`${basePath}/matches?r=${Date.now()}`);
   }
 
   const scoresEntered = homeScore !== '' && awayScore !== '';

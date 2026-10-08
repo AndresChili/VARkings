@@ -32,11 +32,12 @@ interface MatchesClientProps {
     points_total: number;
     is_calculated: boolean;
   } | undefined>;
+  basePath?: string;
 }
 
 type FilterType = 'upcoming' | 'all' | 'finished';
 
-export function MatchesClient({ matches: initialMatches, predictionMap }: MatchesClientProps) {
+export function MatchesClient({ matches: initialMatches, predictionMap, basePath = '' }: MatchesClientProps) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
   const [filter, setFilter] = useState<FilterType>(() => {
     if (typeof window !== 'undefined') {
@@ -52,7 +53,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
     if (params.get('r')) {
       const saved = sessionStorage.getItem('matches-scroll');
       if (saved) window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
-      window.history.replaceState(null, '', '/matches');
+      window.history.replaceState(null, '', `${basePath}/matches`);
     }
   }, []);
 
@@ -219,7 +220,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
       ) : (
         <div className="space-y-3">
           {filtered.map((match) => (
-            <MatchCard key={match.id} match={match} prediction={predictionMap[match.id]} />
+            <MatchCard key={match.id} match={match} prediction={predictionMap[match.id]} basePath={basePath} />
           ))}
         </div>
       )}
@@ -227,9 +228,10 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   );
 }
 
-function MatchCard({ match, prediction }: {
+function MatchCard({ match, prediction, basePath }: {
   match: Match;
   prediction: { match_id: string; predicted_home_score: number; predicted_away_score: number; points_total: number; is_calculated: boolean } | undefined;
+  basePath: string;
 }) {
   const hasPrediction = !!prediction;
   const live = isMatchLive(match.status);
@@ -238,7 +240,7 @@ function MatchCard({ match, prediction }: {
   const { day, time } = formatCardDate(match.match_date);
 
   return (
-    <Link href={`/matches/${match.id}`} className="block group" onClick={() => sessionStorage.setItem('matches-scroll', String(window.scrollY))}>
+    <Link href={`${basePath}/matches/${match.id}`} className="block group" onClick={() => sessionStorage.setItem('matches-scroll', String(window.scrollY))}>
       <div className={cn(
         'relative overflow-hidden rounded-2xl transition-all duration-200',
         'group-hover:scale-[1.015] group-active:scale-[0.98]',
