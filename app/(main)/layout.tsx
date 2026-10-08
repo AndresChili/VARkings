@@ -5,6 +5,7 @@ import { getCachedUserProfile } from '@/lib/data-cache';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { PushPermissionBanner } from '@/components/ui/push-permission';
+import { TournamentEndedBanner } from '@/components/ui/tournament-ended-banner';
 import { InstallPrompt } from '@/components/ui/install-prompt';
 import { AchievementChecker } from '@/components/ui/achievement-checker';
 import { WelcomeModal } from '@/components/welcome/WelcomeModal';
@@ -23,13 +24,14 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   if (!user) redirect('/login');
 
   const admin = createAdminClient();
-  recordDailyLogin(admin, user.id); // fire-and-forget, idempotent
+  recordDailyLogin(admin, user.id); // se dispara sin esperar respuesta, es idempotente
 
   return (
     <div className="flex flex-col min-h-screen bg-surface pt-16">
       <Suspense fallback={<TopBar profile={null} />}>
         <TopBarWithProfile userId={user.id} />
       </Suspense>
+      <TournamentEndedBanner />
       <InstallPrompt />
       <PushPermissionBanner />
       <AchievementChecker />

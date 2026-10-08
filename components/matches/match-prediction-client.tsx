@@ -149,7 +149,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         </div>
       </div>
 
-      {/* Match card */}
+      {/* Tarjeta del partido */}
       <div className={cn(
         'rounded-2xl p-6 mb-5',
         live ? 'bg-green-500/10 border border-green-500/30' : 'bg-surface-card border border-white/10'
@@ -162,7 +162,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         )}
 
         <div className="flex items-center justify-between gap-4">
-          {/* Home team */}
+          {/* Equipo local */}
           <div className="flex-1 text-center">
             {match.home_team_logo
               ? <img src={match.home_team_logo} alt={homeNameEs} className="w-14 h-14 object-contain mx-auto mb-2" />
@@ -171,7 +171,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
             <p className="font-bold text-white text-sm leading-tight">{match.home_team_name ? homeNameEs : 'Por determinar'}</p>
           </div>
 
-          {/* Score */}
+          {/* Marcador */}
           <div className="text-center shrink-0">
             {done || live ? (
               <div className="text-3xl font-black text-white">
@@ -192,7 +192,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
             {match.venue && <div className="text-xs text-gray-600 mt-0.5">{match.venue}</div>}
           </div>
 
-          {/* Away team */}
+          {/* Equipo visitante */}
           <div className="flex-1 text-center">
             {match.away_team_logo
               ? <img src={match.away_team_logo} alt={awayNameEs} className="w-14 h-14 object-contain mx-auto mb-2" />
@@ -203,7 +203,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         </div>
       </div>
 
-      {/* Points result if calculated */}
+      {/* Resultado de puntos si ya se calculó */}
       {existingPrediction?.is_calculated && (
         <div className="bg-surface-card border border-white/10 rounded-2xl p-5 mb-5">
           <h3 className="text-sm font-semibold text-gray-300 mb-3">Resultado de tu predicción</h3>
@@ -230,7 +230,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
         </div>
       )}
 
-      {/* Prediction form */}
+      {/* Formulario de predicción */}
       <div className="bg-surface-card border border-white/10 rounded-2xl p-5">
         {started ? (
           <div className="text-center py-4">
@@ -284,7 +284,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
             </div>
 
-            {/* Predicted winner preview */}
+            {/* Vista previa del ganador predicho */}
             {predictedWinner && (
               <div className="bg-field/10 border border-field/30 rounded-xl px-4 py-2.5 mb-4 text-center">
                 <p className="text-sm text-field-light">
@@ -293,7 +293,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
             )}
 
-            {/* Knockout draw: pick who advances via penalties */}
+            {/* Empate en eliminatoria: elegir quién pasa por penales */}
             {needsKnockoutWinner && (
               <div className="mb-4">
                 <p className="text-xs text-amber-400 text-center mb-2">
@@ -328,7 +328,7 @@ export function MatchPredictionClient({ match, existingPrediction }: MatchPredic
               </div>
             )}
 
-            {/* Points breakdown info */}
+            {/* Desglose de puntos */}
             <div className="bg-surface rounded-xl p-3 mb-5 text-xs text-gray-500 space-y-1">
               <div className="flex justify-between"><span>Acertar ganador</span><span className="text-gray-300">+1 pt</span></div>
               <div className="flex justify-between"><span>Acertar goles locales</span><span className="text-gray-300">+1 pt</span></div>

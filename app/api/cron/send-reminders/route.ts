@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    // Find today's matches (Spain summer time = UTC+2, cron runs at 11:00 UTC = 13:00 Spain)
+    // Busca los partidos de hoy (horario de verano en España = UTC+2, el cron corre a las 11:00 UTC = 13:00 en España)
     const now = new Date();
     const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     const matchIds = todayMatches.map((m) => m.id);
 
-    // Get all push subscriptions
+    // Obtiene todas las suscripciones push
     const { data: allSubscriptions } = await supabase
       .from('push_subscriptions')
       .select('user_id, endpoint, p256dh, auth_key')
@@ -52,20 +52,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, sent: 0, reason: 'no subscriptions' });
     }
 
-    // Get predictions already made for today's matches
+    // Obtiene las predicciones ya hechas para los partidos de hoy
     const { data: predictions } = await supabase
       .from('match_predictions')
       .select('user_id, match_id')
       .in('match_id', matchIds);
 
-    // Build map: user_id → set of predicted match ids
+    // Construye el mapa: user_id → conjunto de ids de partidos predichos
     const predsByUser: Record<string, Set<string>> = {};
     for (const p of predictions ?? []) {
       predsByUser[p.user_id] ??= new Set();
       predsByUser[p.user_id].add(p.match_id);
     }
 
-    // Only notify users who are missing at least one prediction for today
+    // Solo notifica a los usuarios a los que les falta al menos una predicción de hoy
     type ValidSub = { endpoint: string; p256dh: string; auth_key: string };
     const toNotify: ValidSub[] = allSubscriptions
       .filter((s) => {

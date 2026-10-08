@@ -8,7 +8,7 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Verify user actually has an avatar before awarding XP
+  // Verifica que el usuario realmente tenga avatar antes de otorgar XP
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from('profiles')

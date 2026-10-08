@@ -25,7 +25,7 @@ export default async function PredictionsPage() {
 
   const teams = rawTeams.map((t) => ({ ...t, name: TEAM_NAME_ES[t.name] ?? t.name }));
 
-  // Derive actual podio from Final + Third Place match results
+  // Deriva el podio real a partir de los resultados de la Final + el Tercer puesto
   let actualPodio: { champion: string | null; runnerUp: string | null; thirdPlace: string | null } | null = null;
   if (finalMatch.data && thirdMatch.data) {
     const f = finalMatch.data;

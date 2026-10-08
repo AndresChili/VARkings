@@ -19,8 +19,8 @@ export interface FDMatch {
   };
 }
 
-// football-data.org v4 quirk: for matches decided on penalties, score.fullTime
-// includes the shootout goals. Subtract penalties to get the real match score.
+// Particularidad de football-data.org v4: en partidos decididos por penales, score.fullTime
+// incluye los goles de la tanda. Hay que restar los penales para obtener el resultado real.
 export function getFixtureScores(f: FDMatch): {
   home: number | null;
   away: number | null;
@@ -75,7 +75,7 @@ export async function getLiveWCMatches(): Promise<FDMatch[]> {
 export async function getRecentlyFinishedWCMatches(): Promise<FDMatch[]> {
   const today = new Date();
   const windowStart = new Date(today);
-  // 3-day window so the daily cron can also repair recently mis-synced results
+  // Ventana de 3 días para que el cron diario también repare resultados mal sincronizados recientemente
   windowStart.setDate(windowStart.getDate() - 3);
 
   const dateTo = today.toISOString().split('T')[0];

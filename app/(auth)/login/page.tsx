@@ -130,6 +130,12 @@ function LoginForm() {
           Regístrate gratis
         </Link>
       </p>
+
+      <p className="text-center text-gray-500 mt-3 text-sm">
+        <Link href="/demo" className="text-gray-300 hover:text-white transition-colors font-medium">
+          Ver demo sin registrarte →
+        </Link>
+      </p>
     </div>
   );
 }

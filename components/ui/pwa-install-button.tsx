@@ -23,13 +23,13 @@ export function PwaInstallButton() {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !('MSStream' in window);
     setIsIos(ios);
 
-    // iOS: always show (no beforeinstallprompt on Safari)
+    // iOS: siempre se muestra (Safari no dispara beforeinstallprompt)
     if (ios) {
       setVisible(true);
       return;
     }
 
-    // Android/Chrome: show immediately as fallback, upgrade to native prompt if available
+    // Android/Chrome: se muestra de inmediato como fallback, y pasa al prompt nativo si está disponible
     setVisible(true);
 
     const handler = (e: Event) => {
@@ -52,7 +52,7 @@ export function PwaInstallButton() {
       if (outcome === 'accepted') setVisible(false);
       setDeferredPrompt(null);
     } else {
-      // No native prompt available — show manual instructions
+      // No hay prompt nativo disponible — muestra instrucciones manuales
       setShowIosHint((v) => !v);
     }
   }

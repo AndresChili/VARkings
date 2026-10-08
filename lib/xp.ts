@@ -1,5 +1,5 @@
-// XP thresholds[i] = total XP needed to reach level i+1
-// Level 1 = 0 XP, Level 20 = 3820 XP (max theoretical ~4450)
+// thresholds[i] = XP total necesaria para alcanzar el nivel i+1
+// Nivel 1 = 0 XP, Nivel 20 = 3820 XP (máximo teórico ~4450)
 export const LEVEL_THRESHOLDS = [
   0,    // L1
   40,   // L2
@@ -24,7 +24,7 @@ export const LEVEL_THRESHOLDS = [
 ] as const;
 
 export const XP_VALUES = {
-  MATCH_MULTIPLIER: 5,      // points_total × 5 for calculated predictions
+  MATCH_MULTIPLIER: 5,      // points_total × 5 para predicciones ya calculadas
   FIRST_PREDICTION: 10,
   ALL_GROUP_STAGE: 30,
   ALL_TOURNAMENT: 75,

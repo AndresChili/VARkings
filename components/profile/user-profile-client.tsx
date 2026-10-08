@@ -154,7 +154,7 @@ export function UserProfileClient({
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in pb-10">
-      {/* Back */}
+      {/* Volver */}
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
@@ -163,7 +163,7 @@ export function UserProfileClient({
         Volver
       </button>
 
-      {/* Profile hero card */}
+      {/* Tarjeta principal de perfil */}
       <div className="relative bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
         <div className="h-24 bg-gradient-to-br from-field-dark/60 via-field/20 to-crown/10 relative overflow-hidden">
           <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/5" />
@@ -216,7 +216,7 @@ export function UserProfileClient({
             )}
           </div>
 
-          {/* XP bar */}
+          {/* Barra de XP */}
           <div className="bg-white/5 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
@@ -237,7 +237,7 @@ export function UserProfileClient({
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Estadísticas */}
       <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Estadísticas</p>
@@ -253,7 +253,7 @@ export function UserProfileClient({
         </div>
       </div>
 
-      {/* Completed achievements */}
+      {/* Logros completados */}
       {completedAchievements.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-3">

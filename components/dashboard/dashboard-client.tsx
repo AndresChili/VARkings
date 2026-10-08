@@ -46,13 +46,13 @@ function GroupCard({ m }: { m: GroupEntry }) {
           ? 'bg-gradient-to-br from-[#1c1506] via-surface-card to-surface-card border-crown/25 hover:border-crown/50 hover:shadow-crown/15'
           : 'bg-gradient-to-br from-[#061510] via-surface-card to-surface-card border-field/20 hover:border-field/45 hover:shadow-field/15'
       )}>
-        {/* Ambient glow */}
+        {/* Resplandor ambiental */}
         <div className={cn(
           'absolute -top-8 -right-8 w-36 h-36 rounded-full blur-3xl pointer-events-none opacity-25',
           m.is_admin ? 'bg-crown' : 'bg-field-light'
         )} />
 
-        {/* Top edge shimmer */}
+        {/* Brillo en el borde superior */}
         <div className={cn(
           'absolute top-0 left-8 right-8 h-px',
           m.is_admin
@@ -61,7 +61,7 @@ function GroupCard({ m }: { m: GroupEntry }) {
         )} />
 
         <div className="relative p-4 flex items-center gap-4">
-          {/* Icon */}
+          {/* Icono */}
           <div className={cn(
             'shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg',
             m.is_admin
@@ -73,7 +73,7 @@ function GroupCard({ m }: { m: GroupEntry }) {
               : <Users size={20} className="text-field-light" />}
           </div>
 
-          {/* Content */}
+          {/* Contenido */}
           <div className="flex-1 min-w-0">
             <p className="font-bold text-white text-[15px] tracking-tight truncate leading-tight mb-1.5">
               {m.groups.name}
@@ -96,7 +96,7 @@ function GroupCard({ m }: { m: GroupEntry }) {
             </div>
           </div>
 
-          {/* Arrow button */}
+          {/* Botón de flecha */}
           <div className={cn(
             'shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
             'group-hover:translate-x-0.5',
@@ -388,7 +388,7 @@ export function DashboardClient({
     <>
       <div className="max-w-lg mx-auto px-4 py-5 space-y-5 animate-fade-in">
 
-        {/* ── Banners ── */}
+        {/* ── Avisos ── */}
         {acceptedPendingGroup && (
           <div className="relative overflow-hidden bg-gradient-to-r from-field/12 to-field-dark/8 border border-field/25 rounded-2xl p-4 flex items-start gap-3">
             <span className="text-xl">⏳</span>
@@ -445,7 +445,7 @@ export function DashboardClient({
           </div>
         )}
 
-        {/* ── Page header ── */}
+        {/* ── Cabecera de página ── */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
@@ -465,7 +465,7 @@ export function DashboardClient({
           )}
         </div>
 
-        {/* ── Action buttons ── */}
+        {/* ── Botones de acción ── */}
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => { setShowCreate((v) => !v); setShowJoin(false); setError(''); }}
@@ -513,7 +513,7 @@ export function DashboardClient({
           </button>
         </div>
 
-        {/* ── Create form ── */}
+        {/* ── Formulario de crear ── */}
         {showCreate && (
           <div className="relative overflow-hidden bg-surface-card border-[1.5px] border-field/30 rounded-2xl p-5 animate-slide-up">
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-field/10 blur-3xl pointer-events-none" />
@@ -564,7 +564,7 @@ export function DashboardClient({
           </div>
         )}
 
-        {/* ── Join form ── */}
+        {/* ── Formulario de unirse ── */}
         {showJoin && (
           <div className="relative overflow-hidden bg-surface-card border-[1.5px] border-white/15 rounded-2xl p-5 animate-slide-up">
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/3 blur-3xl pointer-events-none" />
@@ -611,7 +611,7 @@ export function DashboardClient({
           </div>
         )}
 
-        {/* ── Join pending banner ── */}
+        {/* ── Aviso de solicitud pendiente ── */}
         {joinPending && (
           <div className="bg-surface-card border border-white/10 rounded-2xl p-4 flex items-start gap-3">
             <span className="text-xl">⏳</span>
@@ -625,7 +625,7 @@ export function DashboardClient({
           </div>
         )}
 
-        {/* ── Groups list ── */}
+        {/* ── Lista de grupos ── */}
         {localGroups.length === 0 ? (
           <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-surface-card py-12 text-center">
             <div className="absolute inset-0 bg-gradient-to-b from-field/5 to-transparent pointer-events-none" />

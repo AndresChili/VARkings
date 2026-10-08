@@ -59,8 +59,8 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
   const matchesRef = useRef(matches);
   matchesRef.current = matches;
 
-  // Always-on interval that decides on each tick whether to refresh, so a match
-  // reaching kickoff (or going live) starts updating without a page reload.
+  // Intervalo siempre activo que decide en cada tick si refrescar, para que un partido
+  // que arranca (o se pone en vivo) empiece a actualizarse sin recargar la página.
   useEffect(() => {
     const interval = setInterval(async () => {
       const current = matchesRef.current;
@@ -122,7 +122,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5 animate-fade-in">
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs font-bold text-field-light uppercase tracking-widest mb-1">Mundial 2026</p>
@@ -136,7 +136,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
         )}
       </div>
 
-      {/* Filter tabs */}
+      {/* Pestañas de filtro */}
       <div className="flex bg-surface-hover/60 rounded-2xl p-1 gap-1 border border-white/6">
         {([
           ['upcoming', 'Próximos', upcoming.length],
@@ -166,7 +166,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
         ))}
       </div>
 
-      {/* Search + filters */}
+      {/* Búsqueda + filtros */}
       {showSearchBar && (
         <div className="space-y-2.5">
           <div className="relative">
@@ -211,7 +211,7 @@ export function MatchesClient({ matches: initialMatches, predictionMap }: Matche
         </div>
       )}
 
-      {/* List */}
+      {/* Lista */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-white/6 p-10 text-center">
           <p className="text-gray-500 text-sm">No hay partidos en esta categoría</p>
@@ -246,7 +246,7 @@ function MatchCard({ match, prediction }: {
           ? 'shadow-xl shadow-green-900/40'
           : 'group-hover:shadow-lg group-hover:shadow-black/30'
       )}>
-        {/* Card background */}
+        {/* Fondo de la tarjeta */}
         <div className={cn(
           'absolute inset-0',
           live
@@ -256,13 +256,13 @@ function MatchCard({ match, prediction }: {
             : 'bg-gradient-to-b from-surface-hover to-surface-card border border-white/10 group-hover:border-white/16'
         )} />
 
-        {/* Live glow top bar */}
+        {/* Barra superior brillante cuando está en vivo */}
         {live && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent" />
         )}
 
         <div className="relative">
-          {/* Header: label + date/time */}
+          {/* Cabecera: etiqueta + fecha/hora */}
           <div className="flex items-center justify-between px-4 pt-3 pb-0">
             <span className={cn(
               'text-[10px] font-black uppercase tracking-[0.12em]',
@@ -284,7 +284,7 @@ function MatchCard({ match, prediction }: {
             </div>
           </div>
 
-          {/* Time (only when not live) */}
+          {/* Hora (solo cuando no está en vivo) */}
           {!live && (
             <div className="flex justify-end px-4">
               <span className={cn(
@@ -294,9 +294,9 @@ function MatchCard({ match, prediction }: {
             </div>
           )}
 
-          {/* Teams + score */}
+          {/* Equipos + marcador */}
           <div className="flex items-center px-4 pt-2 pb-4 gap-2">
-            {/* Home */}
+            {/* Local */}
             <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
               {match.home_team_logo
                 ? <Image src={match.home_team_logo} alt={match.home_team_name ?? ''} width={56} height={56}
@@ -310,7 +310,7 @@ function MatchCard({ match, prediction }: {
               </span>
             </div>
 
-            {/* Score / VS */}
+            {/* Marcador / VS */}
             <div className="shrink-0 w-[76px] flex flex-col items-center gap-1">
               {done || live ? (
                 <div className={cn(
@@ -337,7 +337,7 @@ function MatchCard({ match, prediction }: {
               )}
             </div>
 
-            {/* Away */}
+            {/* Visitante */}
             <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
               {match.away_team_logo
                 ? <Image src={match.away_team_logo} alt={match.away_team_name ?? ''} width={56} height={56}
@@ -352,7 +352,7 @@ function MatchCard({ match, prediction }: {
             </div>
           </div>
 
-          {/* Prediction footer */}
+          {/* Pie de predicción */}
           {hasPrediction ? (
             <div className={cn(
               'flex items-center justify-center gap-2.5 px-4 py-3 border-t',

@@ -10,7 +10,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     redirect(`/register?invite=${encodeURIComponent(code)}`);
   }
 
-  // Use admin client so invite_code lookup works regardless of RLS
+  // Usa el cliente admin para que la búsqueda por invite_code funcione al margen de RLS
   const admin = createAdminClient();
   const { data: group } = await admin
     .from('groups')
@@ -22,7 +22,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     redirect('/groups?error=invalid_code');
   }
 
-  // Already a member → go straight to group
+  // Ya es miembro → ir directo al grupo
   const { data: existing } = await supabase
     .from('group_members')
     .select('id')
@@ -34,13 +34,13 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     redirect(`/groups/${group.id}`);
   }
 
-  // Creator rejoining → direct insert (shouldn't normally happen)
+  // El creador se reúne al grupo → inserción directa (no debería ocurrir normalmente)
   if (group.created_by === user.id) {
     await admin.from('group_members').insert({ group_id: group.id, user_id: user.id });
     redirect(`/groups/${group.id}`);
   }
 
-  // Check if there is already a pending request
+  // Comprueba si ya existe una solicitud pendiente
   const { data: existingRequest } = await supabase
     .from('join_requests')
     .select('id, status')
@@ -52,12 +52,12 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     redirect(`/groups?pending=${group.id}`);
   }
 
-  // Delete previous rejected request if any
+  // Elimina la solicitud rechazada anterior, si existe
   if (existingRequest) {
     await supabase.from('join_requests').delete().eq('id', existingRequest.id);
   }
 
-  // Create join request — admin must approve, not direct insert
+  // Crea la solicitud de unión — el admin debe aprobarla, no se inserta directamente
   await supabase.from('join_requests').insert({
     group_id: group.id,
     user_id: user.id,

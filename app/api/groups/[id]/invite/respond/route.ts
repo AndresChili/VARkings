@@ -38,11 +38,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const inviterIsAdmin = group?.created_by === invite.inviter_id;
 
     if (inviterIsAdmin) {
-      // Admin invited → join directly
+      // Invitado por el admin → se une directamente
       const { error: joinError } = await supabase
         .from('group_members')
         .insert({ group_id: invite.group_id, user_id: user.id });
-      // code 23505 = unique_violation (already a member — idempotent, continue)
+      // código 23505 = unique_violation (ya es miembro — idempotente, continúa)
       if (joinError && joinError.code !== '23505') {
         return NextResponse.json({ error: 'Error al unirse al grupo' }, { status: 400 });
       }
@@ -52,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .eq('id', invite_id);
       return NextResponse.json({ ok: true, action, pending: false });
     } else {
-      // Non-admin invited → create join_request, admin must approve
+      // Invitado por alguien que no es admin → crea join_request, el admin debe aprobarlo
       const { error: reqError } = await supabase
         .from('join_requests')
         .upsert(

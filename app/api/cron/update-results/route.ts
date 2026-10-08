@@ -28,9 +28,9 @@ export async function GET(req: NextRequest) {
     const supabase = createAdminClient();
     let updated = 0;
 
-    // Resolve pending knockout pairings: /api/matches only syncs team names
-    // while clients are polling (live matches), so pairings decided by the
-    // day's last games would otherwise stay unnamed until the next kickoff.
+    // Resuelve emparejamientos de eliminatoria pendientes: /api/matches solo sincroniza nombres de equipo
+    // mientras los clientes hacen polling (partidos en vivo), así que los emparejamientos decididos en
+    // los últimos partidos del día quedarían sin nombre hasta el próximo inicio de partido.
     const { data: unnamedKnockout } = await supabase
       .from('matches')
       .select('id')
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Update finished matches and calculate points
+    // Actualiza los partidos finalizados y calcula los puntos
     const finished = await getRecentlyFinishedWCMatches();
 
     for (const fixture of finished) {
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       if (!match) continue;
       const alreadyFinished = match.status === 'FT' || match.status === 'AET' || match.status === 'PEN';
       const scoresAreMissing = match.home_score === null || match.away_score === null;
-      // Repair rows saved before penalty handling: DB score included shootout goals
+      // Repara filas guardadas antes de gestionar los penales: el marcador en BD incluía los goles de la tanda
       const scoresAreWrong = !scoresAreMissing &&
         (match.home_score !== homeScore || match.away_score !== awayScore ||
           (penaltiesHome !== null && match.home_penalties === null));
@@ -103,8 +103,8 @@ export async function GET(req: NextRequest) {
           .eq('id', match.id);
       }
 
-      // If scores were repaired, recalculate every prediction (they were scored
-      // against the wrong result) and rebuild the points log for this match.
+      // Si se repararon los marcadores, recalcula todas las predicciones (se habían puntuado
+      // contra el resultado incorrecto) y reconstruye el registro de puntos de este partido.
       const forceRecalc = alreadyFinished && scoresAreWrong;
       let predQuery = supabase
         .from('match_predictions')
@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
       updated++;
     }
 
-    // Update live match statuses and scores
+    // Actualiza estados y marcadores de los partidos en vivo
     const live = await getLiveWCMatches();
     for (const fixture of live) {
       const { home: liveHome, away: liveAway } = getFixtureScores(fixture);
@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
         .eq('api_id', fixture.id);
     }
 
-    // Auto-calculate podio points when Final and 3rd place match are finished
+    // Calcula automáticamente los puntos de podio cuando terminan la Final y el partido por el 3er puesto
     const { data: finalMatch } = await supabase
       .from('matches')
       .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')

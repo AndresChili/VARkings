@@ -40,10 +40,10 @@ export function InstallPrompt() {
       return;
     }
 
-    // Android: show banner immediately
+    // Android: muestra el banner inmediatamente
     setPlatform('android');
 
-    // Pick up event captured before React hydrated
+    // Recoge el evento capturado antes de que React hidrate
     if (window.__pwaPrompt) {
       setDeferredPrompt(window.__pwaPrompt);
     }

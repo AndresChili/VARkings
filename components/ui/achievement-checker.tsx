@@ -95,7 +95,7 @@ export function AchievementChecker() {
   return <AchievementToast items={toShow} />;
 }
 
-/** Call after any action that could unlock an achievement */
+/** Llamar tras cualquier acción que pueda desbloquear un logro */
 export function triggerAchievementCheck() {
   window.dispatchEvent(new CustomEvent('achievement-check'));
 }

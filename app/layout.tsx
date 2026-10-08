@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Nonce is injected by middleware per-request for CSP enforcement
+  // El middleware inyecta el nonce en cada petición para aplicar la CSP
   const nonce = (await headers()).get('x-nonce') ?? '';
 
   return (
@@ -44,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        {/* Capture beforeinstallprompt before React hydrates to avoid race condition */}
+        {/* Captura beforeinstallprompt antes de que React hidrate, para evitar una condición de carrera */}
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: `

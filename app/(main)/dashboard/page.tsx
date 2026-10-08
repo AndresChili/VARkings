@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     };
   });
 
-  // Build team list with group info derived from matches (source of truth for groups)
+  // Construye la lista de equipos con el grupo derivado de los partidos (fuente de verdad de los grupos)
   const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
   groupStageMatchesData.forEach((m) => {
     if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name, logo: m.home_team_logo, group: m.group_name });

@@ -30,8 +30,8 @@ export function PushPermissionBanner() {
     if (Notification.permission === 'denied') return;
 
     if (Notification.permission === 'granted') {
-      // Permission already granted — silently ensure subscription is saved in DB
-      // (covers cases where subscription was lost: cache clear, new device, SW update)
+      // El permiso ya está concedido — asegura en silencio que la suscripción esté guardada en BD
+      // (cubre los casos en que se perdió la suscripción: limpieza de caché, nuevo dispositivo, actualización del SW)
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) return;
       navigator.serviceWorker.ready.then(async (reg) => {
@@ -42,7 +42,7 @@ export function PushPermissionBanner() {
             applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
           });
           await saveSubscription(sub);
-        } catch { /* silent */ }
+        } catch { /* en silencio */ }
       });
       return;
     }

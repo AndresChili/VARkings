@@ -39,7 +39,7 @@ export function WelcomeModal({ userId }: WelcomeModalProps) {
         className="relative bg-surface-card border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm overflow-hidden shadow-2xl animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
+        {/* Botón de cerrar */}
         <button
           onClick={dismiss}
           className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors"
@@ -47,14 +47,14 @@ export function WelcomeModal({ userId }: WelcomeModalProps) {
           <X size={15} />
         </button>
 
-        {/* Step content — key forces fade-in on step change */}
+        {/* Contenido del paso — la key fuerza el fade-in al cambiar de paso */}
         <div key={step} className="animate-fade-in">
           {step === 0 && <StepWelcome />}
           {step === 1 && <StepScoring />}
           {step === 2 && <StepExtras />}
         </div>
 
-        {/* Footer */}
+        {/* Pie */}
         <div className="px-5 pt-2 pb-6">
           <button
             onClick={next}
@@ -71,7 +71,7 @@ export function WelcomeModal({ userId }: WelcomeModalProps) {
             )}
           </button>
 
-          {/* Progress dots */}
+          {/* Puntos de progreso */}
           <div className="flex items-center justify-center gap-2 mt-4">
             {[0, 1, 2].map((i) => (
               <button
@@ -92,9 +92,9 @@ export function WelcomeModal({ userId }: WelcomeModalProps) {
 function StepWelcome() {
   return (
     <div>
-      {/* Hero gradient */}
+      {/* Cabecera con degradado */}
       <div className="relative bg-gradient-to-br from-field-dark via-[#1e5c3a] to-field px-6 pt-10 pb-7 text-center overflow-hidden">
-        {/* Decorative circles */}
+        {/* Círculos decorativos */}
         <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-white/5" />
         <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full bg-black/20" />
         <div className="absolute top-4 right-8 w-3 h-3 rounded-full bg-crown/40" />
@@ -114,13 +114,13 @@ function StepWelcome() {
         </div>
       </div>
 
-      {/* Body */}
+      {/* Cuerpo */}
       <div className="px-5 py-5">
         <p className="text-gray-300 text-sm leading-relaxed text-center">
           Predice partidos, acumula puntos y demuestra que sabes de fútbol. Compite con tus amigos y escala el ranking global.
         </p>
 
-        {/* Quick stats */}
+        {/* Estadísticas rápidas */}
         <div className="grid grid-cols-3 gap-2.5 mt-4">
           <div className="bg-surface border border-white/5 rounded-xl py-3 text-center">
             <p className="text-crown font-black text-xl leading-none">104</p>

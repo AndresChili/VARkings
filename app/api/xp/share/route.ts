@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Count existing share events
+  // Cuenta los eventos de compartir ya existentes
   const { count } = await admin
     .from('xp_events')
     .select('id', { count: 'exact', head: true })

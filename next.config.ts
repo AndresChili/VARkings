@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
           { key: 'X-DNS-Prefetch-Control', value: 'off' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
-          // CSP is set per-request in middleware.ts with a nonce — do not set a static CSP here
+          // La CSP se define por petición en middleware.ts con un nonce — no poner aquí una CSP estática
         ],
       },
     ];
