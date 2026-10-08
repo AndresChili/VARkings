@@ -109,7 +109,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
     setSending(true);
     setInput('');
 
-    // Optimistic update
+    // Actualización optimista
     const tempId = `temp-${Date.now()}`;
     const tempMsg: ChatMessage = {
       id: tempId,
@@ -129,12 +129,12 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
     setSending(false);
 
     if (!res.ok) {
-      // Rollback optimistic message
+      // Revierte el mensaje optimista
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setInput(content);
     } else {
       const saved: ChatMessage = await res.json();
-      // Replace temp with real (Realtime may also arrive — dedup handles it)
+      // Sustituye el mensaje temporal por el real (Realtime también puede llegar — la deduplicación lo gestiona)
       setMessages((prev) => prev.map((m) => m.id === tempId ? saved : m));
       inputRef.current?.focus();
     }
@@ -147,7 +147,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
     }
   }
 
-  // Group messages by calendar date for separators
+  // Agrupa los mensajes por fecha para los separadores
   const grouped: Array<{ date: string; msgs: ChatMessage[] }> = [];
   for (const msg of messages) {
     const date = new Date(msg.created_at).toDateString();
@@ -172,7 +172,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
       className={cn('bg-surface-card border border-white/10 rounded-2xl overflow-hidden flex flex-col', hidden && 'hidden')}
       style={{ height: '480px' }}
     >
-      {/* Messages list */}
+      {/* Lista de mensajes */}
       <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
@@ -183,7 +183,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
 
         {grouped.map(({ date, msgs }) => (
           <div key={date}>
-            {/* Date separator */}
+            {/* Separador de fecha */}
             <div className="flex items-center gap-3 my-3">
               <div className="flex-1 h-px bg-white/5" />
               <span className="text-[11px] text-gray-600 font-medium shrink-0">
@@ -204,7 +204,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
                     key={msg.id}
                     className={cn('flex gap-2 items-end', isMe ? 'flex-row-reverse' : 'flex-row')}
                   >
-                    {/* Avatar (other users only) */}
+                    {/* Avatar (solo para otros usuarios) */}
                     {!isMe && (
                       <div className="w-7 shrink-0 self-end mb-0.5">
                         {isFirstInRun ? (
@@ -252,7 +252,7 @@ export function GroupChat({ groupId, userId, leaderboard, onNewMessage, hidden }
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
+      {/* Barra de entrada */}
       <div className="border-t border-white/5 p-3 flex gap-2 items-end shrink-0">
         <textarea
           ref={inputRef}

@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API returned no valid fixtures' }, { status: 502 });
     }
 
-    // Delete seeded matches only after confirming real data is available
+    // Borra los partidos sembrados solo después de confirmar que hay datos reales disponibles
     await supabase.from('matches').delete().is('api_id', null);
 
     const { error } = await supabase

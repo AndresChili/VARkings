@@ -24,7 +24,7 @@ export async function createClient(): Promise<SupabaseClient<Database>> {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Server component
+            // Componente de servidor
           }
         },
       },

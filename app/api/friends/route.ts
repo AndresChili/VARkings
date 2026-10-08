@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'No se pudo enviar la solicitud' }, { status: 400 });
 
-  // Fire-and-forget push to addressee
+  // Envía la notificación push al destinatario sin esperar respuesta
   ;(async () => {
     const [{ data: profile }, admin] = [
       await supabase.from('profiles').select('username').eq('id', user.id).single(),
@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Verify user is the addressee of this pending friendship
+  // Verifica que el usuario sea el destinatario de esta solicitud pendiente
   const { data: existing } = await admin
     .from('friendships')
     .select('id, requester_id, addressee_id, status')

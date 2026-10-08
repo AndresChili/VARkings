@@ -35,9 +35,9 @@ function ko(date: string, stage: string, hour = 19): KnockoutInsert {
   };
 }
 
-// WC2026 knockout schedule
+// Calendario de eliminatorias del Mundial 2026
 const matches: KnockoutInsert[] = [
-  // Round of 32 — July 1-4, 2026 (16 matches)
+  // Dieciseisavos — 1-4 de julio de 2026 (16 partidos)
   ko('2026-07-01', 'Round of 32', 17),
   ko('2026-07-01', 'Round of 32', 20),
   ko('2026-07-01', 'Round of 32', 23),
@@ -55,7 +55,7 @@ const matches: KnockoutInsert[] = [
   ko('2026-07-05', 'Round of 32', 23),
   ko('2026-07-06', 'Round of 32', 20),
 
-  // Round of 16 — July 7-10, 2026 (8 matches)
+  // Octavos de final — 7-10 de julio de 2026 (8 partidos)
   ko('2026-07-07', 'Round of 16', 20),
   ko('2026-07-07', 'Round of 16', 23),
   ko('2026-07-08', 'Round of 16', 20),
@@ -65,25 +65,25 @@ const matches: KnockoutInsert[] = [
   ko('2026-07-10', 'Round of 16', 20),
   ko('2026-07-10', 'Round of 16', 23),
 
-  // Quarterfinals — July 12-13, 2026 (4 matches)
+  // Cuartos de final — 12-13 de julio de 2026 (4 partidos)
   ko('2026-07-12', 'Quarter-finals', 20),
   ko('2026-07-12', 'Quarter-finals', 23),
   ko('2026-07-13', 'Quarter-finals', 20),
   ko('2026-07-13', 'Quarter-finals', 23),
 
-  // Semifinals — July 16-17, 2026 (2 matches)
+  // Semifinales — 16-17 de julio de 2026 (2 partidos)
   ko('2026-07-16', 'Semi-finals', 23),
   ko('2026-07-17', 'Semi-finals', 23),
 
-  // Third Place — July 19, 2026
+  // Tercer puesto — 19 de julio de 2026
   ko('2026-07-19', 'Third Place', 19),
 
-  // Final — July 19, 2026
+  // Final — 19 de julio de 2026
   ko('2026-07-19', 'Final', 23),
 ];
 
 async function seed() {
-  // Only delete existing knockout stubs (api_id null + stage not Group Stage)
+  // Solo borra los partidos de eliminatoria ya sembrados (api_id nulo + stage distinto de Group Stage)
   const { error: delError } = await supabase
     .from('matches')
     .delete()

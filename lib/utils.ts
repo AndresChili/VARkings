@@ -65,9 +65,9 @@ export function getWinner(homeScore: number, awayScore: number): 'home' | 'away'
 }
 
 export function generateInviteCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; // 36 chars
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; // 36 caracteres
   const result: string[] = [];
-  // Rejection sampling: discard bytes >= 252 (252 = 7×36) to avoid modulo bias
+  // Rejection sampling: descarta bytes >= 252 (252 = 7×36) para evitar sesgo de módulo
   while (result.length < 8) {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
@@ -95,7 +95,7 @@ export function getRankEmoji(rank: number): string {
 
 export const WC_GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-// All predictions lock when Round of 16 starts
+// Todas las predicciones se bloquean cuando empiezan los octavos de final
 export const TOURNAMENT_LOCK_DATE = new Date('2026-06-27T14:00:00Z');
 export const KNOCKOUT_LOCK_DATE = TOURNAMENT_LOCK_DATE;
 

@@ -9,7 +9,7 @@ export function LogrosClient({ stats, earnedIds }: { stats: AchievementStats; ea
 
   return (
     <div className="animate-fade-in max-w-lg mx-auto pb-4">
-      {/* Header */}
+      {/* Cabecera */}
       <div className="relative h-28 field-gradient overflow-hidden mb-0">
         <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/5" />
         <div className="absolute -bottom-10 -left-6 w-28 h-28 rounded-full bg-white/5" />

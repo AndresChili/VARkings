@@ -162,7 +162,7 @@ export default async function ProfilePage() {
     .eq('source_type', 'achievement');
   const earnedIds = (earnedRows ?? []).map((r: { source_id: string }) => r.source_id);
 
-  // Compute and award automatic XP bonuses, then get total XP
+  // Calcula y otorga las bonificaciones automáticas de XP, luego obtiene el XP total
   await computeAndAwardBonuses(admin, user.id, {
     totalPredictions: preds.length,
     groupStagePredictions: groupStagePredCount.count ?? 0,

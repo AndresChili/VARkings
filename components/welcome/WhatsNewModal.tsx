@@ -28,7 +28,7 @@ export function WhatsNewModal() {
         className="relative bg-surface-card border border-white/10 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm overflow-hidden shadow-2xl animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
+        {/* Cerrar */}
         <button
           onClick={dismiss}
           className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/8 hover:bg-white/15 text-gray-400 hover:text-gray-200 transition-colors"
@@ -36,22 +36,22 @@ export function WhatsNewModal() {
           <X size={15} />
         </button>
 
-        {/* Hero */}
+        {/* Cabecera */}
         <div className="relative bg-gradient-to-br from-blue-950 via-blue-900/80 to-indigo-900 px-6 pt-10 pb-8 text-center overflow-hidden">
-          {/* Blobs */}
+          {/* Formas decorativas */}
           <div className="absolute -top-8 -left-8 w-36 h-36 rounded-full bg-blue-500/10" />
           <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full bg-indigo-500/15" />
           <div className="absolute top-5 right-12 w-2 h-2 rounded-full bg-blue-300/40" />
           <div className="absolute bottom-8 left-10 w-1.5 h-1.5 rounded-full bg-indigo-300/30" />
 
           <div className="relative">
-            {/* Version badge */}
+            {/* Insignia de versión */}
             <div className="inline-flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold px-3 py-1 rounded-full mb-4">
               <Sparkles size={11} />
               NOVEDAD
             </div>
 
-            {/* Big version number */}
+            {/* Número de versión grande */}
             <div className="text-7xl font-black text-white leading-none tracking-tighter mb-1">
               2<span className="text-blue-400">.</span>0
             </div>
@@ -59,14 +59,14 @@ export function WhatsNewModal() {
           </div>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div className="px-5 py-5 space-y-3">
           <div>
             <h2 className="text-lg font-black text-white">¿Qué hay de nuevo?</h2>
             <p className="text-gray-500 text-sm mt-0.5">Esta actualización trae algo que pedíais</p>
           </div>
 
-          {/* Feature card */}
+          {/* Tarjeta de funcionalidad */}
           <div className="relative bg-gradient-to-br from-blue-600/15 to-indigo-600/10 border border-blue-500/25 rounded-2xl p-4 overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-400/5 rounded-bl-3xl pointer-events-none" />
             <div className="flex items-start gap-3.5">
@@ -93,7 +93,7 @@ export function WhatsNewModal() {
           <p className="text-center text-gray-700 text-xs pt-1">Hecho por Andrés con ❤️</p>
         </div>
 
-        {/* CTA */}
+        {/* Llamada a la acción */}
         <div className="px-5 pb-6">
           <button
             onClick={dismiss}

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Marcador inválido' }, { status: 400 });
   }
 
-  // Verify match exists and hasn't started
+  // Verifica que el partido exista y no haya comenzado
   const { data: match } = await supabase
     .from('matches')
     .select('id, match_date, status, stage, home_team_name, away_team_name')
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'Error al guardar predicción' }, { status: 500 });
 
-  // Award first-prediction XP (idempotent — ignored if already awarded)
+  // Otorga XP por la primera predicción (idempotente — se ignora si ya se otorgó)
   const admin = createAdminClient();
   await awardXP(admin, user.id, 'first_prediction', 'once', XP_VALUES.FIRST_PREDICTION);
 

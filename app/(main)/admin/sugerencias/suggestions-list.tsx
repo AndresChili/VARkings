@@ -98,7 +98,7 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
         <div className="space-y-2">
           {list.map((s) => (
             <div key={s.id} className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
-              {/* Header row — only expands/collapses */}
+              {/* Fila de cabecera — solo expande/colapsa */}
               <button
                 onClick={() => toggleExpand(s.id)}
                 className="w-full flex items-center gap-2 px-4 py-3.5 text-left"
@@ -125,7 +125,7 @@ export function SuggestionsList({ initial }: { initial: SuggestionRow[] }) {
                 />
               </button>
 
-              {/* Expanded body */}
+              {/* Cuerpo expandido */}
               {expanded === s.id && (
                 <div className="px-4 pb-4 pt-2 border-t border-white/5 space-y-3">
                   <p className="text-sm text-gray-200 whitespace-pre-wrap break-words overflow-hidden">{s.message}</p>

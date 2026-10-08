@@ -47,7 +47,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     getCachedGroupStageMatches(),
   ]);
 
-  // Build teams with group_name from matches (same logic as dashboard)
+  // Construye los equipos con group_name a partir de los partidos (misma lógica que el dashboard)
   const teamMap = new Map<string, { name: string; logo: string | null; group: string }>();
   groupStageMatchesData.forEach((m) => {
     if (m.home_team_name && m.group_name) teamMap.set(m.home_team_name, { name: TEAM_NAME_ES[m.home_team_name] ?? m.home_team_name, logo: m.home_team_logo, group: m.group_name });
@@ -115,7 +115,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     memberPredictions: predsByMatch[m.id] ?? [],
   }));
 
-  // Official top-2 qualifiers per group (best thirds don't count)
+  // Clasificados oficiales (los 2 primeros de cada grupo; los mejores terceros no cuentan)
   const groupQualifiers = await getGroupQualifiers();
 
   const profileMap = Object.fromEntries((pendingProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));

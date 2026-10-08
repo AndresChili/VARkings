@@ -85,7 +85,7 @@ export async function POST(
       return NextResponse.json({ error: 'Error al añadir miembro' }, { status: 500 });
     }
 
-    // Award XP to joining user + check 5-member milestone for creator
+    // Otorga XP al usuario que se une + comprueba el hito de 5 miembros para el creador
     const admin = createAdminClient();
     await Promise.all([
       awardGroupJoinXP(admin, user_id, id),

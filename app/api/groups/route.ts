@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, description } = body;
 
-  // Limit groups created per user
+  // Limita los grupos creados por usuario
   const { count: createdCount } = await supabase
     .from('groups')
     .select('id', { count: 'exact', head: true })
@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear el grupo' }, { status: 500 });
   }
 
-  // Auto-join creator to the group
+  // Une automáticamente al creador al grupo
   await supabase.from('group_members').insert({ group_id: group.id, user_id: user.id });
 
-  // Award XP for creating a group (1x per user)
+  // Otorga XP por crear un grupo (1 vez por usuario)
   const admin = createAdminClient();
   await awardXP(admin, user.id, 'group_create', 'once', XP_VALUES.GROUP_CREATE);
 

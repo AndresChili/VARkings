@@ -81,7 +81,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
         Volver
       </button>
 
-      {/* Profile card */}
+      {/* Tarjeta de perfil */}
       <div className="bg-surface-card border border-white/8 rounded-3xl p-8 flex flex-col items-center text-center gap-4">
 
         {/* Avatar */}
@@ -101,7 +101,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        {/* Not logged in */}
+        {/* No ha iniciado sesión */}
         {!currentUserId && (
           <div className="flex flex-col items-center gap-3 w-full">
             <p className="text-gray-400 text-sm">Inicia sesión para añadir a @{target.username} como amigo</p>
@@ -115,7 +115,7 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
           </div>
         )}
 
-        {/* Logged in states */}
+        {/* Estados con sesión iniciada */}
         {currentUserId && isAccepted && (
           <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-field/15 text-field-light font-semibold text-sm">
             <Users size={16} />

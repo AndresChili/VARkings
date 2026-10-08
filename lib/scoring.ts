@@ -28,8 +28,8 @@ export function calculateMatchPoints(
   const predictedResult = getWinner(predictedHome, predictedAway);
   const actualResult = getWinner(actualHome, actualAway);
 
-  // For knockout draws settled by penalties, award winner point based on who the user
-  // picked to advance, not on the draw result itself.
+  // En empates de eliminatoria resueltos por penales, el punto de ganador se otorga según
+  // quién eligió el usuario que pasaba de ronda, no según el resultado del empate en sí.
   let points_winner: number;
   if (actualResult === 'draw' && opts?.actualKnockoutWinner) {
     points_winner = opts.predictedKnockoutWinner === opts.actualKnockoutWinner

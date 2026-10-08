@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server';
 
-// --- In-memory fallback (per serverless instance) ---
+// --- Fallback en memoria (por instancia serverless) ---
 const store = new Map<string, { count: number; resetAt: number }>();
 
-// Cleanup expired entries to prevent memory leaks in long-running instances
+// Limpia entradas caducadas para evitar fugas de memoria en instancias de larga duración
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
@@ -23,9 +23,9 @@ function rateLimitMemory(key: string, max: number, windowMs: number): boolean {
   return true;
 }
 
-// --- Upstash Redis (shared across all serverless instances) ---
-// Requires UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN env vars.
-// Falls back to in-memory if not configured.
+// --- Upstash Redis (compartido entre todas las instancias serverless) ---
+// Requiere las variables de entorno UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN.
+// Si no están configuradas, recurre al fallback en memoria.
 type UpstashFn = (key: string, max: number, windowMs: number) => Promise<boolean>;
 let upstashFn: UpstashFn | null | 'loading' = null;
 
@@ -62,9 +62,9 @@ async function getUpstashFn(): Promise<UpstashFn | null> {
   }
 }
 
-// On Vercel, x-real-ip is set by the edge to the verified client IP (not spoofable).
-// x-forwarded-for is client-controlled — used only as fallback on non-Vercel deployments
-// to avoid all users sharing a single 'unknown' rate-limit bucket.
+// En Vercel, x-real-ip lo fija el edge con la IP real del cliente verificada (no falsificable).
+// x-forwarded-for lo controla el cliente — se usa solo como fallback en despliegues fuera de Vercel
+// para evitar que todos los usuarios compartan un único bucket de rate-limit 'unknown'.
 export function getClientIp(req: NextRequest): string {
   return (
     req.headers.get('x-real-ip') ??

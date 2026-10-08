@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Código de invitación inválido' }, { status: 400 });
   }
 
-  // Use admin client to bypass RLS — unauthenticated lookup by invite code
+  // Usa el cliente admin para saltarse RLS — búsqueda por código de invitación sin restricción
   const adminClient = createAdminClient();
   const { data: group } = await adminClient
     .from('groups')
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Código de invitación inválido' }, { status: 404 });
   }
 
-  // Already a member — return early before limit check
+  // Ya es miembro — responde antes de comprobar el límite
   const { data: existing } = await supabase
     .from('group_members')
     .select('id')
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ group, already_member: true });
   }
 
-  // Enforce membership limit only for new joins
+  // Aplica el límite de membresías solo para nuevas uniones
   const { count: membershipCount } = await supabase
     .from('group_members')
     .select('id', { count: 'exact', head: true })
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Límite alcanzado: máximo 20 grupos por usuario' }, { status: 400 });
   }
 
-  // Creator joins directly (no approval needed)
+  // El creador se une directamente (no necesita aprobación)
   if (group.created_by === user.id) {
     const { error } = await supabase
       .from('group_members')
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ group, already_member: false, pending: false }, { status: 201 });
   }
 
-  // Check existing pending request
+  // Comprueba si ya existe una solicitud pendiente
   const { data: existingRequest } = await supabase
     .from('join_requests')
     .select('id, status')
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ group, pending: true, already_requested: true });
   }
 
-  // Delete previous rejected request then insert fresh
+  // Elimina la solicitud rechazada anterior y crea una nueva
   if (existingRequest) {
     await supabase.from('join_requests').delete().eq('id', existingRequest.id);
   }
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'Error al enviar solicitud' }, { status: 500 });
 
-  // Fire-and-forget push to group admin
+  // Envía la notificación push al admin del grupo sin esperar respuesta
   ;(async () => {
     if (!group.created_by) return;
     const [{ data: profile }, admin] = [

@@ -12,8 +12,8 @@ const DEBOUNCE_MS = 75_000;
 export async function GET() {
   const supabase = createAdminClient();
 
-  // Find any match that is live, started but still NS, OR recently finished
-  // (to catch uncalculated predictions and repair mis-synced results)
+  // Busca cualquier partido en vivo, empezado pero aún NS, o finalizado recientemente
+  // (para detectar predicciones sin calcular y reparar resultados mal sincronizados)
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
   const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
   const nowIso = new Date().toISOString();
@@ -35,7 +35,7 @@ export async function GET() {
 
   if (needsRefresh) {
     try {
-      // If any knockout match is missing team names, sync all fixtures first
+      // Si algún partido de eliminatoria no tiene nombres de equipo, sincroniza antes todos los partidos
       const { data: unnamedKnockout } = await supabase
         .from('matches')
         .select('id')
@@ -99,7 +99,7 @@ export async function GET() {
 
         const alreadyFinished = ['FT', 'AET', 'PEN'].includes(match.status);
         const scoresAreMissing = match.home_score === null || match.away_score === null;
-        // Repair rows saved before penalty handling: DB score included shootout goals
+        // Repara filas guardadas antes de gestionar los penales: el marcador en BD incluía los goles de la tanda
         const scoresAreWrong = !scoresAreMissing &&
           (match.home_score !== homeScore || match.away_score !== awayScore ||
             (penaltiesHome !== null && match.home_penalties === null));
@@ -130,8 +130,8 @@ export async function GET() {
             .eq('id', match.id);
         }
 
-        // If scores were repaired, recalculate every prediction (they were scored
-        // against the wrong result) and rebuild the points log for this match.
+        // Si se repararon los marcadores, recalcula todas las predicciones (se habían puntuado
+        // contra el resultado incorrecto) y reconstruye el registro de puntos de este partido.
         const forceRecalc = alreadyFinished && scoresAreWrong;
         let predQuery = supabase
           .from('match_predictions')
@@ -189,7 +189,7 @@ export async function GET() {
     }
   }
 
-  // Auto-calculate group prediction points from official standings (top 2 per group)
+  // Calcula automáticamente los puntos de grupos según la clasificación oficial (2 primeros por grupo)
   {
     const groupQualifiers = await getGroupQualifiers();
 
@@ -217,7 +217,7 @@ export async function GET() {
     }
   }
 
-  // Auto-calculate podio points when Final and 3rd place match are finished
+  // Calcula automáticamente los puntos de podio cuando terminan la Final y el partido por el 3er puesto
   const { data: finalMatch } = await supabase
     .from('matches')
     .select('home_team_name, away_team_name, home_score, away_score, winner_team_name')

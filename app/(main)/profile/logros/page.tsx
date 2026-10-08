@@ -91,7 +91,7 @@ export default async function LogrosPage() {
 
   const achievements = getAchievements(stats);
 
-  // Fetch previously earned achievements so they stay unlocked permanently
+  // Obtiene los logros ya conseguidos para que permanezcan desbloqueados
   const { data: earnedRows } = await admin
     .from('xp_events')
     .select('source_id')
@@ -100,7 +100,7 @@ export default async function LogrosPage() {
   const earnedIds = (earnedRows ?? []).map((r: { source_id: string }) => r.source_id);
   const earnedSet = new Set(earnedIds);
 
-  // Award XP for newly completed achievements (idempotent)
+  // Otorga XP por los logros recién completados (idempotente)
   await Promise.all(
     achievements
       .filter((a) => a.current >= a.target || earnedSet.has(a.id))

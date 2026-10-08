@@ -98,7 +98,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
-      {/* Header */}
+      {/* Cabecera */}
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Crown className="text-crown" size={24} />
@@ -117,7 +117,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
         )}
       </div>
 
-      {/* Points guide */}
+      {/* Guía de puntos */}
       <div className="bg-crown/5 border border-crown/20 rounded-2xl p-4">
         <h3 className="text-xs font-bold text-crown uppercase tracking-wider mb-3">Puntos disponibles</h3>
         <div className="space-y-2 text-sm">
@@ -152,7 +152,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Pestañas */}
       <div className="flex bg-surface-card border border-white/10 rounded-xl p-1">
         <button
           onClick={() => setTab('podio')}
@@ -175,7 +175,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
         </button>
       </div>
 
-      {/* Podio tab */}
+      {/* Pestaña de podio */}
       {tab === 'podio' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl p-5 space-y-4">
           {[
@@ -228,7 +228,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
         </div>
       )}
 
-      {/* Groups tab */}
+      {/* Pestaña de grupos */}
       {tab === 'grupos' && (
         <div className="space-y-3">
           {Object.keys(teamsByGroup)
@@ -314,7 +314,7 @@ export function TournamentPredictionsClient({ teams, existingPrediction, groupQu
         </div>
       )}
 
-      {/* Save button */}
+      {/* Botón de guardar */}
       {!locked && (
         <div className="sticky bottom-24 pt-2">
           {error && (

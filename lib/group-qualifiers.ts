@@ -47,8 +47,8 @@ export async function getGroupQualifiers(): Promise<Record<string, string[]>> {
     if (!allFinished) continue;
 
     const stats = new Map<string, TeamStats>();
-    // head-to-head winner: "loserTeam|winnerTeam" not needed; store per pair
-    const h2hWinner = new Map<string, string>(); // "A|B" (sorted) -> winner name or ''
+    // ganador del enfrentamiento directo: no hace falta "equipoPerdedor|equipoGanador", se guarda por pareja
+    const h2hWinner = new Map<string, string>(); // "A|B" (ordenado) -> nombre del ganador o ''
 
     for (const m of matches) {
       const home = m.home_team_name!;

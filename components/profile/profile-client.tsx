@@ -162,7 +162,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
       setNotifStatus('subscribed');
-    } catch { /* ignore */ } finally { setNotifLoading(false); }
+    } catch { /* ignorar */ } finally { setNotifLoading(false); }
   }
 
   async function handleDisableNotifications() {
@@ -173,7 +173,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
       if (sub) await sub.unsubscribe();
       await fetch('/api/notifications/subscribe', { method: 'DELETE' });
       setNotifStatus('unsubscribed');
-    } catch { /* ignore */ } finally { setNotifLoading(false); }
+    } catch { /* ignorar */ } finally { setNotifLoading(false); }
   }
 
   const achievementStats: AchievementStats = {
@@ -235,7 +235,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
 
       setAvatarUrl(urlWithBust);
       await fetch('/api/profile/revalidate', { method: 'POST' });
-      // Award avatar XP (idempotent)
+      // Otorga XP por el avatar (idempotente)
       fetch('/api/xp/avatar', { method: 'POST' }).catch(() => {});
       router.refresh();
     } catch (err) {
@@ -274,13 +274,13 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
       url: window.location.origin,
     };
     if (typeof navigator.share === 'function') {
-      try { await navigator.share(shareData); } catch { /* user cancelled */ }
+      try { await navigator.share(shareData); } catch { /* el usuario canceló */ }
     } else {
       await navigator.clipboard.writeText(window.location.origin);
       setShareStatus('copied');
       setTimeout(() => setShareStatus('idle'), 2500);
     }
-    // Award XP for sharing (max 3 times)
+    // Otorga XP por compartir (máximo 3 veces)
     fetch('/api/xp/share', { method: 'POST' }).catch(() => {});
   }
 
@@ -384,7 +384,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
   return (
     <div className="animate-fade-in max-w-lg mx-auto">
 
-      {/* Hero banner */}
+      {/* Banner principal */}
       <div className="relative h-32 field-gradient overflow-hidden">
         <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/5" />
         <div className="absolute -bottom-16 -left-8 w-36 h-36 rounded-full bg-white/5" />
@@ -394,7 +394,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
 
       <div className="px-4">
 
-        {/* Avatar row */}
+        {/* Fila del avatar */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <div className="relative">
             {/* Avatar */}
@@ -419,7 +419,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               </div>
             </button>
 
-            {/* + button at bottom-right */}
+            {/* Botón + abajo a la derecha */}
             <button
               onClick={() => setShowAvatarMenu((v) => !v)}
               disabled={uploadingAvatar || removingAvatar}
@@ -432,7 +432,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               }
             </button>
 
-            {/* Avatar menu */}
+            {/* Menú de avatar */}
             {showAvatarMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowAvatarMenu(false)} />
@@ -467,7 +467,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
               </>
             )}
 
-            {/* Hidden file inputs */}
+            {/* Inputs de archivo ocultos */}
             <input
               ref={cameraInputRef}
               type="file"
@@ -500,7 +500,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           <p className="text-red-400 text-xs mb-2 -mt-2">{avatarError}</p>
         )}
 
-        {/* XP progress bar under avatar */}
+        {/* Barra de progreso de XP bajo el avatar */}
         <div className="mt-3 mb-1">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -523,7 +523,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </div>
         </div>
 
-        {/* Identity */}
+        {/* Identidad */}
         {editing ? (
           <form onSubmit={handleSave} className="space-y-3 mb-6 bg-surface-card border border-white/10 rounded-2xl p-4 mt-3">
             <p className="text-sm font-semibold text-white mb-1">Editar perfil</p>
@@ -585,7 +585,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </div>
         )}
 
-        {/* Stats card */}
+        {/* Tarjeta de estadísticas */}
         {!showStats ? (
           <button
             onClick={() => setShowStats(true)}
@@ -702,7 +702,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </div>
         </button>
 
-        {/* Share app */}
+        {/* Compartir app */}
         <button
           onClick={handleShare}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-field/20 text-field-light hover:bg-field/8 transition-colors group mb-3"
@@ -718,7 +718,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           {shareStatus === 'idle' && <ChevronRight size={16} className="text-field/40" />}
         </button>
 
-        {/* Notifications toggle */}
+        {/* Interruptor de notificaciones */}
         {notifStatus !== 'loading' && notifStatus !== 'unsupported' && (
           <button
             onClick={notifStatus === 'subscribed' ? handleDisableNotifications : handleEnableNotifications}
@@ -757,7 +757,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </button>
         )}
 
-        {/* Change password */}
+        {/* Cambiar contraseña */}
         {!showPasswordForm ? (
           <button
             onClick={() => { setShowPasswordForm(true); setPasswordError(''); setPasswordSaved(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
@@ -939,7 +939,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </form>
         )}
 
-        {/* Logout */}
+        {/* Cerrar sesión */}
         {!showLogoutConfirm ? (
           <button
             onClick={() => setShowLogoutConfirm(true)}
@@ -974,7 +974,7 @@ export function ProfileClient({ profile, stats, achievementData, levelProgress, 
           </div>
         )}
 
-        {/* Delete account */}
+        {/* Eliminar cuenta */}
         {!showDeleteConfirm ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}

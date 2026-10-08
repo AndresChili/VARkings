@@ -95,94 +95,94 @@ function match(
 }
 
 const matches: MatchInsert[] = [
-  // ── MATCHDAY 1 ────────────────────────────────────────────────
-  // Jun 11 – Group A
+  // ── JORNADA 1 ────────────────────────────────────────────────
+  // Jun 11 – Grupo A
   match('2026-06-11', 'Mexico', 'South Africa', 'A', 19),
   match('2026-06-11', 'South Korea', 'Czechia', 'A', 22),
-  // Jun 12 – Group B, D
+  // Jun 12 – Grupo B, D
   match('2026-06-12', 'Canada', 'Bosnia and Herzegovina', 'B', 19),
   match('2026-06-12', 'USA', 'Paraguay', 'D', 22),
-  // Jun 13 – Group B, C, D
+  // Jun 13 – Grupo B, C, D
   match('2026-06-13', 'Qatar', 'Switzerland', 'B', 15),
   match('2026-06-13', 'Brazil', 'Morocco', 'C', 18),
   match('2026-06-13', 'Haiti', 'Scotland', 'C', 21),
   match('2026-06-13', 'Australia', 'Turkiye', 'D', 0),
-  // Jun 14 – Group E, F
+  // Jun 14 – Grupo E, F
   match('2026-06-14', 'Germany', 'Curacao', 'E', 15),
   match('2026-06-14', 'Ivory Coast', 'Ecuador', 'E', 18),
   match('2026-06-14', 'Netherlands', 'Japan', 'F', 21),
   match('2026-06-14', 'Sweden', 'Tunisia', 'F', 0),
-  // Jun 15 – Group G, H
+  // Jun 15 – Grupo G, H
   match('2026-06-15', 'Iran', 'New Zealand', 'G', 15),
   match('2026-06-15', 'Belgium', 'Egypt', 'G', 18),
   match('2026-06-15', 'Spain', 'Cape Verde', 'H', 21),
   match('2026-06-15', 'Saudi Arabia', 'Uruguay', 'H', 0),
-  // Jun 16 – Group I, J
+  // Jun 16 – Grupo I, J
   match('2026-06-16', 'France', 'Senegal', 'I', 15),
   match('2026-06-16', 'Iraq', 'Norway', 'I', 18),
   match('2026-06-16', 'Argentina', 'Algeria', 'J', 21),
   match('2026-06-16', 'Austria', 'Jordan', 'J', 0),
-  // Jun 17 – Group K, L
+  // Jun 17 – Grupo K, L
   match('2026-06-17', 'Portugal', 'DR Congo', 'K', 15),
   match('2026-06-17', 'Uzbekistan', 'Colombia', 'K', 18),
   match('2026-06-17', 'England', 'Croatia', 'L', 21),
   match('2026-06-17', 'Ghana', 'Panama', 'L', 0),
 
-  // ── MATCHDAY 2 ────────────────────────────────────────────────
-  // Jun 18 – Group A, B
+  // ── JORNADA 2 ────────────────────────────────────────────────
+  // Jun 18 – Grupo A, B
   match('2026-06-18', 'Czechia', 'South Africa', 'A', 15),
   match('2026-06-18', 'Mexico', 'South Korea', 'A', 18),
   match('2026-06-18', 'Switzerland', 'Bosnia and Herzegovina', 'B', 21),
   match('2026-06-18', 'Canada', 'Qatar', 'B', 0),
-  // Jun 19 – Group C, D
+  // Jun 19 – Grupo C, D
   match('2026-06-19', 'Scotland', 'Morocco', 'C', 15),
   match('2026-06-19', 'Brazil', 'Haiti', 'C', 18),
   match('2026-06-19', 'USA', 'Australia', 'D', 21),
   match('2026-06-19', 'Turkiye', 'Paraguay', 'D', 0),
-  // Jun 20 – Group E, F
+  // Jun 20 – Grupo E, F
   match('2026-06-20', 'Germany', 'Ivory Coast', 'E', 15),
   match('2026-06-20', 'Ecuador', 'Curacao', 'E', 18),
   match('2026-06-20', 'Netherlands', 'Sweden', 'F', 21),
   match('2026-06-20', 'Tunisia', 'Japan', 'F', 0),
-  // Jun 21 – Group G, H
+  // Jun 21 – Grupo G, H
   match('2026-06-21', 'Belgium', 'Iran', 'G', 15),
   match('2026-06-21', 'New Zealand', 'Egypt', 'G', 18),
   match('2026-06-21', 'Spain', 'Saudi Arabia', 'H', 21),
   match('2026-06-21', 'Uruguay', 'Cape Verde', 'H', 0),
-  // Jun 22 – Group I, J
+  // Jun 22 – Grupo I, J
   match('2026-06-22', 'France', 'Iraq', 'I', 15),
   match('2026-06-22', 'Norway', 'Senegal', 'I', 18),
   match('2026-06-22', 'Argentina', 'Austria', 'J', 21),
   match('2026-06-22', 'Jordan', 'Algeria', 'J', 0),
-  // Jun 23 – Group K, L
+  // Jun 23 – Grupo K, L
   match('2026-06-23', 'Portugal', 'Uzbekistan', 'K', 15),
   match('2026-06-23', 'Colombia', 'DR Congo', 'K', 18),
   match('2026-06-23', 'England', 'Ghana', 'L', 21),
   match('2026-06-23', 'Panama', 'Croatia', 'L', 0),
 
-  // ── MATCHDAY 3 (simultaneous within group) ────────────────────
-  // Jun 24 – Group A, B, C
+  // ── JORNADA 3 (simultáneos dentro del grupo) ────────────────────
+  // Jun 24 – Grupo A, B, C
   match('2026-06-24', 'Czechia', 'Mexico', 'A', 18),
   match('2026-06-24', 'South Africa', 'South Korea', 'A', 18),
   match('2026-06-24', 'Switzerland', 'Canada', 'B', 18),
   match('2026-06-24', 'Bosnia and Herzegovina', 'Qatar', 'B', 18),
   match('2026-06-24', 'Scotland', 'Brazil', 'C', 22),
   match('2026-06-24', 'Morocco', 'Haiti', 'C', 22),
-  // Jun 25 – Group D, E, F
+  // Jun 25 – Grupo D, E, F
   match('2026-06-25', 'Turkiye', 'USA', 'D', 18),
   match('2026-06-25', 'Paraguay', 'Australia', 'D', 18),
   match('2026-06-25', 'Ecuador', 'Germany', 'E', 18),
   match('2026-06-25', 'Curacao', 'Ivory Coast', 'E', 18),
   match('2026-06-25', 'Japan', 'Sweden', 'F', 22),
   match('2026-06-25', 'Tunisia', 'Netherlands', 'F', 22),
-  // Jun 26 – Group G, H, I
+  // Jun 26 – Grupo G, H, I
   match('2026-06-26', 'Egypt', 'Iran', 'G', 18),
   match('2026-06-26', 'New Zealand', 'Belgium', 'G', 18),
   match('2026-06-26', 'Cape Verde', 'Saudi Arabia', 'H', 18),
   match('2026-06-26', 'Uruguay', 'Spain', 'H', 18),
   match('2026-06-26', 'Norway', 'France', 'I', 22),
   match('2026-06-26', 'Senegal', 'Iraq', 'I', 22),
-  // Jun 27 – Group J, K, L
+  // Jun 27 – Grupo J, K, L
   match('2026-06-27', 'Algeria', 'Austria', 'J', 18),
   match('2026-06-27', 'Jordan', 'Argentina', 'J', 18),
   match('2026-06-27', 'Colombia', 'Portugal', 'K', 18),
@@ -192,7 +192,7 @@ const matches: MatchInsert[] = [
 ];
 
 async function seed() {
-  // Clear existing seeded matches (no api_id) to allow re-runs
+  // Borra los partidos ya sembrados (sin api_id) para permitir reejecuciones
   const { error: delError } = await supabase
     .from('matches')
     .delete()

@@ -34,7 +34,7 @@ export async function POST(
     return NextResponse.json({ error: 'Ya eres el admin' }, { status: 400 });
   }
 
-  // Verify target is a member
+  // Verifica que el destinatario sea miembro
   const adminClient = createAdminClient();
   const { data: member } = await adminClient
     .from('group_members')

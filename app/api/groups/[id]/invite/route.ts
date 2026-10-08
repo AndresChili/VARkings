@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'invitee_id inválido' }, { status: 400 });
   }
 
-  // Verify invitee exists
+  // Verifica que el invitado exista
   const { data: invitee } = await supabase
     .from('profiles')
     .select('id')
@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .maybeSingle();
   if (!invitee) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
 
-  // Any member can invite
+  // Cualquier miembro puede invitar
   const { data: membership } = await supabase
     .from('group_members')
     .select('id')
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq('id', group_id)
     .single();
 
-  // Upsert: reset to pending if previously rejected
+  // Upsert: vuelve a pending si se había rechazado antes
   const { data, error } = await supabase
     .from('group_invites')
     .upsert(
@@ -56,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (error) return NextResponse.json({ error: 'Error al enviar invitación' }, { status: 400 });
 
-  // Fire-and-forget push to invitee
+  // Envía la notificación push al invitado sin esperar respuesta
   ;(async () => {
     const [{ data: profile }, admin] = [
       await supabase.from('profiles').select('username').eq('id', user.id).single(),

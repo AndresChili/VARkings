@@ -68,7 +68,7 @@ export async function GET() {
 
   const achievements = getAchievements(stats);
 
-  // Load previously earned achievements so they stay earned permanently
+  // Carga los logros ya conseguidos para que permanezcan conseguidos
   const { data: earnedRows } = await admin
     .from('xp_events')
     .select('source_id')
@@ -80,7 +80,7 @@ export async function GET() {
     (a) => a.current >= a.target || earnedIds.has(a.id)
   );
 
-  // Award XP for all completed achievements (idempotent upsert)
+  // Otorga XP por todos los logros completados (upsert idempotente)
   await Promise.all(
     completedAchievements.map((a) =>
       awardXP(admin, user.id, 'achievement', a.id, ACHIEVEMENT_XP[a.difficulty])

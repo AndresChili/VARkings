@@ -58,7 +58,7 @@ function AchievementCard({ a, done = false }: { a: Achievement; done?: boolean }
   if (done) {
     return (
       <div className={`relative bg-gradient-to-br ${c.bg} border ${c.border} rounded-2xl p-4 overflow-hidden`}>
-        {/* Decorative circles */}
+        {/* Círculos decorativos */}
         <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
 
@@ -118,7 +118,7 @@ export function AchievementsTab({ stats, earnedIds = [] }: { stats: AchievementS
 
   return (
     <div className="space-y-3 pb-6">
-      {/* Streak banner */}
+      {/* Aviso de racha */}
       <div className="bg-gradient-to-br from-orange-500/25 via-red-500/15 to-orange-700/10 border border-orange-500/30 rounded-2xl px-4 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-orange-500/20 flex items-center justify-center text-xl">
@@ -135,7 +135,7 @@ export function AchievementsTab({ stats, earnedIds = [] }: { stats: AchievementS
         </div>
       </div>
 
-      {/* Overall progress card */}
+      {/* Tarjeta de progreso general */}
       <div className="bg-surface-card border border-white/8 rounded-2xl px-4 py-3.5 flex items-center justify-between">
         <div>
           <p className="text-base font-black text-white tabular-nums">
@@ -154,7 +154,7 @@ export function AchievementsTab({ stats, earnedIds = [] }: { stats: AchievementS
         </div>
       </div>
 
-      {/* Completed */}
+      {/* Completados */}
       {done.length > 0 && (
         <div className="space-y-2.5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider pt-1">Conseguidos ✨</p>
@@ -162,7 +162,7 @@ export function AchievementsTab({ stats, earnedIds = [] }: { stats: AchievementS
         </div>
       )}
 
-      {/* In progress */}
+      {/* En progreso */}
       {pending.length > 0 && (
         <div className="space-y-2.5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider pt-1">En progreso 🔒</p>

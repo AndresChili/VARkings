@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
-// Allowlist of known web push service domains (Chrome/FCM, Firefox, Safari, Edge)
+// Lista blanca de dominios conocidos de servicios push (Chrome/FCM, Firefox, Safari, Edge)
 const PUSH_DOMAIN_ALLOWLIST = [
   'fcm.googleapis.com',
   'push.services.mozilla.com',
@@ -17,9 +17,9 @@ function isValidPushEndpoint(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);
     if (protocol !== 'https:') return false;
-    // Reject raw IP addresses (decimal, IPv6) — real push services use hostnames
+    // Rechaza direcciones IP crudas (decimal, IPv6) — los servicios push reales usan hostnames
     if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) return false;
-    // Require hostname matches a known push provider
+    // Exige que el hostname coincida con un proveedor push conocido
     return PUSH_DOMAIN_ALLOWLIST.some(
       (d) => hostname === d || hostname.endsWith('.' + d)
     );

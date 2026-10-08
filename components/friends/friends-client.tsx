@@ -307,7 +307,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
     setShowAddMenu(false);
     const link = `${window.location.origin}/add/${currentUserId}`;
     if (typeof navigator.share === 'function') {
-      try { await navigator.share({ title: 'VARkings', text: '¡Añádeme como amigo en VARkings!', url: link }); } catch { /* cancelled */ }
+      try { await navigator.share({ title: 'VARkings', text: '¡Añádeme como amigo en VARkings!', url: link }); } catch { /* cancelado */ }
     } else {
       await navigator.clipboard.writeText(link);
       setShareStatus('copied');
@@ -323,7 +323,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   return (
     <div className="animate-fade-in max-w-lg mx-auto px-4 py-4 space-y-6">
 
-      {/* Delete confirmation modal */}
+      {/* Modal de confirmación para eliminar */}
       {confirmDelete && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -363,7 +363,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Pestañas */}
       <div className="flex bg-surface-card border border-white/10 rounded-2xl p-1 gap-1">
         <button
           onClick={() => setActiveTab('friends')}
@@ -391,10 +391,10 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
         </button>
       </div>
 
-      {/* ── AMIGOS TAB ── */}
+      {/* ── PESTAÑA DE AMIGOS ── */}
       {activeTab === 'friends' && (
         <>
-          {/* Search + Add */}
+          {/* Búsqueda + Añadir */}
           <div className="flex gap-2.5 items-stretch">
             <div className="relative flex-1">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -483,7 +483,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
             </div>
           </div>
 
-          {/* Search results */}
+          {/* Resultados de búsqueda */}
           {searched && (
             <div className="space-y-2">
               {searching ? null : searchResults.length === 0 ? (
@@ -540,7 +540,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
             </div>
           )}
 
-          {/* Received requests */}
+          {/* Solicitudes recibidas */}
           {!searched && received.length > 0 && (
             <section>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
@@ -585,7 +585,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
             </section>
           )}
 
-          {/* Friends list */}
+          {/* Lista de amigos */}
           {!searched && (
             <section>
               <div className="flex items-center justify-between mb-3">
@@ -653,7 +653,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
             </section>
           )}
 
-          {/* Sent requests */}
+          {/* Solicitudes enviadas */}
           {!searched && sent.length > 0 && (
             <section>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
@@ -690,7 +690,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
         </>
       )}
 
-      {/* ── RANKING TAB ── */}
+      {/* ── PESTAÑA DE RANKING ── */}
       {activeTab === 'ranking' && (
         <section>
           <div className="flex items-center justify-between mb-3">

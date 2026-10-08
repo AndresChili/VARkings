@@ -514,7 +514,7 @@ export function GroupDetailClient({
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 animate-fade-in">
-      {/* Header */}
+      {/* Cabecera */}
       <div className="relative bg-surface-card border border-white/10 rounded-2xl p-5">
         <div className="absolute inset-0 bg-gradient-to-br from-field-dark/30 via-transparent to-crown/5 pointer-events-none" />
         <div className="relative flex items-start justify-between">
@@ -662,7 +662,7 @@ export function GroupDetailClient({
       </div>
 
 
-      {/* My podio */}
+      {/* Mi podio */}
       <div className={cn(
         'bg-surface-card border rounded-2xl p-4 overflow-hidden relative',
         needsPodioSetup ? 'border-crown/30' : 'border-white/10'
@@ -708,7 +708,7 @@ export function GroupDetailClient({
         )}
       </div>
 
-      {/* Confirms */}
+      {/* Confirmaciones */}
       {showLeaveConfirm && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 animate-slide-up">
           <p className="text-white font-semibold mb-1">¿Salir del grupo?</p>
@@ -770,7 +770,7 @@ export function GroupDetailClient({
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Pestañas */}
       <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
         <button
           onClick={() => setTab('leaderboard')}
@@ -829,7 +829,7 @@ export function GroupDetailClient({
         </button>
       </div>
 
-      {/* Leaderboard */}
+      {/* Clasificación */}
       {tab === 'leaderboard' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
           {localLeaderboard.length === 0 ? (
@@ -891,7 +891,7 @@ export function GroupDetailClient({
         </div>
       )}
 
-      {/* Grupos tab */}
+      {/* Pestaña de grupos */}
       {tab === 'grupos' && (
         <div className="bg-surface-card border border-white/10 rounded-2xl overflow-hidden">
           {gruposLeaderboard.length === 0 ? (
@@ -906,7 +906,7 @@ export function GroupDetailClient({
 
               return (
                 <div key={entry.user_id} className={cn('border-b border-white/5 last:border-0', isExpanded && 'bg-white/3')}>
-                  {/* Row header — tap to expand/collapse */}
+                  {/* Fila de cabecera — toca para expandir/colapsar */}
                   <button
                     onClick={() => setExpandedMemberId(isExpanded ? null : entry.user_id)}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left"
@@ -948,7 +948,7 @@ export function GroupDetailClient({
                     />
                   </button>
 
-                  {/* Expanded picks */}
+                  {/* Predicciones expandidas */}
                   {isExpanded && (
                     <div className="px-4 pb-4">
                       {!hasPicks ? (
@@ -1014,7 +1014,7 @@ export function GroupDetailClient({
         </div>
       )}
 
-      {/* Matches tab */}
+      {/* Pestaña de partidos */}
       {tab === 'matches' && (() => {
         const finishedMatches = liveMatches.filter((m) => isMatchFinished(m.status)).sort((a, b) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime());
         const upcomingMatchesList = liveMatches.filter((m) => !isMatchFinished(m.status));
@@ -1023,7 +1023,7 @@ export function GroupDetailClient({
 
         return (
           <div className="space-y-3">
-            {/* Filter pills */}
+            {/* Píldoras de filtro */}
             <div className="flex bg-surface-card border border-white/10 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setMatchFilter('upcoming')}
@@ -1051,7 +1051,7 @@ export function GroupDetailClient({
               </button>
             </div>
 
-            {/* Live badge */}
+            {/* Insignia de en vivo */}
             {currentlyLive.length > 0 && matchFilter === 'upcoming' && (
               <div className="flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -1088,7 +1088,7 @@ export function GroupDetailClient({
                       onClick={() => setExpandedMatchId(isExpanded ? null : match.id)}
                       className="w-full text-left"
                     >
-                      {/* Stage + fecha */}
+                      {/* Fase + fecha */}
                       <div className="flex items-center justify-between px-4 pt-3 pb-1">
                         <span className={cn(
                           'text-[11px] font-bold uppercase tracking-wider',
@@ -1134,7 +1134,7 @@ export function GroupDetailClient({
                         </div>
                       </div>
 
-                      {/* Footer */}
+                      {/* Pie */}
                       <div className="flex items-center justify-between px-4 py-2 border-t border-white/5">
                         <span className="text-[11px] text-gray-600">
                           {predsCount > 0
@@ -1148,7 +1148,7 @@ export function GroupDetailClient({
                       </div>
                     </button>
 
-                    {/* Expanded predictions */}
+                    {/* Predicciones expandidas */}
                     {isExpanded && (
                       <div className="border-t border-white/5 divide-y divide-white/5">
                         {localLeaderboard.map((entry) => {
@@ -1205,7 +1205,7 @@ export function GroupDetailClient({
           </div>
         );
       })()}
-      {/* Chat tab — always mounted so Realtime subscription tracks unread */}
+      {/* Pestaña de chat — siempre montada para que la suscripción Realtime cuente los no leídos */}
       <GroupChat
         groupId={group.id}
         userId={userId}
@@ -1215,7 +1215,7 @@ export function GroupDetailClient({
       />
     </div>
 
-    {/* Transfer admin modal */}
+    {/* Modal de transferir administrador */}
     {showTransferModal && (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -1263,7 +1263,7 @@ export function GroupDetailClient({
       </div>
     )}
 
-    {/* Member profile modal */}
+    {/* Modal de perfil de miembro */}
     {selectedMemberId && (() => {
       const entry = localLeaderboard.find((e) => e.user_id === selectedMemberId);
       if (!entry) return null;
@@ -1279,7 +1279,7 @@ export function GroupDetailClient({
             className="w-full max-w-sm bg-surface-card border border-white/10 rounded-3xl p-6 shadow-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
+            {/* Cabecera */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className={cn('w-12 h-12 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold', isOwnProfile ? 'bg-field text-white' : 'bg-surface-hover text-gray-300')}>
@@ -1329,7 +1329,7 @@ export function GroupDetailClient({
               )}
             </div>
 
-            {/* Actions */}
+            {/* Acciones */}
             <div className="space-y-2">
               {!isOwnProfile && (
                 <button
@@ -1370,7 +1370,7 @@ export function GroupDetailClient({
       );
     })()}
 
-    {/* Podio modal */}
+    {/* Modal de podio */}
     {showPodio && (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
         <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">
@@ -1495,7 +1495,7 @@ export function GroupDetailClient({
       </div>
     )}
 
-    {/* Pending requests modal (admin only) */}
+    {/* Modal de solicitudes pendientes (solo admin) */}
     {showRequestsModal && (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -1550,7 +1550,7 @@ export function GroupDetailClient({
       </div>
     )}
 
-    {/* Invite friends modal */}
+    {/* Modal de invitar amigos */}
     {showInviteFriends && (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -1560,7 +1560,7 @@ export function GroupDetailClient({
           className="w-full max-w-sm bg-surface-card border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-slide-up"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
+          {/* Cabecera */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
             <div>
               <p className="font-bold text-white text-base">Invitar amigos</p>
@@ -1571,7 +1571,7 @@ export function GroupDetailClient({
             </button>
           </div>
 
-          {/* Friends list */}
+          {/* Lista de amigos */}
           <div className="max-h-80 overflow-y-auto">
             {loadingFriends ? (
               <div className="flex items-center justify-center py-10">
@@ -1616,7 +1616,7 @@ export function GroupDetailClient({
             )}
           </div>
 
-          {/* Invite code footer */}
+          {/* Pie con el código de invitación */}
           <div className="px-5 py-4 border-t border-white/5 bg-white/2">
             <p className="text-xs text-gray-500 mb-1">Código del grupo</p>
             <div className="flex items-center justify-between">
@@ -1637,7 +1637,7 @@ export function GroupDetailClient({
       </div>
     )}
 
-    {/* Grupos modal */}
+    {/* Modal de grupos */}
     {showGroups && (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
         <div className="bg-surface-card border border-white/10 rounded-2xl w-full max-w-md animate-slide-up overflow-hidden">

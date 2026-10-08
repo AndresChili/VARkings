@@ -32,9 +32,9 @@ export async function DELETE(req: NextRequest) {
 
   const adminClient = createAdminClient();
 
-  // Delete user data explicitly before deleting the auth account.
-  // Supabase cascades may handle some of these, but push_subscriptions
-  // and predictions contain PII that must be removed for GDPR compliance.
+  // Borra explícitamente los datos del usuario antes de eliminar la cuenta de auth.
+  // Los cascades de Supabase podrían cubrir algunos de estos, pero push_subscriptions
+  // y las predicciones contienen datos personales que deben eliminarse por cumplimiento del RGPD.
   await Promise.allSettled([
     adminClient.from('push_subscriptions').delete().eq('user_id', user.id),
     adminClient.from('match_predictions').delete().eq('user_id', user.id),

@@ -25,7 +25,7 @@ export async function DELETE(
   const adminClient = createAdminClient();
 
   if (group.created_by === user.id) {
-    // Find oldest other member to transfer admin to
+    // Busca al miembro más antiguo para transferirle el rol de admin
     const { data: nextAdmin } = await adminClient
       .from('group_members')
       .select('user_id')
@@ -36,13 +36,13 @@ export async function DELETE(
       .single();
 
     if (!nextAdmin) {
-      // No other members — delete the group entirely
+      // No hay más miembros — elimina el grupo por completo
       const { error } = await adminClient.from('groups').delete().eq('id', id);
       if (error) return NextResponse.json({ error: 'Error al eliminar el grupo' }, { status: 500 });
       return NextResponse.json({ success: true });
     }
 
-    // Transfer admin
+    // Transfiere el rol de admin
     const { error: transferError } = await adminClient
       .from('groups')
       .update({ created_by: nextAdmin.user_id })
