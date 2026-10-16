@@ -1,5 +1,5 @@
 -- VARkings World Cup 2026 — Full consolidated schema
--- Incorporates migrations 001-012. Run on a fresh Supabase project.
+-- Incorporates migrations 001-015. Run on a fresh Supabase project.
 
 -- =====================================================
 -- EXTENSIONS
@@ -193,15 +193,28 @@ CREATE TABLE public.join_requests (
 
 -- Per-group podio predictions (independent per quiniela group)
 CREATE TABLE public.group_tournament_predictions (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id    UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  champion    TEXT,
-  runner_up   TEXT,
-  third_place TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id            UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+  user_id             UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  champion            TEXT,
+  runner_up           TEXT,
+  third_place         TEXT,
+  champion_points     INTEGER NOT NULL DEFAULT 0,
+  runner_up_points    INTEGER NOT NULL DEFAULT 0,
+  third_place_points  INTEGER NOT NULL DEFAULT 0,
+  is_calculated       BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(group_id, user_id)
+);
+
+-- Group chat messages
+CREATE TABLE public.group_messages (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id   UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content    TEXT NOT NULL CHECK (char_length(content) > 0 AND char_length(content) <= 500),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 -- =====================================================
@@ -219,6 +232,7 @@ CREATE INDEX idx_groups_invite_code            ON public.groups(invite_code);
 CREATE INDEX idx_friendships_requester         ON public.friendships(requester_id);
 CREATE INDEX idx_friendships_addressee         ON public.friendships(addressee_id);
 CREATE INDEX idx_friendships_status            ON public.friendships(status);
+CREATE INDEX group_messages_group_id_created_at_idx ON public.group_messages(group_id, created_at DESC);
 
 -- =====================================================
 -- STORAGE
@@ -401,7 +415,8 @@ $$;
 -- =====================================================
 
 -- Per-group leaderboard. Match points only count for matches played AFTER
--- the group was created; podio/group-stage prediction points are always included.
+-- the group was created; podio points come from group_tournament_predictions
+-- (per-group picks), group-stage points from the global tournament_predictions.
 CREATE OR REPLACE VIEW public.group_leaderboard AS
 SELECT
   gm.group_id,
@@ -410,29 +425,31 @@ SELECT
   p.full_name,
   p.avatar_url,
   COALESCE(SUM(CASE WHEN m.match_date >= g.created_at THEN mp.points_total ELSE 0 END), 0)
-    + COALESCE(tp.champion_points, 0)
-    + COALESCE(tp.runner_up_points, 0)
-    + COALESCE(tp.third_place_points, 0)
-    + COALESCE(tp.group_predictions_points, 0)                                                 AS total_points,
+    + COALESCE(gtp.champion_points, 0)
+    + COALESCE(gtp.runner_up_points, 0)
+    + COALESCE(gtp.third_place_points, 0)
+    + COALESCE(tp.group_predictions_points, 0) AS total_points,
   COALESCE(COUNT(CASE WHEN mp.points_total > 0 AND mp.is_calculated AND m.match_date >= g.created_at THEN 1 END), 0) AS scored_matches,
   COALESCE(COUNT(CASE WHEN mp.is_calculated AND m.match_date >= g.created_at THEN 1 END), 0)  AS calculated_matches,
   COALESCE(COUNT(CASE WHEN mp.id IS NOT NULL AND m.match_date >= g.created_at THEN 1 END), 0) AS total_predictions,
-  COALESCE(tp.champion_points, 0)
-    + COALESCE(tp.runner_up_points, 0)
-    + COALESCE(tp.third_place_points, 0)                                                       AS podio_points,
-  COALESCE(tp.group_predictions_points, 0)                                                     AS groups_points,
-  COALESCE(SUM(CASE WHEN m.match_date >= g.created_at THEN mp.points_total ELSE 0 END), 0)    AS matches_points
+  COALESCE(gtp.champion_points, 0) + COALESCE(gtp.runner_up_points, 0)
+    + COALESCE(gtp.third_place_points, 0) AS podio_points,
+  COALESCE(tp.group_predictions_points, 0) AS groups_points,
+  COALESCE(SUM(CASE WHEN m.match_date >= g.created_at THEN mp.points_total ELSE 0 END), 0) AS matches_points
 FROM public.group_members gm
 JOIN public.groups g              ON g.id  = gm.group_id
 JOIN public.profiles p            ON p.id  = gm.user_id
 LEFT JOIN public.match_predictions mp  ON mp.user_id = gm.user_id
 LEFT JOIN public.matches m             ON m.id = mp.match_id
 LEFT JOIN public.tournament_predictions tp ON tp.user_id = gm.user_id
+LEFT JOIN public.group_tournament_predictions gtp
+  ON gtp.user_id = gm.user_id AND gtp.group_id = gm.group_id
 GROUP BY
   gm.group_id, gm.user_id,
   p.username, p.full_name, p.avatar_url,
   g.created_at,
-  tp.champion_points, tp.runner_up_points, tp.third_place_points, tp.group_predictions_points;
+  gtp.champion_points, gtp.runner_up_points, gtp.third_place_points,
+  tp.group_predictions_points;
 
 -- =====================================================
 -- ROW LEVEL SECURITY
@@ -453,6 +470,7 @@ ALTER TABLE public.suggestions                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_invites               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.join_requests               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_tournament_predictions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.group_messages               ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles_select_all"  ON public.profiles FOR SELECT USING (TRUE);
@@ -595,6 +613,24 @@ CREATE POLICY "group_tp_insert" ON public.group_tournament_predictions FOR INSER
 CREATE POLICY "group_tp_update" ON public.group_tournament_predictions FOR UPDATE USING (
   user_id = auth.uid()
 );
+
+-- group_messages
+CREATE POLICY "group_messages_select" ON public.group_messages FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.group_members
+    WHERE group_members.group_id = group_messages.group_id AND group_members.user_id = auth.uid()
+  )
+);
+CREATE POLICY "group_messages_insert" ON public.group_messages FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1 FROM public.group_members
+    WHERE group_members.group_id = group_messages.group_id AND group_members.user_id = auth.uid()
+  )
+);
+
+-- Habilita Realtime para el chat de grupo
+ALTER PUBLICATION supabase_realtime ADD TABLE public.group_messages;
 
 -- =====================================================
 -- STORAGE POLICIES (avatars bucket)

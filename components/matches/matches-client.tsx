@@ -74,7 +74,9 @@ export function MatchesClient({ matches: initialMatches, predictionMap, basePath
         const res = await fetch('/api/matches');
         if (!res.ok) return;
         setMatches(await res.json());
-      } catch {}
+      } catch {
+        // polling silencioso: si falla, se reintenta en el siguiente ciclo
+      }
     }, 30_000);
     return () => clearInterval(interval);
   }, []);

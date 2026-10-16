@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { format, formatDistanceToNow, isPast, addHours } from 'date-fns';
+import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function cn(...inputs: ClassValue[]) {
@@ -17,20 +17,8 @@ export function formatMatchDateLong(dateString: string): string {
   return format(date, "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es });
 }
 
-export function timeUntilMatch(dateString: string): string {
-  const date = new Date(dateString);
-  if (isPast(date)) return 'Partido comenzado';
-  return `En ${formatDistanceToNow(date, { locale: es })}`;
-}
-
 export function isMatchStarted(dateString: string): boolean {
   return isPast(new Date(dateString));
-}
-
-export function isMatchSoon(dateString: string): boolean {
-  const date = new Date(dateString);
-  const oneHourFromNow = addHours(new Date(), 1);
-  return date <= oneHourFromNow && !isPast(date);
 }
 
 export function getMatchStatusLabel(status: string): string {

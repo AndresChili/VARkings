@@ -15,7 +15,12 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+
+# editores
+.vscode/
+.idea/
 
 # debug
 npm-debug.log*
@@ -38,8 +43,6 @@ next-env.d.ts
 /public/workbox-*.js
 /public/worker-*.js
 /public/swe-worker-*.js
-
-.vercel
 
 # Supabase cron setup con secretos
 supabase/cron_setup.local.sql
