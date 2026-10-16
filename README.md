@@ -6,11 +6,6 @@ Quiniela para predecir los resultados del Mundial 2026, pensada para jugar entre
 
 **Demo:** [va-rkings.vercel.app/demo](https://va-rkings.vercel.app/demo) — sin necesidad de registrarte.
 
-![Pantalla de partidos](docs/screenshots/partidos.png)
-![Clasificación de un grupo](docs/screenshots/clasificacion.png)
-![Perfil de usuario](docs/screenshots/perfil.png)
-![Logros](docs/screenshots/logros.png)
-
 ## Funcionalidades
 
 - **Predicciones por partido**: antes de cada partido, el usuario predice el marcador exacto. Si el partido es de eliminatoria y el usuario predice un empate, también elige qué equipo pasa de ronda.
