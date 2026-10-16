@@ -71,6 +71,10 @@ npm run test        # Vitest
 npm run build       # build de producción
 ```
 
+## Licencia
+
+MIT. Consulta el archivo [LICENSE](LICENSE).
+
 ---
 
 Desarrollado con asistencia de IA (Claude Code).
