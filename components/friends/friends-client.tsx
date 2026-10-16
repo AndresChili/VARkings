@@ -101,7 +101,7 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
   const [searchResults, setSearchResults] = useState<FriendProfile[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [loading] = useState<Record<string, boolean>>({});
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ friendshipId: string; username: string; otherUserId: string } | null>(null);
@@ -220,9 +220,6 @@ export function FriendsClient({ currentUserId, friendships: initial, profiles: i
       setSearched(false);
     }
   }
-
-  const setItemLoading = (id: string, val: boolean) =>
-    setLoading((prev) => ({ ...prev, [id]: val }));
 
   async function sendRequest(addressee: FriendProfile) {
     const tempId = `temp-${Date.now()}`;

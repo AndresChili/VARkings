@@ -128,7 +128,7 @@ export function DashboardClient({
   const supabase = createClient();
   const [localGroups, setLocalGroups] = useState<GroupEntry[]>(initialGroups);
   const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>(initialInvites);
-  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [respondingId] = useState<string | null>(null);
   const [acceptedPendingGroup, setAcceptedPendingGroup] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
