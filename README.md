@@ -1,13 +1,10 @@
 # VARkings
 
+[![CI](https://github.com/AndresChili/VARkings/actions/workflows/ci.yml/badge.svg)](https://github.com/AndresChili/VARkings/actions/workflows/ci.yml)
+
 Quiniela para predecir los resultados del Mundial 2026, pensada para jugar entre grupos de amigos. Cada usuario predice marcadores, clasificados de grupo y el podio final del torneo, y compite por puntos dentro de sus propios grupos privados.
 
 **Demo:** [va-rkings.vercel.app/demo](https://va-rkings.vercel.app/demo) — sin necesidad de registrarte.
-
-![Pantalla de partidos](docs/screenshots/partidos.png)
-![Clasificación de un grupo](docs/screenshots/clasificacion.png)
-![Perfil de usuario](docs/screenshots/perfil.png)
-![Logros](docs/screenshots/logros.png)
 
 ## Funcionalidades
 
@@ -46,12 +43,32 @@ Finalizado. Se usó durante todo el Mundial 2026 con unos 30-40 usuarios reales 
 - PWA con notificaciones push
 - Vercel: despliegue y tareas programadas (cron)
 
+## Tests
+
+La suite de Vitest cubre la lógica pura del sistema de puntuación y niveles
+(`lib/scoring.ts` y `lib/xp.ts`): puntos por partido, clasificados de grupo,
+podio final (incluyendo eliminatorias decididas por penales) y el cálculo
+de nivel/progreso de XP.
+
+```bash
+npm run test
+```
+
 ## Local
 
 ```bash
 npm install
 cp .env.example .env.local   # completa tus propias claves
 npm run dev
+```
+
+Otros scripts disponibles:
+
+```bash
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
+npm run test        # Vitest
+npm run build       # build de producción
 ```
 
 ---

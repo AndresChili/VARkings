@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigationGuard } from '@/hooks/use-navigation-guard';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Copy, Check, MoreVertical, ChevronRight, ChevronDown, Crown, Trophy, Target, X, Lock, LogOut, UserCheck, UserX, Bell, Search, ChevronLeft, Layers, UserPlus, Loader2, User, MessageCircle } from 'lucide-react';
@@ -111,7 +110,7 @@ export function GroupDetailClient({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
-  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [removingUserId] = useState<string | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialRequests);
@@ -840,7 +839,6 @@ export function GroupDetailClient({
             localLeaderboard.map((entry, idx) => {
               const rank = idx + 1;
               const isMe = entry.user_id === userId;
-              const picks = championPicks[entry.user_id];
               const rankStyle = rank <= 3 ? RANK_STYLES[rank - 1] : null;
               return (
                 <button

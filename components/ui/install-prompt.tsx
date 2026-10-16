@@ -91,7 +91,7 @@ export function InstallPrompt() {
                 <polyline points="16 6 12 2 8 6"/>
                 <line x1="12" y1="2" x2="12" y2="15"/>
               </svg>
-              {' '}y luego <strong className="text-white/80">"Añadir a pantalla de inicio"</strong>
+              {' '}y luego <strong className="text-white/80">&quot;Añadir a pantalla de inicio&quot;</strong>
             </p>
           </>
         ) : deferredPrompt ? (
@@ -103,7 +103,7 @@ export function InstallPrompt() {
           <>
             <p className="text-sm font-semibold text-white">Instalar VARkings</p>
             <p className="text-xs text-white/60">
-              Pulsa <strong className="text-white/80">⋮</strong> en Chrome y elige <strong className="text-white/80">"Instalar app"</strong> o <strong className="text-white/80">"Añadir a pantalla de inicio"</strong>
+              Pulsa <strong className="text-white/80">⋮</strong> en Chrome y elige <strong className="text-white/80">&quot;Instalar app&quot;</strong> o <strong className="text-white/80">&quot;Añadir a pantalla de inicio&quot;</strong>
             </p>
           </>
         )}
