@@ -2,14 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trophy, CheckCircle, Lock } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Lock } from 'lucide-react';
 import type { Match, MatchPrediction } from '@/types';
 import {
   cn, formatMatchDateLong, isMatchStarted, getMatchStatusLabel,
   isMatchLive, isMatchFinished, getPointsColor
 } from '@/lib/utils';
-import { calculateMatchPoints } from '@/lib/scoring';
 import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 import { TEAM_NAME_ES } from '@/lib/teams';
 
@@ -53,14 +51,6 @@ export function MatchPredictionClient({ match, existingPrediction, basePath = ''
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
-
-  const preview =
-    homeScore !== '' && awayScore !== '' && match.home_score != null && match.away_score != null
-      ? calculateMatchPoints(+homeScore, +awayScore, match.home_score, match.away_score, {
-          predictedKnockoutWinner: knockoutWinner,
-          actualKnockoutWinner: match.winner_team_name,
-        })
-      : null;
 
   async function handleDelete() {
     if (started || deleting) return;

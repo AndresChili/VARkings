@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Trophy, Shield, CheckCircle, Lock, Crown, Star, X } from 'lucide-react';
+import { Trophy, Shield, CheckCircle, Crown, X } from 'lucide-react';
 import type { Team, TournamentPrediction } from '@/types';
-import { cn, WC_GROUPS, isTournamentLocked, getTournamentDeadlineText, TOURNAMENT_LOCK_DATE } from '@/lib/utils';
+import { cn, isTournamentLocked, getTournamentDeadlineText, TOURNAMENT_LOCK_DATE } from '@/lib/utils';
 import { triggerAchievementCheck } from '@/components/ui/achievement-checker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

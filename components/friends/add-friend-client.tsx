@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { UserPlus, Check, Clock, Users, ArrowLeft, Loader2, LogIn } from 'lucide-react';
+import { UserPlus, Clock, Users, ArrowLeft, Loader2, LogIn } from 'lucide-react';
 import { isValidAvatarUrl } from '@/lib/avatar';
 
 interface Profile {
@@ -62,7 +62,6 @@ export function AddFriendClient({ currentUserId, target, existingFriendship: ini
     setFriendship(null);
   }
 
-  const isSelf = false;
   const isSent = friendship?.requester_id === currentUserId && friendship?.status === 'pending';
   const isReceived = friendship?.addressee_id === currentUserId && friendship?.status === 'pending';
   const isAccepted = friendship?.status === 'accepted';
