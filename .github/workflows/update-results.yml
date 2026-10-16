@@ -1,8 +1,8 @@
 name: Update Match Results
 
+# El Mundial 2026 terminó y la app ya no está en mantenimiento activo:
+# se quita el "schedule" y el workflow queda solo para ejecución manual.
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
