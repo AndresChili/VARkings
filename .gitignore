@@ -33,9 +33,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# PWA
+# PWA (generados por next-pwa en cada build)
 /public/sw.js
 /public/workbox-*.js
+/public/worker-*.js
+/public/swe-worker-*.js
 
 .vercel
 
