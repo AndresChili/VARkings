@@ -38,21 +38,6 @@ export const getCachedAllMatches = unstable_cache(
   { revalidate: 30, tags: ['matches'] }
 );
 
-export const getCachedUpcomingMatches = unstable_cache(
-  async () => {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from('matches')
-      .select('*')
-      .gte('match_date', new Date().toISOString())
-      .order('match_date', { ascending: true })
-      .limit(10);
-    return data ?? [];
-  },
-  ['matches-upcoming'],
-  { revalidate: 60, tags: ['matches'] }
-);
-
 export function getCachedUserProfile(userId: string) {
   return unstable_cache(
     async () => {

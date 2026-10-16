@@ -150,7 +150,9 @@ export function GroupDetailClient({
             return { ...m, status: fresh.status, home_score: fresh.home_score, away_score: fresh.away_score };
           })
         );
-      } catch {}
+      } catch {
+        // polling silencioso: si falla, se reintenta en el siguiente ciclo
+      }
     }, 30_000);
     return () => clearInterval(interval);
   }, []);
