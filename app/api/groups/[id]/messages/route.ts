@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function getMembership(supabase: Awaited<ReturnType<typeof createClient>>, groupId: string, userId: string) {
   const { data } = await supabase
     .from('group_members')
@@ -13,6 +15,8 @@ async function getMembership(supabase: Awaited<ReturnType<typeof createClient>>,
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: groupId } = await params;
+  if (!UUID_RE.test(groupId)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,6 +38,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: groupId } = await params;
+  if (!UUID_RE.test(groupId)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
